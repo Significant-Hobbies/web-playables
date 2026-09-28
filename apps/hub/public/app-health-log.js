@@ -3,11 +3,11 @@
 // Logs tab at health.sassmaker.com. window.appHealthLog(event, options) is
 // available for custom events. Source: app-health/examples/dropin-log-client.
 (function () {
-  var KEY = 'ahk_pub_7119b27bd4cf2582bb5a8187546890f27cbbc8e2e7035a54dd8864f140168b17',
-    ENV = 'production',
-    URL = 'https://ingest.sassmaker.com/v1/logs';
+  var KEY = "ahk_pub_7119b27bd4cf2582bb5a8187546890f27cbbc8e2e7035a54dd8864f140168b17",
+    ENV = "production",
+    URL = "https://ingest.sassmaker.com/v1/logs";
   // No-op until a browser public key (ahk_pub_...) is provisioned above.
-  if (KEY.indexOf('ahk_pub_') !== 0) return;
+  if (KEY.indexOf("ahk_pub_") !== 0) return;
   function id() {
     return crypto.randomUUID();
   }
@@ -17,18 +17,18 @@
       src = o.props || {};
     for (var k in src)
       if (src[k] !== undefined)
-        props[k] = typeof src[k] === 'string' ? src[k].slice(0, 500) : src[k];
+        props[k] = typeof src[k] === "string" ? src[k].slice(0, 500) : src[k];
     var body = JSON.stringify({
       public_key: KEY,
       batch_id: id(),
-      schema_version: 'v1',
+      schema_version: "v1",
       environment: ENV,
       logs: [
         {
           log_id: id(),
           timestamp: Date.now(),
           event: event,
-          level: o.level || 'info',
+          level: o.level || "info",
           title: o.title,
           description: o.description,
           icon: o.icon,
@@ -36,56 +36,56 @@
         },
       ],
     });
-    if (document.visibilityState === 'hidden' && navigator.sendBeacon) {
-      navigator.sendBeacon(URL, new Blob([body], { type: 'text/plain' }));
+    if (document.visibilityState === "hidden" && navigator.sendBeacon) {
+      navigator.sendBeacon(URL, new Blob([body], { type: "text/plain" }));
       return;
     }
     fetch(URL, {
-      method: 'POST',
-      headers: { 'content-type': 'text/plain' },
+      method: "POST",
+      headers: { "content-type": "text/plain" },
       body: body,
       keepalive: true,
     }).catch(function () {});
   }
   window.appHealthLog = send;
   document.addEventListener(
-    'submit',
+    "submit",
     function (e) {
       var f = e.target;
-      if (!f || f.tagName !== 'FORM') return;
-      send('form.submitted', {
-        title: f.id || f.getAttribute('name') || f.getAttribute('action') || 'form',
+      if (!f || f.tagName !== "FORM") return;
+      send("form.submitted", {
+        title: f.id || f.getAttribute("name") || f.getAttribute("action") || "form",
         props: { page: location.pathname },
       });
     },
     true,
   );
   document.addEventListener(
-    'click',
+    "click",
     function (e) {
-      var t = e.target && e.target.closest ? e.target.closest('[data-log]') : null;
-      var name = t && t.getAttribute('data-log');
+      var t = e.target && e.target.closest ? e.target.closest("[data-log]") : null;
+      var name = t && t.getAttribute("data-log");
       if (name)
         send(name, {
-          title: (t.textContent || '').trim().slice(0, 120) || name,
+          title: (t.textContent || "").trim().slice(0, 120) || name,
           props: { page: location.pathname },
         });
     },
     true,
   );
-  window.addEventListener('error', function (e) {
-    send('client.error', {
-      level: 'error',
-      title: String(e.message || 'error').slice(0, 200),
+  window.addEventListener("error", function (e) {
+    send("client.error", {
+      level: "error",
+      title: String(e.message || "error").slice(0, 200),
       props: { page: location.pathname },
     });
   });
-  window.addEventListener('unhandledrejection', function (e) {
+  window.addEventListener("unhandledrejection", function (e) {
     var r = e.reason && e.reason.message ? e.reason.message : String(e.reason);
-    send('client.error', {
-      level: 'error',
+    send("client.error", {
+      level: "error",
       title: r.slice(0, 200),
-      props: { page: location.pathname, kind: 'rejection' },
+      props: { page: location.pathname, kind: "rejection" },
     });
   });
 })();
