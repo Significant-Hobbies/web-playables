@@ -25,10 +25,33 @@ function createCard(game: GameMeta) {
   if (card instanceof HTMLAnchorElement) {
     card.href = `./play/${game.id}/`;
     card.setAttribute("aria-label", `Play ${game.title}`);
-    card.addEventListener("click", () => {
-      const health = (window as Window & { appHealth?: { track: (name: string) => void } })
-        .appHealth;
+    card.addEventListener("click", (event) => {
+      const health = (
+        window as Window & {
+          appHealth?: { track: (name: string) => void; flush?: () => Promise<unknown> };
+        }
+      ).appHealth;
       health?.track("game_opened");
+      if (
+        !health ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      )
+        return;
+      event.preventDefault();
+      let navigated = false;
+      const navigate = () => {
+        if (navigated) return;
+        navigated = true;
+        window.location.assign(card.href);
+      };
+      window.setTimeout(navigate, 800);
+      Promise.resolve(health.flush?.())
+        .catch(() => {})
+        .finally(navigate);
     });
   }
 
