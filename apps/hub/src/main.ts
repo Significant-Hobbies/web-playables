@@ -25,6 +25,11 @@ function createCard(game: GameMeta) {
   if (card instanceof HTMLAnchorElement) {
     card.href = `./play/${game.id}/`;
     card.setAttribute("aria-label", `Play ${game.title}`);
+    card.addEventListener("click", () => {
+      const health = (window as Window & { appHealth?: { track: (name: string) => void } })
+        .appHealth;
+      health?.track("game_opened");
+    });
   }
 
   const art = document.createElement("div");
