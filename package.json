@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
-    "knip": "^6.6.3"
+    "knip": "^6.6.3",
+    "wrangler": "4.124.0"
   }
 }
