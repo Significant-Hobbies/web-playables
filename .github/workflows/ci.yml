@@ -18,6 +18,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run check
+      - name: Run Idle Startup test suite
+        working-directory: games/idle-startup
+        run: pnpm test
       - name: Verify search discovery output
         run: |
           grep -Fq 'https://idle.aliveville.com/sitemap.xml' apps/hub/dist/robots.txt
