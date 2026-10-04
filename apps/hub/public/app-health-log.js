@@ -2,7 +2,7 @@
 // Logs form submits, clicks on [data-log] elements, and client errors to the
 // Logs tab at health.sassmaker.com. window.appHealthLog(event, options) is
 // available for custom events. Source: app-health/examples/dropin-log-client.
-(function () {
+(() => {
   var KEY = "ahk_pub_0ac38e4a0b9da683704ce1845d9fd0edd04d75072845fc8f304e9f36346868b2",
     ENV = "production",
     URL = "https://ingest.sassmaker.com/v1/logs";
@@ -45,12 +45,12 @@
       headers: { "content-type": "text/plain" },
       body: body,
       keepalive: true,
-    }).catch(function () {});
+    }).catch(() => {});
   }
   window.appHealthLog = send;
   document.addEventListener(
     "submit",
-    function (e) {
+    (e) => {
       var f = e.target;
       if (!f || f.tagName !== "FORM") return;
       send("form.submitted", {
@@ -62,7 +62,7 @@
   );
   document.addEventListener(
     "click",
-    function (e) {
+    (e) => {
       var t = e.target && e.target.closest ? e.target.closest("[data-log]") : null;
       var name = t && t.getAttribute("data-log");
       if (name)
@@ -73,14 +73,14 @@
     },
     true,
   );
-  window.addEventListener("error", function (e) {
+  window.addEventListener("error", (e) => {
     send("client.error", {
       level: "error",
       title: String(e.message || "error").slice(0, 200),
       props: { page: location.pathname },
     });
   });
-  window.addEventListener("unhandledrejection", function (e) {
+  window.addEventListener("unhandledrejection", (e) => {
     var r = e.reason && e.reason.message ? e.reason.message : String(e.reason);
     send("client.error", {
       level: "error",
