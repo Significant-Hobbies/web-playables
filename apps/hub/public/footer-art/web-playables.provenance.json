@@ -1,0 +1,19 @@
+{
+  "asset": "web-playables.webp",
+  "credit": "Original illustration for Web Playables",
+  "dimensions": {
+    "width": 2169,
+    "height": 725
+  },
+  "original": {
+    "format": "PNG",
+    "bytes": 1605867,
+    "sha256": "630990cbaba6e843108b6b8f0bb9827028f9a532ca2b6e405af0f7ee2acf1426"
+  },
+  "derivative": {
+    "format": "lossless WebP",
+    "bytes": 1267520,
+    "sha256": "75ee5d1549bebbc3507e5e945c3a93ad88befbdce46982bbee0c35d592ac9bc8",
+    "decodedPixelsIdentical": true
+  }
+}
