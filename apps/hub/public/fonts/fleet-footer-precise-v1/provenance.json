@@ -1,0 +1,51 @@
+{
+  "accessed": "2026-10-04",
+  "source": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&family=Geist:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Geist+Mono:wght@400&display=swap",
+  "fonts": [
+    {
+      "family": "Geist",
+      "source": "https://fonts.gstatic.com/s/geist/v5/gyByhwUxId8gMEwcGFU.woff2",
+      "licenseSource": "https://raw.githubusercontent.com/google/fonts/main/ofl/geist/OFL.txt",
+      "sha256": "19f9c92546aa300c312235e3125af1b81394d8db9a4bc4a425cd5b641d2d54e1",
+      "bytes": 29400,
+      "axes": {
+        "wght": [100.0, 900.0]
+      },
+      "names": ["Geist"],
+      "asset": "geist.woff2",
+      "license": "geist-OFL.txt",
+      "licenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "licenseBytes": 4387
+    },
+    {
+      "family": "Geist Mono",
+      "source": "https://fonts.gstatic.com/s/geistmono/v6/or3yQ6H-1_WfwkMZI_qYPLs1a-t7PU0AbeE9KK5U5Ck.woff2",
+      "licenseSource": "https://raw.githubusercontent.com/google/fonts/main/ofl/geistmono/OFL.txt",
+      "sha256": "3f98383b122fe015a48536cd4a1cda855a201718923ffe74931a01597107b9b5",
+      "bytes": 9864,
+      "axes": {},
+      "names": ["Geist Mono"],
+      "asset": "geistmono.woff2",
+      "license": "geistmono-OFL.txt",
+      "licenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "licenseBytes": 4387
+    },
+    {
+      "family": "Newsreader",
+      "source": "https://fonts.gstatic.com/s/newsreader/v26/cY9AfjOCX1hbuyalUrK4397yjA.woff2",
+      "licenseSource": "https://raw.githubusercontent.com/google/fonts/main/ofl/newsreader/OFL.txt",
+      "sha256": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101",
+      "bytes": 132000,
+      "axes": {
+        "wght": [200.0, 800.0],
+        "opsz": [6.0, 72.0]
+      },
+      "names": ["Newsreader 16pt"],
+      "asset": "newsreader.woff2",
+      "license": "newsreader-OFL.txt",
+      "licenseSha256": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8",
+      "licenseBytes": 4394
+    }
+  ],
+  "treatment": "Exact local OFL WOFF2 and license bytes, unmodified. Source points the footer to same-origin font files; browser loading and external-request behavior remain unverified."
+}

@@ -169,4 +169,22 @@ githubLink.innerHTML =
 footer.append(githubLink);
 main.append(footer);
 
-app.replaceChildren(backdrop, main);
+const footerHost = document.createElement("fleet-footer-extension");
+footerHost.setAttribute("data-fleet-footer-project", "web-playables");
+footerHost.setAttribute("product-name", "Web Playables");
+footerHost.setAttribute("signature-name", "idle.");
+footerHost.setAttribute("signature-font", "inherit");
+footerHost.setAttribute("surface", "app");
+footerHost.setAttribute("theme", "dark");
+footerHost.setAttribute("font-base", "/fonts/fleet-footer-precise-v1/");
+footerHost.setAttribute("art-src", "/footer-art/web-playables.webp");
+footerHost.setAttribute(
+  "art-alt",
+  "Web Playables: A browser-game packaging workshop centers an original miniature level and save capsule. Distinct playable-world props sit in open frames beside an offline travel case and modest packaging tools.",
+);
+footerHost.setAttribute("art-width", "2169");
+footerHost.setAttribute("art-height", "725");
+footerHost.setAttribute("art-credit", "Original illustration for Web Playables");
+footer.slot = "navigation";
+app.replaceChildren(backdrop, main, footerHost);
+footerHost.append(footer);
