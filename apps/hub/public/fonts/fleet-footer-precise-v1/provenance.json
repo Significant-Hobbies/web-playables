@@ -13,7 +13,9 @@
       },
       "names": ["Geist"],
       "asset": "geist.woff2",
-      "license": "geist-OFL.txt"
+      "license": "geist-OFL.txt",
+      "licenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "licenseBytes": 4387
     },
     {
       "family": "Geist Mono",
@@ -24,7 +26,9 @@
       "axes": {},
       "names": ["Geist Mono"],
       "asset": "geistmono.woff2",
-      "license": "geistmono-OFL.txt"
+      "license": "geistmono-OFL.txt",
+      "licenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "licenseBytes": 4387
     },
     {
       "family": "Newsreader",
@@ -38,8 +42,10 @@
       },
       "names": ["Newsreader 16pt"],
       "asset": "newsreader.woff2",
-      "license": "newsreader-OFL.txt"
+      "license": "newsreader-OFL.txt",
+      "licenseSha256": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8",
+      "licenseBytes": 4394
     }
   ],
-  "treatment": "Exact local OFL WOFF2 bytes, unmodified. Loaded face acceptance requires browser evidence; no external Google request at runtime."
+  "treatment": "Exact local OFL WOFF2 and license bytes, unmodified. Source points the footer to same-origin font files; browser loading and external-request behavior remain unverified."
 }
