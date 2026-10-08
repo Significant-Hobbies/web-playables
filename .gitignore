@@ -6,3 +6,6 @@ dist/
 .codevetter/performance-runs/
 .DS_Store
 *.log
+
+# Private footer review and release evidence (machine-local)
+/.fleet-local/
