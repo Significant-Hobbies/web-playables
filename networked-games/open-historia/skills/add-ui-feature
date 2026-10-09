@@ -1,0 +1,33 @@
+#!/bin/bash
+# Skill: Add UI Feature using Gemini
+# Usage: ./skills/add-ui-feature "description of feature"
+
+FEATURE_DESC="$1"
+
+if [ -z "$FEATURE_DESC" ]; then
+    echo "Usage: $0 'feature description'"
+    exit 1
+fi
+
+echo "🚀 Spawning Gemini agent to add UI feature: $FEATURE_DESC"
+
+gemini --prompt "You are working on Open Historia, an LLM-powered grand strategy game in Next.js + TypeScript.
+
+TASK: Add UI Feature - $FEATURE_DESC
+
+WORKFLOW:
+1. Read relevant components in components/ and app/ directories
+2. Understand the existing patterns (Tailwind, dark theme with slate/amber colors)
+3. Create or modify components to implement the feature
+4. Ensure type safety (no 'any' types)
+5. Test the feature works
+6. Commit with a clear message
+
+TECH STACK:
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
+- D3.js for maps
+
+Start by exploring the codebase, then implement incrementally." --yolo

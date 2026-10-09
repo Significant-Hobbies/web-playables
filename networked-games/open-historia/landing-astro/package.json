@@ -1,0 +1,25 @@
+{
+  "name": "open-historia-landing-astro",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Static Astro landing for Open Historia. Deploys to Cloudflare Pages and (post-cutover) serves the `/` route in front of the game Worker.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "deploy": "wrangler pages deploy dist/ --project-name open-historia-landing --commit-dirty=true"
+  },
+  "dependencies": {
+    "@astrojs/sitemap": "^3.7.3",
+    "@fontsource-variable/geist": "^5.2.9",
+    "@fontsource-variable/playfair-display": "^5.2.8",
+    "astro": "^5.18.2"
+  },
+  "devDependencies": {
+    "lightningcss": "^1.32.0",
+    "wrangler": "^4.98.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

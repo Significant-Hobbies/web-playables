@@ -1,0 +1,589 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Open Historia — landing
+   Pure static port. Visually distinct from karte.cc/onyx deck but
+   typographically related (Playfair on the LCP h1). Palette pulled
+   from app/globals.css: navy #0B0F19 background, amber #d97706
+   primary, emerald and rose accents on feature cards.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  --oh-bg: #0B0F19;
+  --oh-bg-2: #0d1322;
+  --oh-surface: #151B2B;
+  --oh-surface-2: #1E2538;
+  --oh-fg: #e2e8f0;
+  --oh-fg-dim: #94a3b8;
+  --oh-fg-dimmer: #64748b;
+  --oh-border: rgba(51, 65, 85, 0.5);
+  --oh-border-subtle: rgba(51, 65, 85, 0.25);
+  --oh-amber: #d97706;
+  --oh-amber-bright: #f59e0b;
+  --oh-amber-glow: rgba(217, 119, 6, 0.35);
+  --oh-amber-dim: #92400e;
+  --oh-emerald: #10b981;
+  --oh-emerald-glow: rgba(16, 185, 129, 0.3);
+  --oh-rose: #f43f5e;
+  --oh-rose-glow: rgba(244, 63, 94, 0.3);
+}
+
+html,
+body {
+  background: var(--oh-bg);
+  color: var(--oh-fg);
+}
+
+body {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+::selection {
+  background: rgba(217, 119, 6, 0.3);
+  color: #fbbf24;
+}
+
+.oh-page {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* Shared section frame. Each section is a viewport-tall band, divided
+   from the next by a thin amber-tinted hairline. We do NOT scroll-snap
+   here — open-historia's landing reads as a vertical narrative, not a
+   six-card deck. */
+.oh-hero,
+.oh-value,
+.oh-features,
+.oh-cta {
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  padding: clamp(56px, 9vh, 112px) clamp(20px, 6vw, 96px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.08);
+  overflow: hidden;
+}
+
+.oh-hero {
+  min-height: 100dvh;
+  justify-content: center;
+  text-align: center;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(217, 119, 6, 0.12) 0%, transparent 55%),
+    radial-gradient(80% 60% at 50% 100%, rgba(15, 23, 42, 0.6) 0%, transparent 70%),
+    linear-gradient(180deg, var(--oh-bg) 0%, var(--oh-bg-2) 100%);
+}
+
+/* A thin amber inset frame mimics the in-game OG card top-bar accent
+   (app/opengraph-image.tsx). Purely decorative. */
+.oh-hero-frame {
+  position: absolute;
+  inset: 24px;
+  pointer-events: none;
+  border: 1px solid rgba(217, 119, 6, 0.12);
+  border-radius: 2px;
+}
+
+.oh-hero-frame::before,
+.oh-hero-frame::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 2px;
+  width: clamp(140px, 30vw, 280px);
+  background: linear-gradient(90deg, transparent, var(--oh-amber-bright), transparent);
+  opacity: 0.7;
+}
+
+.oh-hero-frame::before {
+  top: -1px;
+}
+
+.oh-hero-frame::after {
+  bottom: -1px;
+}
+
+/* ── Eyebrow ─────────────────────────────────────────────────────── */
+.oh-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--oh-amber-bright);
+  margin-bottom: 28px;
+}
+
+.oh-eyebrow.center {
+  align-self: center;
+}
+
+.oh-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--oh-amber-bright);
+  border-radius: 99px;
+  box-shadow: 0 0 12px var(--oh-amber-glow);
+  animation: oh-breathe 3s ease-in-out infinite;
+}
+
+@keyframes oh-breathe {
+  0%, 100% { opacity: 0.55; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ── Hero H1 — Playfair, LCP element ─────────────────────────────── */
+.oh-hero-h1 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 900;
+  font-size: clamp(56px, 11vw, 132px);
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  color: var(--oh-amber-bright);
+  margin: 0;
+  text-shadow: 0 4px 32px rgba(217, 119, 6, 0.25);
+}
+
+.oh-hero-h1 em {
+  font-style: italic;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 60%, #92400e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.oh-hero-divider {
+  width: clamp(120px, 22vw, 220px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--oh-amber), transparent);
+  margin: 28px 0 20px;
+}
+
+.oh-hero-tagline {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: clamp(13px, 1.5vw, 17px);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--oh-fg-dim);
+  margin: 0 0 28px;
+}
+
+.oh-hero-sub {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(15px, 1.7vw, 19px);
+  line-height: 1.55;
+  color: var(--oh-fg);
+  max-width: 640px;
+  margin: 0 0 36px;
+}
+
+.oh-hero-sub em {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+  color: var(--oh-amber-bright);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+.oh-hero-actions,
+.oh-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.oh-btn-primary,
+.oh-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 24px;
+  border-radius: 2px;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  cursor: pointer;
+}
+
+.oh-btn-primary {
+  background: linear-gradient(135deg, var(--oh-amber-bright) 0%, var(--oh-amber) 100%);
+  color: #1a0f00;
+  font-weight: 600;
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.oh-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.oh-btn-primary-lg {
+  font-size: 14px;
+  padding: 18px 32px;
+  letter-spacing: 0.18em;
+}
+
+.oh-btn-ghost {
+  background: rgba(21, 27, 43, 0.6);
+  color: var(--oh-fg);
+  border-color: var(--oh-border);
+}
+
+.oh-btn-ghost:hover {
+  border-color: rgba(217, 119, 6, 0.5);
+  color: var(--oh-amber-bright);
+  background: rgba(30, 37, 56, 0.6);
+}
+
+.oh-hero-fine,
+.oh-cta-fine {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--oh-fg-dimmer);
+  margin-top: 12px;
+}
+
+.oh-cta-fine a {
+  color: var(--oh-amber-bright);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+}
+
+.oh-cta-fine a:hover {
+  border-bottom-color: var(--oh-amber-bright);
+}
+
+/* Icon-only link (e.g. GitHub mark) sharing the fine-print link treatment */
+.oh-icon-link {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  text-decoration: none;
+  border-bottom: none;
+}
+.oh-icon-link:hover {
+  opacity: 0.8;
+}
+
+/* ── Shared H2 ────────────────────────────────────────────────────── */
+.oh-h2 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(34px, 5.5vw, 60px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  color: var(--oh-fg);
+  margin: 0 0 36px;
+  max-width: 18ch;
+}
+
+.oh-h2.center {
+  text-align: center;
+  align-self: center;
+}
+
+.oh-h2 em {
+  font-style: italic;
+  color: var(--oh-amber-bright);
+  font-weight: 700;
+}
+
+/* ── Value section ────────────────────────────────────────────────── */
+.oh-value {
+  background:
+    linear-gradient(180deg, var(--oh-bg-2) 0%, var(--oh-bg) 100%);
+  text-align: center;
+}
+
+.oh-value-p {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.7;
+  color: var(--oh-fg-dim);
+  max-width: 680px;
+  margin: 0 auto 40px;
+}
+
+.oh-value-p strong {
+  color: var(--oh-amber-bright);
+  font-weight: 600;
+}
+
+.oh-value-quote {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-style: italic;
+  font-size: clamp(20px, 2.4vw, 28px);
+  line-height: 1.35;
+  color: var(--oh-fg);
+  max-width: 560px;
+  position: relative;
+  padding: 24px 0;
+  border-top: 1px solid rgba(217, 119, 6, 0.15);
+  border-bottom: 1px solid rgba(217, 119, 6, 0.15);
+}
+
+.oh-value-quote em {
+  color: var(--oh-amber-bright);
+}
+
+.oh-value-quote-mark {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--oh-amber);
+  vertical-align: -10px;
+  margin-right: 4px;
+  opacity: 0.5;
+}
+
+/* ── Features section ─────────────────────────────────────────────── */
+.oh-features {
+  background:
+    linear-gradient(180deg, var(--oh-bg) 0%, var(--oh-bg-2) 100%);
+}
+
+.oh-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(20px, 3vw, 36px);
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+@media (max-width: 860px) {
+  .oh-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.oh-feature {
+  background: linear-gradient(180deg, rgba(21, 27, 43, 0.7) 0%, rgba(13, 19, 34, 0.7) 100%);
+  border: 1px solid var(--oh-border);
+  border-radius: 4px;
+  padding: 32px 28px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.oh-feature::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(135deg, var(--oh-feature-accent, transparent) 0%, transparent 40%);
+  opacity: 0.08;
+}
+
+.oh-feature:hover {
+  border-color: var(--oh-feature-accent, var(--oh-amber));
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.oh-feature-amber {
+  --oh-feature-accent: var(--oh-amber-bright);
+  --oh-feature-glow: var(--oh-amber-glow);
+}
+
+.oh-feature-emerald {
+  --oh-feature-accent: var(--oh-emerald);
+  --oh-feature-glow: var(--oh-emerald-glow);
+}
+
+.oh-feature-rose {
+  --oh-feature-accent: var(--oh-rose);
+  --oh-feature-glow: var(--oh-rose-glow);
+}
+
+.oh-feature-num {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--oh-feature-accent, var(--oh-amber-bright));
+  margin-bottom: 12px;
+  text-shadow: 0 0 16px var(--oh-feature-glow, var(--oh-amber-glow));
+}
+
+.oh-feature-rule {
+  height: 1px;
+  width: 36px;
+  background: var(--oh-feature-accent, var(--oh-amber));
+  opacity: 0.6;
+  margin-bottom: 18px;
+}
+
+.oh-feature-title {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--oh-fg);
+  margin: 0 0 12px;
+}
+
+.oh-feature-body {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--oh-fg-dim);
+  margin: 0;
+}
+
+/* ── CTA section ──────────────────────────────────────────────────── */
+.oh-cta {
+  background:
+    radial-gradient(80% 80% at 50% 0%, rgba(217, 119, 6, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, var(--oh-bg-2) 0%, var(--oh-bg) 100%);
+  text-align: center;
+  border-bottom: none;
+}
+
+.oh-cta-h {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1.0;
+  letter-spacing: -0.02em;
+  color: var(--oh-fg);
+  margin: 0 0 24px;
+}
+
+.oh-cta-h em {
+  font-style: italic;
+  color: var(--oh-amber-bright);
+}
+
+.oh-cta-sub {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.6;
+  color: var(--oh-fg-dim);
+  max-width: 580px;
+  margin: 0 auto 36px;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────── */
+.oh-foot {
+  margin-top: 48px;
+  padding-top: 24px;
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--oh-fg-dim);
+}
+
+.oh-foot-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--oh-border), transparent);
+}
+
+fleet-footer-extension > .fleet-footer-navigation {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+  flex-wrap: wrap;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0.06em;
+}
+
+.fleet-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+}
+
+.fleet-footer-links a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--oh-fg-dim);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.fleet-footer-links a:hover,
+.fleet-footer-links a:focus-visible {
+  color: var(--oh-fg);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .oh-hero-h1 {
+    font-size: clamp(48px, 14vw, 84px);
+  }
+
+  .oh-h2 {
+    font-size: clamp(28px, 8vw, 44px);
+  }
+
+  .oh-cta-h {
+    font-size: clamp(32px, 9vw, 52px);
+  }
+
+  .oh-foot {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .oh-foot-rule {
+    width: 80px;
+    flex: 0 0 auto;
+  }
+
+  fleet-footer-extension > .fleet-footer-navigation {
+    align-items: flex-start;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .oh-eyebrow-dot {
+    animation: none;
+  }
+
+  .oh-btn-primary:hover,
+  .oh-btn-ghost:hover,
+  .oh-feature:hover {
+    transform: none;
+  }
+}

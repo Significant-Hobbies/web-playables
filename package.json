@@ -7,15 +7,19 @@
     "dev:hub": "pnpm --filter @games/hub dev",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "build": "pnpm -r build && node scripts/assemble-site.mjs",
+    "typecheck": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r typecheck",
+    "test": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r test",
+    "build": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r build && node scripts/assemble-site.mjs",
     "build:yt": "pnpm --filter @games/idle-startup build:yt",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "deploy": "pnpm build && wrangler pages deploy apps/hub/dist --project-name=web-playables --branch=main",
     "preview": "pnpm --filter @games/idle-startup preview",
     "knip": "knip --no-exit-code --reporter symbols",
-    "knip:strict": "knip --reporter symbols"
+    "knip:strict": "knip --reporter symbols",
+    "historia:dev": "pnpm --filter open-historia dev",
+    "historia:check": "pnpm --filter open-historia typecheck && pnpm --filter open-historia lint && pnpm --filter open-historia check && pnpm --filter open-historia test && pnpm --filter open-historia cf:build",
+    "historia:e2e": "pnpm --filter open-historia exec playwright test e2e/campaign.spec.ts e2e/campaign-layout.spec.ts --project=desktop --project=mobile",
+    "historia:deploy": "pnpm --filter open-historia run deploy"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",

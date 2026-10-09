@@ -1,0 +1,229 @@
+{
+  "base": "https://historia.aliveville.com",
+  "mode": "before",
+  "fixture": "Previously captured real guest AI campaign, three snapshots including a branch. No new AI calls.",
+  "views": [
+    {
+      "width": 390,
+      "height": 844,
+      "overlap": {
+        "story": {
+          "top": 878.953125,
+          "bottom": 1479.953125
+        },
+        "commands": {
+          "top": 524.953125,
+          "bottom": 866.953125
+        },
+        "area": 0
+      },
+      "collisions": 1,
+      "targets": [
+        {
+          "x": 75,
+          "y": 765.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 145,
+          "y": 765.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 138.8000030517578,
+          "y": 785.5031127929688,
+          "width": 48.399993896484375,
+          "height": 48.4000244140625
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 768,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 844,
+          "bottom": 1277
+        },
+        "commands": {
+          "top": 490,
+          "bottom": 832
+        },
+        "area": 0
+      },
+      "collisions": 1,
+      "targets": [
+        {
+          "x": 145,
+          "y": 921.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 285,
+          "y": 921.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 278.79998779296875,
+          "y": 941.6749877929688,
+          "width": 48.4000244140625,
+          "height": 48.4000244140625
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 499.5
+        },
+        "commands": {
+          "top": 362,
+          "bottom": 660
+        },
+        "area": 39600
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 133,
+          "y": 746,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 273,
+          "y": 746,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 267.8999938964844,
+          "y": 766.9000244140625,
+          "width": 24.20001220703125,
+          "height": 24.199951171875
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 499.5
+        },
+        "commands": {
+          "top": 562,
+          "bottom": 860
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 133,
+          "y": 946,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 273,
+          "y": 946,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 267.8999938964844,
+          "y": 966.9000244140625,
+          "width": 24.20001220703125,
+          "height": 24.199951171875
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1100,
+      "height": 741,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 499.5
+        },
+        "commands": {
+          "top": 303,
+          "bottom": 601
+        },
+        "area": 56592
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 133,
+          "y": 687,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 273,
+          "y": 687,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 267.8999938964844,
+          "y": 707.9000244140625,
+          "width": 24.20001220703125,
+          "height": 24.199951171875
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 499.5
+        },
+        "commands": {
+          "top": 282,
+          "bottom": 580
+        },
+        "area": 62640
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 133,
+          "y": 666,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 273,
+          "y": 666,
+          "width": 14,
+          "height": 14
+        },
+        {
+          "x": 267.8999938964844,
+          "y": 686.9000244140625,
+          "width": 24.20001220703125,
+          "height": 24.199951171875
+        }
+      ],
+      "providerCalls": 0
+    }
+  ]
+}

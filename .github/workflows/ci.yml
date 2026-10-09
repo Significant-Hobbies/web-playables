@@ -27,3 +27,26 @@ jobs:
           grep -Fq 'https://idle.aliveville.com/play/idle-startup/' apps/hub/dist/sitemap.xml
           grep -Fq 'rel="canonical" href="https://idle.aliveville.com/"' apps/hub/dist/index.html
           grep -Fq 'rel="canonical" href="https://idle.aliveville.com/play/idle-startup/"' apps/hub/dist/play/idle-startup/index.html
+
+  # Open Historia: networked AI game, deliberately outside the YouTube
+  # Playables-certified lane above. Mirrors its former standalone CI.
+  historia:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: networked-games/open-historia
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm exec playwright install --with-deps chromium webkit
+      - run: pnpm exec playwright test e2e/campaign.spec.ts e2e/campaign-layout.spec.ts --project=desktop --project=mobile
+      - run: pnpm cf:build

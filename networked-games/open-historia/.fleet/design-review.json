@@ -1,0 +1,110 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "open-historia",
+  "target": "Campaign panel allocation and branched timeline",
+  "surfaceMode": "operate",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": "docs/qualification/layout-2026-09-09/before-desktop.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "existing-project-system",
+      "sources": [
+        "https://github.com/sarthakagrawal927/open-historia/blob/d7a9ecdf6c81ca6613f896a2c3744b8f623b833a/components/GameClient.tsx"
+      ],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": ""
+      }
+    },
+    "contract": {
+      "purpose": "Open Historia helps strategy players explore a persistent campaign through natural-language orders, diplomacy and an interactive map.",
+      "purposeSource": "Site Health publicDirectory.projects.open-historia.purposeContract; PRODUCT.md; PROJECT_STATUS.md",
+      "canonicalPurpose": "Open Historia explores a local AI grand-strategy game where countries remember history and carry it into future turns.",
+      "purposeAlignment": "match",
+      "driftNote": "The held lifecycle is preserved; responsive repair does not establish historical or cloud-save qualification.",
+      "audience": "Strategy players interested in emergent historical storytelling without metered model credits.",
+      "job": "Read the guided story and command results, inspect separate timeline branches, and reopen the chosen campaign checkpoint on desktop and mobile.",
+      "thesis": "Preserve the dark cartographic terminal, but assign each panel its own space when overlays cannot fit.",
+      "system": "Existing slate panels, cartographic map, mono controls and amber actions. Shared desktop left-column rows prevent overlap; narrow or short screens keep the established vertical flow. Timeline circles have centered touch targets and separate labeled branch rows.",
+      "signature": "The country map stays adjacent to the order terminal; generated consequences lead into story and diplomatic history.",
+      "risk": "Long stories and larger branch trees require contained scrolling. All content and controls remain reachable; these layout checks do not qualify historical scenarios or cloud saves."
+    }
+  },
+  "evidence": {
+    "screenshots": [
+      {
+        "width": 390,
+        "path": "docs/qualification/layout-2026-09-09/after-390-844.png"
+      },
+      {
+        "width": 768,
+        "path": "docs/qualification/layout-2026-09-09/after-768-1000.png"
+      },
+      {
+        "width": 1440,
+        "path": "docs/qualification/layout-2026-09-09/after-1440-1000.png"
+      }
+    ],
+    "projectCheck": {
+      "command": "pnpm typecheck; pnpm lint; pnpm test; pnpm exec playwright test e2e/campaign-layout.spec.ts e2e/campaign.spec.ts",
+      "status": "pass"
+    },
+    "critique": {
+      "score": 33,
+      "maximum": 40
+    },
+    "audit": {
+      "score": 16,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": [
+        "One existing Arial fallback overused-font warning at globals.css:25; preserved incumbent system."
+      ]
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "agent-selected",
+    "note": "Owner delegated bounded layout repair and release. Single-context critique under explicit no-subagents scope; independent parent source and screenshot review requested. See dated layout receipt."
+  }
+}

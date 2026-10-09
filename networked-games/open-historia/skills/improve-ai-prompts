@@ -1,0 +1,41 @@
+#!/bin/bash
+# Skill: Improve AI Prompts using Codex (OpenAI)
+# Usage: ./skills/improve-ai-prompts "improvement goal"
+
+GOAL="$1"
+
+if [ -z "$GOAL" ]; then
+    echo "Usage: $0 'improvement goal'"
+    exit 1
+fi
+
+echo "🤖 Using OpenAI to improve AI prompts: $GOAL"
+
+PROMPT="You are an expert prompt engineer working on Open Historia, an LLM-powered strategy game.
+
+TASK: Improve AI Game Master Prompts - $GOAL
+
+CURRENT FILE: app/api/turn/route.ts
+
+REQUIREMENTS:
+1. Read the current system prompt in route.ts
+2. Analyze how it handles:
+   - Diplomatic interactions
+   - Time advancement
+   - Territory changes
+   - Event generation
+3. Improve the prompt to: $GOAL
+4. Ensure it works with all providers (Google, OpenAI, Anthropic, DeepSeek)
+5. Maintain JSON response format
+6. Test and commit changes
+
+Provide specific improvements to the system prompt with reasoning."
+
+curl -s https://api.openai.com/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${OPENAI_API_KEY}" \
+  -d "{
+    \"model\": \"gpt-4\",
+    \"messages\": [{\"role\": \"user\", \"content\": $(echo "$PROMPT" | jq -Rs .)}],
+    \"max_tokens\": 2000
+  }" | jq -r '.choices[0].message.content'

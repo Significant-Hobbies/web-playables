@@ -12,6 +12,10 @@ Live arcade: <https://idle.aliveville.com>
 packages/gamekit     framework: platform adapter (web/yt), loop, saves, offline, format
 games/idle-startup   game #1 — idle startup simulator
 apps/hub             arcade site listing all games (serves games at /play/<id>/)
+networked-games/open-historia
+                     Open Historia — AI grand-strategy game with its own Worker,
+                     D1 and AI backend (historia.aliveville.com). Not a YouTube
+                     Playables target; see its README and AGENTS.md.
 ```
 
 ## Quickstart

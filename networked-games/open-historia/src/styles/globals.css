@@ -1,0 +1,548 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0b0f19;
+  --foreground: #e2e8f0;
+  --accent: #d97706;
+  --accent-dim: #92400e;
+  --accent-glow: rgba(217, 119, 6, 0.35);
+  --surface: #151b2b;
+  --surface-raised: #1e2538;
+  --border: rgba(51, 65, 85, 0.5);
+  --border-subtle: rgba(51, 65, 85, 0.25);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.4);
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.6);
+}
+
+/* Scrollbar for setup panels */
+.setup-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.setup-scroll::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.2);
+  border-radius: 99px;
+}
+
+.setup-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.4);
+}
+
+/* Preserve the sample's title and action while giving the preset list room on
+   short viewports. The full historical thread remains available on tall screens. */
+@media (max-height: 960px) {
+  .sample-timeline-card {
+    padding-block: 0.75rem;
+  }
+
+  .sample-timeline-steps,
+  .sample-timeline-source {
+    display: none;
+  }
+}
+
+/* Selection */
+::selection {
+  background: rgba(217, 119, 6, 0.25);
+  color: #fbbf24;
+}
+
+/* Better focus rings */
+:focus-visible {
+  outline: none;
+}
+
+/* Form element resets for dark theme */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+select option {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 8px;
+}
+
+/* Input number arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Smooth animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 8px 2px rgba(217, 119, 6, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px 6px rgba(217, 119, 6, 0.5);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes flashBorder {
+  0% {
+    border-color: rgba(251, 191, 36, 0.8);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  }
+  100% {
+    border-color: inherit;
+    box-shadow: none;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glowBorder {
+  0%,
+  100% {
+    border-color: rgba(217, 119, 6, 0.3);
+  }
+  50% {
+    border-color: rgba(217, 119, 6, 0.7);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.35s ease-out;
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.35s ease-out both;
+}
+
+.animate-flash-border {
+  animation: flashBorder 0.6s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-glow-border {
+  animation: glowBorder 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(217, 119, 6, 0.3) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
+}
+
+/* Globe container */
+.globe-container {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.globe-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Panel glass effect */
+.panel-glass {
+  background: rgba(12, 18, 34, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(51, 65, 85, 0.5);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(51, 65, 85, 0.1);
+}
+
+/* War room scanline effect (subtle) */
+.scanline-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Preset card hover glow */
+.preset-card-glow {
+  position: relative;
+}
+
+.preset-card-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(217, 119, 6, 0.15) 0%,
+    transparent 50%,
+    rgba(217, 119, 6, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.preset-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Gradient text animation */
+.gradient-text-animated {
+  background-size: 200% 200%;
+  animation: gradientShift 4s ease infinite;
+}
+
+/* Campaign panels need separate space when the map cannot carry overlays. */
+/* Share vertical space instead of stacking independent desktop overlays. */
+@media (min-width: 1100px) and (min-height: 741px) {
+  .campaign-shell {
+    display: grid;
+    grid-template-columns: 32rem minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: 12px;
+    padding: 80px 16px 0;
+  }
+  .campaign-story {
+    position: relative;
+    inset: auto;
+    grid-column: 1;
+    grid-row: 1;
+    min-height: 0;
+    max-height: 100%;
+    align-self: start;
+  }
+  div.campaign-story {
+    display: flex;
+    flex-direction: column;
+  }
+  .campaign-story > :first-child {
+    flex-shrink: 0;
+  }
+  .campaign-story-body {
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .campaign-commands {
+    position: relative;
+    inset: auto;
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .campaign-timeline > button {
+    left: calc(32rem + 32px);
+    translate: none;
+  }
+  .campaign-relations,
+  .campaign-advisor-toggle {
+    position: relative;
+    inset: auto;
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    justify-self: end;
+  }
+  .campaign-advisor-toggle {
+    margin-right: 336px;
+  }
+  .campaign-timeline {
+    position: relative;
+    inset: auto;
+    grid-column: 1 / -1;
+    grid-row: 3;
+    width: calc(100% + 32px);
+    margin-inline: -16px;
+  }
+}
+
+@media (max-width: 1099px), (max-height: 740px) {
+  .campaign-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 12px max(24px, env(safe-area-inset-bottom));
+  }
+  .campaign-shell > .campaign-toolbar,
+  .campaign-shell > .campaign-map,
+  .campaign-shell > .campaign-commands,
+  .campaign-shell > .campaign-story,
+  .campaign-shell > .campaign-diplomacy,
+  .campaign-shell > .campaign-relations,
+  .campaign-shell > .campaign-timeline,
+  .campaign-shell > .campaign-advisor-toggle {
+    position: relative;
+    inset: auto;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: none;
+    z-index: auto;
+  }
+  /* Stacked panels have no map behind them; avoid unnecessary blur layers. */
+  .campaign-shell [class*="backdrop-blur"] {
+    backdrop-filter: none;
+  }
+  .campaign-shell > .campaign-toolbar {
+    order: 0;
+    padding: 0;
+  }
+  .campaign-toolbar > div {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    border-radius: 8px;
+    width: 100%;
+    overflow: visible;
+  }
+  .campaign-toolbar > div > .w-px {
+    display: none;
+  }
+  .campaign-toolbar > div > div {
+    min-width: 0;
+  }
+  .campaign-shell > .campaign-map {
+    order: 1;
+    height: 34dvh;
+    min-height: 240px;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+  .campaign-shell > .campaign-commands {
+    order: 2;
+  }
+  .campaign-terminal {
+    width: 100%;
+    max-width: none;
+    height: 280px;
+  }
+  .campaign-shell > .campaign-story {
+    order: 3;
+  }
+  .campaign-shell > .campaign-diplomacy {
+    order: 4;
+    max-height: 65dvh;
+  }
+  .campaign-shell > .campaign-relations {
+    order: 5;
+  }
+  .campaign-shell > .campaign-advisor-toggle {
+    order: 6;
+    border-radius: 8px;
+    scale: 1;
+  }
+  .campaign-shell > .campaign-timeline {
+    order: 7;
+    margin-top: 32px;
+  }
+  .campaign-timeline > button {
+    top: -44px;
+    min-width: 160px;
+  }
+  .campaign-shell button,
+  .campaign-shell select,
+  .campaign-shell input {
+    min-height: 44px;
+  }
+  .campaign-shell input,
+  .campaign-shell select {
+    font-size: 16px;
+  }
+  .campaign-shell button {
+    min-width: 44px;
+    font-size: 14px;
+  }
+  .campaign-shell input::placeholder {
+    color: #94a3b8;
+  }
+  .campaign-save-notification {
+    position: fixed;
+    top: auto;
+    bottom: 12px;
+  }
+  .campaign-story p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .campaign-shell :focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 2px;
+  }
+  .campaign-advisor-panel {
+    bottom: 12px;
+    right: 12px;
+    width: min(360px, calc(100vw - 24px));
+    max-height: 80dvh;
+  }
+}

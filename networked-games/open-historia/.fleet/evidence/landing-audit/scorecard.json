@@ -1,0 +1,57 @@
+{
+  "$schema": "fleet.landing-audit.v1",
+  "project": "open-historia",
+  "priority": "P4",
+  "decision": "Hold",
+  "auditedAt": "2026-08-29",
+  "candidateUrl": "https://varied-wines-alice-located.trycloudflare.com/",
+  "productionUrl": "https://historia.aliveville.com/",
+  "releaseState": "Latest-source landing and generated discovery documents are qualified through a temporary Cloudflare tunnel. The truthful held-project positioning, corrected social image, VideoGame structured data, and dual shared footer composition are not deployed by this audit.",
+  "implementationAction": "preserve",
+  "migrationCandidate": false,
+  "gates": {
+    "contentPurpose": {
+      "score": 98,
+      "status": "pass",
+      "evidence": "The first viewport explains the natural-language AI grand-strategy loop, 20+ scenario range, AI Game Master, persistent campaign memory, free and bring-your-own-provider choices, and direct playable action. The candidate now states that the map and campaign pacing remain prototype-grade and that the project is held, while feature copy is limited to verified save, resume, provider, rewind, and branch behavior."
+    },
+    "designQuality": {
+      "score": 95,
+      "status": "pass",
+      "evidence": "The existing amber historical-editorial system is visually specific to the game, gives the page a clear narrative rhythm, and is materially stronger than a generic shared template. Exact 390 and 1440 pixel checks found zero horizontal overflow, no console or resource failures, one project strip, and one Ask AI footer. Both viewports preserve a centered hero, readable hierarchy, and usable calls to action."
+    },
+    "seo": {
+      "score": 100,
+      "status": "pass",
+      "evidence": "The candidate passes all 15 checks with no warnings: concise title and description, exact canonical, complete Open Graph and Twitter metadata, a working product social image, valid VideoGame JSON-LD, clean heading hierarchy, approximately 569 server-rendered words, and no broken internal links. The canonical four-page link graph has no errors, redirects, or orphan candidates."
+    },
+    "geo": {
+      "score": 100,
+      "status": "pass",
+      "evidence": "The full latest-source preview exposes llms.txt, llms-full.txt, homepage and route Markdown, robots policy, sitemap, valid /api/ai catalog, and JSON-LD on one temporary origin. The Fleet agent-readiness audit reports S-tier 100%. The canonical production surface independently remains S-tier 100%."
+    },
+    "performance": {
+      "score": 97,
+      "status": "pass",
+      "evidence": "PSI Swarm completed all four coverage profiles with weighted LCP 685 ms, CLS 0.005, and TBT 0 ms. LCP was 1.93 s on slow mobile, 860 ms on mid mobile, 504 ms on fast mobile, and 288 ms on desktop. The only reported opportunity was temporary-tunnel response time on the slowest profile."
+    }
+  },
+  "verification": {
+    "passed": [
+      "67/67 repository tests",
+      "TypeScript typecheck",
+      "ESLint",
+      "Vite plus Astro production build and landing overlay",
+      "latest-candidate browser checks at 390 and 1440 pixels",
+      "latest-candidate SEO audit",
+      "latest-candidate and canonical GEO audits",
+      "latest-candidate PSI Swarm coverage profile",
+      "canonical four-page link graph audit",
+      "playable /play route through the full candidate preview"
+    ],
+    "advisories": [
+      "Repository-wide Biome formatting remains red on 83 pre-existing files; the touched TypeScript discovery contract is formatted."
+    ]
+  },
+  "minimumObserved": 95
+}

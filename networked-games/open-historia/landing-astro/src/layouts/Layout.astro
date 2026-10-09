@@ -1,0 +1,122 @@
+---
+// Self-hosted variable fonts. Astro inlines the @font-face into the
+// page's CSS via Lightning CSS (build.inlineStylesheets: 'always'),
+// so we drop the external fonts.googleapis.com round-trip from the
+// LCP path. Families register as 'Playfair Display Variable' and
+// 'Geist Variable' — mapped onto the existing --font-* CSS vars below
+// so landing.css needs no changes. Geist Mono stays fallback-only
+// (matches the original Next.js layout — never preloaded here).
+import '@fontsource-variable/playfair-display';
+import '@fontsource-variable/geist';
+import '@/styles/landing.css';
+import FleetFooter from '@/components/FleetFooter.astro';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+
+const SITE_URL = 'https://historia.aliveville.com';
+const OG_IMAGE = `${SITE_URL}/og.png`;
+const structuredData = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@type': 'VideoGame',
+  name: 'Open Historia',
+  description,
+  url: `${SITE_URL}/`,
+  applicationCategory: 'Game',
+  gamePlatform: 'Web browser',
+  isAccessibleForFree: true,
+});
+---
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0B0F19" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="application-name" content="Open Historia" />
+
+    <link rel="canonical" href={`${SITE_URL}/`} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={`${SITE_URL}/`} />
+    <meta property="og:site_name" content="Open Historia" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={OG_IMAGE} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={OG_IMAGE} />
+    <script type="application/ld+json" set:html={structuredData} />
+
+    <meta
+      name="keywords"
+      content="grand strategy, AI game, strategy game, historical simulation, open source, EU4, Paradox, geopolitics, war game, diplomacy"
+    />
+
+    {/* Wire the same CSS vars the Next.js layout sets up via next/font,
+       so landing.css can reference them without changes. Fontsource
+       Variable registers families as '<Name> Variable'; plain names
+       stay in the fallback chain. Geist Mono is fallback-only —
+       matches the original Next.js layout (never preloaded here). */}
+    <style is:inline>
+      :root {
+        --font-playfair: 'Playfair Display Variable', 'Playfair Display', Georgia, 'Times New Roman', serif;
+        --font-geist-sans: 'Geist Variable', 'Geist', system-ui, -apple-system, sans-serif;
+        --font-geist-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+      }
+      html.dark { color-scheme: dark; }
+      body { margin: 0; }
+    </style>
+  </head>
+  <body class="antialiased">
+    <slot />
+    <FleetFooter />
+    <script
+      defer
+      src="https://health.sassmaker.com/tracker.js"
+      data-key="ahk_pub_777a53ea690ece7f6afd111feef9f4e46147f0d01dbc672b933e2bf26ea3d0ec"
+      data-project="app-import-b1df0f87e3d580f56c9d26925ca67db81bd08e63d6f1881ae01a6462d6177fd9"
+      data-identity="persistent"
+      data-endpoint="https://ingest.sassmaker.com/v1/browser"
+    ></script>
+    <script is:inline>
+      document.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const tracked = target.closest('[data-app-health-event]');
+        const name = tracked?.getAttribute('data-app-health-event');
+        if (name && typeof window.appHealth?.track === 'function') window.appHealth.track(name);
+      });
+    </script>
+    <script
+      is:inline
+      src="https://sassmaker.com/project-strip.js?v=precise-b0adaa67"
+      data-project="open-historia"
+      data-theme="dark"
+      data-host-only="true"
+      crossorigin="anonymous"
+      defer
+    ></script>
+    <script
+      is:inline
+      src="https://sassmaker.com/ai-chat-footer.js?v=precise-b0adaa67"
+      data-name="Open Historia"
+      data-project="open-historia"
+      data-surface="web"
+      data-theme="dark"
+      data-host-only="true"
+      crossorigin="anonymous"
+      defer
+    ></script>
+  </body>
+</html>

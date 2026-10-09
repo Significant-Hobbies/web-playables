@@ -1,0 +1,47 @@
+// Open Historia Worker. JSONC (not TOML) so wrangler finds this file before the
+// Web Playables root `wrangler.jsonc` (a Pages config) when run from this folder.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "open-historia",
+  "main": "src/worker.ts",
+  "compatibility_date": "2024-09-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/",
+      "/play",
+      "/about",
+      "/privacy",
+      "/api/*",
+      "/sitemap.xml",
+      "/robots.txt"
+    ]
+  },
+  "routes": [{ "pattern": "historia.aliveville.com", "custom_domain": true }],
+  "placement": { "mode": "smart" },
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 },
+  "limits": { "cpu_ms": 30000 },
+  "ai": { "binding": "AI" },
+  "services": [
+    { "binding": "FREE_AI", "service": "free-ai-gateway", "entrypoint": "FleetGateway" }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEURON_BUDGET", "class_name": "NeuronBudgetDO", "script_name": "free-ai-gateway" }
+    ]
+  },
+  "vars": {
+    "NODE_ENV": "production",
+    "BETTER_AUTH_URL": "https://historia.aliveville.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "open-historia",
+      "database_id": "69c7c845-1cc5-4b39-9d8d-81cae7b35bad",
+      "migrations_dir": "drizzle"
+    }
+  ]
+}
