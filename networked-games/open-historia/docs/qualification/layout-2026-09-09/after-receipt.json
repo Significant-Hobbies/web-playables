@@ -1,0 +1,229 @@
+{
+  "base": "http://127.0.0.1:43187",
+  "mode": "after",
+  "fixture": "Previously captured real guest AI campaign, three snapshots including a branch. No new AI calls.",
+  "views": [
+    {
+      "width": 390,
+      "height": 844,
+      "overlap": {
+        "story": {
+          "top": 878.953125,
+          "bottom": 1479.953125
+        },
+        "commands": {
+          "top": 524.953125,
+          "bottom": 866.953125
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 110,
+          "y": 662.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 230,
+          "y": 662.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 230,
+          "y": 742.703125,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 768,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 844,
+          "bottom": 1277
+        },
+        "commands": {
+          "top": 490,
+          "bottom": 832
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 130,
+          "y": 818.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 818.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 898.875,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 262
+        },
+        "commands": {
+          "top": 274,
+          "bottom": 572
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 643,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 643,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 723,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 462
+        },
+        "commands": {
+          "top": 474,
+          "bottom": 772
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 843,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 843,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 923,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1100,
+      "height": 741,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 203
+        },
+        "commands": {
+          "top": 215,
+          "bottom": 513
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 584,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 584,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 664,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "overlap": {
+        "story": {
+          "top": 696.796875,
+          "bottom": 1045.796875
+        },
+        "commands": {
+          "top": 342.796875,
+          "bottom": 684.796875
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 130,
+          "y": 538.671875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 538.671875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 618.671875,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    }
+  ]
+}

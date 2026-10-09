@@ -1,0 +1,56 @@
+{
+  "name": "Open Historia",
+  "version": "1",
+  "url": "https://historia.aliveville.com",
+  "llms": "https://historia.aliveville.com/llms.txt",
+  "llmsFull": "https://historia.aliveville.com/llms-full.txt",
+  "sitemap": "https://historia.aliveville.com/sitemap.xml",
+  "robots": "https://historia.aliveville.com/robots.txt",
+  "markdown": {
+    "suffix": ".md",
+    "negotiation": true
+  },
+  "surfaces": [
+    {
+      "id": "home",
+      "url": "https://historia.aliveville.com/",
+      "md": "https://historia.aliveville.com/index.md",
+      "kind": "public",
+      "description": "Play an experimental AI grand-strategy game with natural-language orders, persistent campaign memory, and 20+ scenarios."
+    },
+    {
+      "id": "play",
+      "url": "https://historia.aliveville.com/play",
+      "md": "https://historia.aliveville.com/play.md",
+      "kind": "public",
+      "description": "Choose a scenario and command a civilization with natural-language orders in Open Historia."
+    },
+    {
+      "id": "about",
+      "url": "https://historia.aliveville.com/about",
+      "md": "https://historia.aliveville.com/about.md",
+      "kind": "public",
+      "description": "Learn how Open Historia combines natural-language strategy, an AI rules engine, and rewindable timelines."
+    },
+    {
+      "id": "privacy",
+      "url": "https://historia.aliveville.com/privacy",
+      "md": "https://historia.aliveville.com/privacy.md",
+      "kind": "public",
+      "description": "How Open Historia handles sign-in identity, private saves, provider requests, and deletion."
+    },
+    {
+      "id": "pax-historia-alternative",
+      "url": "https://historia.aliveville.com/pax-historia-alternative",
+      "md": "https://historia.aliveville.com/pax-historia-alternative.md",
+      "kind": "public",
+      "description": "Open Historia is a free, open-source, browser-playable alternative to Pax Historia: natural-language orders, 20+ scenarios, campaign memory, and no credit meter."
+    }
+  ],
+  "exclusions": [
+    "dynamic play identifiers",
+    "save and auth APIs",
+    "private gameplay state",
+    "archived Story Room"
+  ]
+}

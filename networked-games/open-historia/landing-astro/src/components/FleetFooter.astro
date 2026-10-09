@@ -1,0 +1,33 @@
+---
+const repository = 'https://github.com/sarthakagrawal927/open-historia';
+---
+
+<fleet-footer-extension
+  data-fleet-footer-project="open-historia"
+  product-name="Open Historia"
+  signature-name="Open Historia"
+  signature-font="inherit"
+  font-base="/fonts/fleet-footer-precise-v1/"
+  theme="dark"
+  surface="web"
+  art-src="/footer-art/open-historia.webp"
+  art-alt="A strategy table with fictional red and green forces, ships, and terrain."
+  art-width="2172"
+  art-height="724"
+  art-position="50% 50%"
+  art-credit="Original illustration for Open Historia"
+  style="font-family: var(--font-playfair, Georgia, serif)"
+  role="contentinfo"
+  aria-label="Open Historia footer"
+>
+  <div slot="navigation" class="oh-foot fleet-footer-navigation" data-fleet-footer-navigation>
+    <span>&copy; MMXXVI &middot; Open Historia</span>
+    <span class="oh-foot-rule" aria-hidden="true"></span>
+    <span>An AI grand-strategy experiment</span>
+    <nav class="fleet-footer-links" aria-label="Product links">
+      <a href="/about">About</a>
+      <a href="/privacy">Privacy</a>
+      <a href={repository} target="_blank" rel="noopener noreferrer">Source</a>
+    </nav>
+  </div>
+</fleet-footer-extension>

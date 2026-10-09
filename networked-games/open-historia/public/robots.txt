@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /*.md$
+Allow: /api/ai
+Disallow: /api/
+Disallow: /play/
+Disallow: /story-room
+Sitemap: https://historia.aliveville.com/sitemap.xml

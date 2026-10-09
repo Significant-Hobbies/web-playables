@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Open Historia - The Collective Human Manuscript</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,600;0,700;1,400;1,600&amp;family=Noto+Serif:ital,wght@0,400;0,600;1,400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "inverse-surface": "#333027",
+                        "surface-container-low": "#f9f3e5",
+                        "on-secondary-fixed": "#261814",
+                        "tertiary": "#2c4b4a",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#82746f",
+                        "outline-variant": "#d4c3bd",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#f7ddd5",
+                        "on-background": "#1d1c13",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#00201f",
+                        "surface-tint": "#7a5649",
+                        "inverse-primary": "#ebbcac",
+                        "on-secondary-fixed-variant": "#54433d",
+                        "on-primary-fixed-variant": "#603f33",
+                        "primary-container": "#795548",
+                        "on-primary-fixed": "#2e150b",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#dfdacc",
+                        "background": "#fff9eb",
+                        "on-primary-container": "#fdcdbc",
+                        "on-tertiary-fixed-variant": "#2d4c4b",
+                        "tertiary-fixed": "#c7e9e7",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#f3eddf",
+                        "on-surface": "#1d1c13",
+                        "on-surface-variant": "#504440",
+                        "secondary": "#6d5a54",
+                        "on-secondary-container": "#725e58",
+                        "on-secondary": "#ffffff",
+                        "inverse-on-surface": "#f6f0e2",
+                        "surface-container-high": "#eee8da",
+                        "tertiary-container": "#446362",
+                        "surface-variant": "#e8e2d4",
+                        "surface-container-highest": "#e8e2d4",
+                        "secondary-container": "#f4dad2",
+                        "surface-bright": "#fff9eb",
+                        "on-tertiary-container": "#bcdedc",
+                        "primary-fixed-dim": "#ebbcac",
+                        "primary": "#5f3e32",
+                        "surface": "#fff9eb",
+                        "secondary-fixed-dim": "#dac1b9",
+                        "primary-fixed": "#ffdbcf",
+                        "tertiary-fixed-dim": "#accdcb"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Newsreader"],
+                        "display": ["Newsreader"],
+                        "body": ["Noto Serif"],
+                        "label": ["Noto Serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .manuscript-shadow {
+            box-shadow: 0 10px 30px -5px rgba(29, 28, 19, 0.05);
+        }
+        .ink-gradient {
+            background: linear-gradient(135deg, #5f3e32 0%, #795548 100%);
+        }
+        .glass-header {
+            background-color: rgba(255, 249, 235, 0.85);
+            backdrop-filter: blur(24px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 glass-header shadow-sm dark:shadow-none">
+<div class="flex items-center justify-between px-8 py-6 max-w-[1440px] mx-auto w-full">
+<div class="flex items-center gap-3 cursor-pointer transition-opacity active:opacity-70">
+<span class="material-symbols-outlined text-[#5f3e32]" style="font-size: 32px;">history_edu</span>
+<span class="text-3xl font-headline font-bold text-[#5f3e32] italic tracking-tight">Open Historia</span>
+</div>
+<nav class="hidden md:flex gap-8 items-center">
+<span class="text-[#5f3e32] border-b border-[#5f3e32] font-semibold font-label py-1 transition-colors duration-300">The Archives</span>
+<span class="text-[#82746f] font-medium font-label py-1 hover:text-[#5f3e32] transition-colors duration-300">Timeline</span>
+<span class="text-[#82746f] font-medium font-label py-1 hover:text-[#5f3e32] transition-colors duration-300">Scholarly Access</span>
+<button type="button" class="material-symbols-outlined text-[#5f3e32] cursor-pointer hover:opacity-70 transition-opacity">search</button>
+</nav>
+</div>
+</header>
+<main class="pt-32 pb-24">
+<!-- Hero & Search Interface -->
+<section class="max-w-[1440px] mx-auto px-8 mb-32">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-end">
+<div class="lg:col-span-8">
+<h1 class="text-6xl md:text-8xl font-display font-bold text-primary italic leading-[0.9] tracking-tighter mb-8">
+                        The Collective <br/>Human Manuscript.
+                    </h1>
+<p class="text-xl md:text-2xl text-on-surface-variant max-w-2xl leading-relaxed mb-12">
+                        Explore an immersive, open-access archive spanning five millennia. Every document, every event, every voice preserved for the digital age.
+                    </p>
+<div class="relative group max-w-3xl">
+<input class="w-full bg-surface-container-lowest border-none border-b border-outline py-6 pr-16 text-2xl font-display italic focus:ring-0 focus:border-primary transition-all placeholder:text-outline-variant" placeholder="Search centuries, events, or artifacts..." type="text"/>
+<div class="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-3xl cursor-pointer">search</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-4 flex flex-col gap-4">
+<div class="bg-surface-container-high p-8 manuscript-shadow aspect-[4/5] relative overflow-hidden">
+<img class="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-multiply" alt="close-up of a weathered 18th-century leather book binding with gold leaf lettering on a dark wooden library desk" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2_M3vVXjYGQZdUHkhUfQpmRWOhi0Y0WSIoc5OAnwsAQxCUpm8occWcWHKvfMM7O6jVibJClxAMVKHUyCWkqTq3_uRXz6KZv3fhVjMNZJ5LnNfhEEZ6vW8U96e8E4b2kwg1hnUvazFI9jc68PIQ3hBgqhQYsyQdS2LrLeoIKiwpJTQVUPcKWJiFh3xUvkOxDY_AsH6dgkLQl52hwVCypzqkLujs_H4BVK3HydoKCWOKRCoOCkv-5U5VvGmtiF-lioYHTZx5y6B3WE"/>
+<div class="relative z-10 flex flex-col h-full justify-end">
+<span class="bg-primary text-on-primary px-3 py-1 text-xs font-label uppercase tracking-widest self-start mb-4">Featured Artifact</span>
+<h3 class="text-2xl font-headline italic text-on-primary-fixed-variant">The Cartography of 1624</h3>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Timeline of the Day -->
+<section class="bg-surface-container-low py-32 mb-32">
+<div class="max-w-[1440px] mx-auto px-8">
+<div class="flex flex-col md:flex-row justify-between items-baseline mb-16 gap-8">
+<h2 class="text-5xl font-display italic text-primary">Timeline of the Day</h2>
+<div class="flex gap-4">
+<span class="text-on-surface-variant font-label tracking-widest text-sm uppercase">Focus: The Renaissance Enlightenment</span>
+</div>
+</div>
+<div class="relative">
+<!-- Vertical Timeline Spine -->
+<div class="absolute left-8 md:left-1/2 top-0 bottom-0 w-[1px] bg-outline-variant opacity-30"></div>
+<div class="space-y-24">
+<!-- Milestone 1 -->
+<div class="relative flex flex-col md:flex-row items-center gap-12">
+<div class="md:w-1/2 text-right hidden md:block">
+<span class="text-primary font-display text-3xl italic">1450</span>
+<p class="text-on-surface-variant font-label mt-2">Mainz, Germany</p>
+</div>
+<div class="z-10 w-16 h-16 rounded-full bg-surface-container-lowest border-4 border-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">print</span>
+</div>
+<div class="md:w-1/2 pl-8 md:pl-0">
+<span class="md:hidden text-primary font-display text-2xl italic block mb-2">1450</span>
+<h4 class="text-2xl font-headline font-bold text-primary mb-3">Gutenberg's Press</h4>
+<p class="text-on-surface-variant max-w-md leading-relaxed">The invention of movable type begins the era of mass communication, forever changing the circulation of knowledge.</p>
+</div>
+</div>
+<!-- Milestone 2 -->
+<div class="relative flex flex-col md:flex-row-reverse items-center gap-12">
+<div class="md:w-1/2 text-left hidden md:block">
+<span class="text-primary font-display text-3xl italic">1504</span>
+<p class="text-on-surface-variant font-label mt-2">Florence, Italy</p>
+</div>
+<div class="z-10 w-16 h-16 rounded-full bg-surface-container-lowest border-4 border-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">draw</span>
+</div>
+<div class="md:w-1/2 pr-8 md:pr-0 md:text-right flex flex-col md:items-end">
+<span class="md:hidden text-primary font-display text-2xl italic block mb-2">1504</span>
+<h4 class="text-2xl font-headline font-bold text-primary mb-3">Michelangelo's David</h4>
+<p class="text-on-surface-variant max-w-md leading-relaxed">A masterpiece of Renaissance sculpture is unveiled, symbolizing the Republic of Florence's strength and intellectual vigor.</p>
+</div>
+</div>
+<!-- Milestone 3 -->
+<div class="relative flex flex-col md:flex-row items-center gap-12">
+<div class="md:w-1/2 text-right hidden md:block">
+<span class="text-primary font-display text-3xl italic">1543</span>
+<p class="text-on-surface-variant font-label mt-2">Frombork, Poland</p>
+</div>
+<div class="z-10 w-16 h-16 rounded-full bg-surface-container-lowest border-4 border-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">auto_stories</span>
+</div>
+<div class="md:w-1/2 pl-8 md:pl-0">
+<span class="md:hidden text-primary font-display text-2xl italic block mb-2">1543</span>
+<h4 class="text-2xl font-headline font-bold text-primary mb-3">De revolutionibus</h4>
+<p class="text-on-surface-variant max-w-md leading-relaxed">Copernicus publishes his heliocentric theory, initiating the Scientific Revolution and challenging a millennium of doctrine.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Featured Archival Documents Gallery -->
+<section class="max-w-[1440px] mx-auto px-8">
+<div class="mb-16">
+<h2 class="text-5xl font-display italic text-primary mb-4">Archival Documents</h2>
+<p class="text-on-surface-variant font-label max-w-xl">Curated high-resolution scans of original manuscripts, treaties, and first-edition journals.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+<!-- Document Card 1 -->
+<div class="group cursor-pointer">
+<div class="bg-surface-container-highest p-4 manuscript-shadow transition-transform duration-300 group-hover:-translate-y-2">
+<img class="w-full aspect-[3/4] object-cover border border-outline-variant/15" alt="high resolution scan of a 15th century illuminated manuscript page with gold leaf detailing and ornate gothic calligraphy" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbrkPSDsYIJbh3LcMccHB184TfaqFxX9W82tFXB_oJj1ggth5460CEDhzqdz0YE5hoWIWpyIBOhqV_qsy7vrhu3BNxC1cIbVYdv4DElwrT3HmMrxdgPmhMaz9xLJ5C4Ugca8hPHfDBybNy-GInduPl9SO7VRa9ZR3QCPbKfZhwdleCCESR3BOL1f70UIYuNLR1Y38Ck7gnm7gNsMHxT1UA4RdDiim4UtXpfUMDhsU4SY3X_4qH6f2MGDoghFzm_zSbiIJwUsIC6Uc"/>
+</div>
+<div class="mt-8">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant mb-2 block">Folio • 1420</span>
+<h4 class="text-xl font-headline font-bold text-primary group-hover:underline underline-offset-4 decoration-1">The Duke of Bedford's Book of Hours</h4>
+</div>
+</div>
+<!-- Document Card 2 -->
+<div class="group cursor-pointer lg:mt-16">
+<div class="bg-surface-container-highest p-4 manuscript-shadow transition-transform duration-300 group-hover:-translate-y-2">
+<img class="w-full aspect-[3/4] object-cover border border-outline-variant/15" alt="sepia photograph of a handwritten naval map from the 17th century with intricate compass roses and maritime illustrations" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDE_fw6ipqgi26d6a-2JB9U2Z-oTGt0Ecim7NtohlYB-CsM5DkUxRBPCY80PUDIxujf-EGpRqBJyAzAS0I1BT4KC0EIHqZ3hfgCVrUyDb5ArK7zb4g5y-prB1Jeu0mD-BOqjDUPOsMugZdVpdg1r9oDYYmDVR5e4tOqRxisOq_dPs3BbYmDM6bbAMT08HQdp0_gr1WUsu5HZ8v3RFe1wPkppHKH_FmQ_EkLhZZklv89Sn5tY2KNehDYU53nMm505QJVUVilPsGhD3g"/>
+</div>
+<div class="mt-8">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant mb-2 block">Map • 1682</span>
+<h4 class="text-xl font-headline font-bold text-primary group-hover:underline underline-offset-4 decoration-1">La Salle’s Mississippi Expedition</h4>
+</div>
+</div>
+<!-- Document Card 3 -->
+<div class="group cursor-pointer lg:mt-32">
+<div class="bg-surface-container-highest p-4 manuscript-shadow transition-transform duration-300 group-hover:-translate-y-2">
+<img class="w-full aspect-[3/4] object-cover border border-outline-variant/15" alt="close up of a 19th century printing proof with editor pencil marks and ink splatters on aged textured paper" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAwLi-FQ7tH0gADV9GaJazgbvE9XTXot5KQ_mKAwQLmmVEkCl9Q99EqIYgtSr_xvxnTCIAY9IjOBe7XqMWplFoeki3YKKmbsQIPopWv6AjpK3Yhkl9omf9uTD8GI_MIxWuFSugav-BVIvnps4XI_6O72XZgOlZu-YPRCeQqQTSylujkuOstzhRKJUb0q1AVgqcgotKjW-j6LDudIBFg2ODdHYTUV3mYuZmjzAKF5TxHnoTKlyNJ8U_OgmllNW2kLtGBm7UkMvLMm9c"/>
+</div>
+<div class="mt-8">
+<span class="text-xs font-label uppercase tracking-widest text-on-surface-variant mb-2 block">Pamphlet • 1851</span>
+<h4 class="text-xl font-headline font-bold text-primary group-hover:underline underline-offset-4 decoration-1">Universal Exhibition Gazette</h4>
+</div>
+</div>
+</div>
+<div class="mt-32 flex justify-center">
+<button type="button" class="ink-gradient text-on-primary px-12 py-5 font-headline font-bold italic text-lg shadow-lg hover:shadow-xl transition-all active:scale-[0.98]">
+                    Browse the Full Repository
+                </button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-16 mt-24 border-t border-[#d4c3bd]/15 bg-[#f9f3e5] dark:bg-[#1d1c13]">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-12 px-12 max-w-screen-xl mx-auto items-center">
+<div>
+<p class="font-newsreader italic text-2xl text-[#5f3e32] dark:text-[#f9f3e5] mb-4">Open Historia</p>
+<p class="font-noto-serif text-sm tracking-wide text-[#5f3e32] dark:text-[#d4c3bd]">
+                    © 2024 Open Historia. An archive of the collective human manuscript.
+                </p>
+</div>
+<div class="flex flex-wrap gap-x-8 gap-y-4 md:justify-end">
+<span class="font-noto-serif text-sm tracking-wide text-[#82746f] hover:text-[#5f3e32] hover:underline transition-all duration-200">The Archives</span>
+<span class="font-noto-serif text-sm tracking-wide text-[#82746f] hover:text-[#5f3e32] hover:underline transition-all duration-200">Timeline</span>
+<span class="font-noto-serif text-sm tracking-wide text-[#82746f] hover:text-[#5f3e32] hover:underline transition-all duration-200">Scholarly Access</span>
+<span class="font-noto-serif text-sm tracking-wide text-[#82746f] hover:text-[#5f3e32] hover:underline transition-all duration-200">Terms of Preservation</span>
+</div>
+</div>
+</footer>
+</body></html>

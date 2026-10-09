@@ -1,0 +1,11 @@
+{
+  "projectId": "open-historia",
+  "asset": "open-historia.webp",
+  "width": 2172,
+  "height": 724,
+  "sha256": "83ec53c9b61fb5678905b5bb63d7a8bf54ebd863dbc336360c6709d363a27173",
+  "originalSourceSha256": "79ef3ae2714ce884c6644d835e83f2396a73812350a96afc1037599dce958119",
+  "source": "Original generated strategy-table illustration created for Open Historia.",
+  "description": "Invented red and green factions, ships, and terrain; no real flags or readable text.",
+  "reviewStatus": "Source and derivative hashes verified. Final rendered crop and alt review remain pending."
+}

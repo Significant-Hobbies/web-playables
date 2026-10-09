@@ -1,0 +1,99 @@
+# Open Historia — full agent brief
+
+Open Historia is an open-source AI grand-strategy game. An AI Game Master adjudicates natural-language orders and returns structured changes to the map, diplomacy, events, and timeline.
+
+# Rewrite history, one order at a time
+
+Open Historia is a playable, open-source grand-strategy experiment where an AI Game Master adjudicates diplomacy, conflict, territory, and alternate timelines.
+
+## Start playing
+
+Choose a historical, modern, alternate, or fictional scenario, command a nation in plain English, and watch the map and timeline respond.
+
+## Current product boundary
+
+The natural-language turn loop, campaign memory, local saves, optional cloud saves, and timeline branching are playable. The map and campaign pacing remain prototype-grade, so the project is held rather than presented as a finished strategy game.
+
+## Canonical page
+
+https://historia.aliveville.com/
+
+---
+
+# Start an alternate history
+
+Pick a scenario, nation, difficulty, and AI provider, then issue strategic orders in natural language.
+
+## How play works
+
+The AI Game Master returns structured consequences that update territory, diplomacy, events, and the campaign timeline.
+
+## Account boundary
+
+Guests can play with local saves. Sign-in enables private cloud saves; no save identifier or campaign state is part of public discovery.
+
+## Canonical page
+
+https://historia.aliveville.com/play
+
+---
+
+# Steer history, one order at a time
+
+Open Historia is an open-source AI grand-strategy game built around natural-language command and inspectable turn consequences.
+
+## AI as rules engine
+
+A large language model adjudicates each turn through a strict structured contract rather than fixed combat menus.
+
+## Rewind and branch
+
+Every turn becomes a timeline snapshot, so a player can revisit a prior decision and branch a new alternate history.
+
+## Canonical page
+
+https://historia.aliveville.com/about
+
+---
+
+# Privacy
+
+Guests can play locally. Signed-in identity, cloud saves, and saved provider keys are used only for the requested product functions.
+
+## What is stored
+
+Google OAuth identity and cloud saves are stored only when a player signs in. Saved API keys are encrypted.
+
+## Provider requests and deletion
+
+Turn context goes only to the AI provider selected by the player. Individual cloud saves can be deleted from the product.
+
+## Canonical page
+
+https://historia.aliveville.com/privacy
+
+---
+
+# A free, open-source Pax Historia alternative
+
+Open Historia is an open-source AI grand-strategy experiment playable in the browser: command a nation in plain English, keep long-running campaign memory, and bring your own AI provider or play through the shared free gateway.
+
+## Why players look for alternatives
+
+Pax Historia is a hosted AI sandbox platform where scenario play runs through its own service. Open Historia takes the same idea in an open direction: MIT-licensed code, browser play with local saves, and your choice of AI provider — including a local model — instead of a metered credit system.
+
+## What you get today
+
+Natural-language turns adjudicated by an AI Game Master, 20+ historical and alternate scenarios, a living world map, diplomacy threads, and a rewindable timeline that can branch into alternate histories. Cloud saves are optional and require sign-in.
+
+## Where it is honest about its limits
+
+Open Historia is a held experiment, not a polished platform: the map detail and campaign pacing are prototype-grade, and there is no multiplayer or community scenario marketplace yet.
+
+## Canonical page
+
+https://historia.aliveville.com/pax-historia-alternative
+
+## Discovery boundary
+
+Only the 5 canonical public pages above are indexed. Dynamic play identifiers, save and auth APIs, private gameplay state, and the archived Story Room are excluded.

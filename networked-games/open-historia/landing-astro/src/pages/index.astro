@@ -1,0 +1,30 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import Hero from '@/components/Hero.astro';
+import ValueProp from '@/components/ValueProp.astro';
+import Features from '@/components/Features.astro';
+import Cta from '@/components/Cta.astro';
+import { publicRoute } from '../../../src/public-routes';
+
+// Open Historia landing.
+//
+// Four sections, no nav, no client JS. The /play CTA assumes the game
+// has been moved off / (currently the game IS at /, so this link 404s
+// until cutover — see README).
+//
+// Title + description mirror app/layout.tsx metadata so the OG card,
+// canonical URL, and search snippets stay consistent with the rest of
+// the Worker-served routes.
+
+const HOME = publicRoute('/');
+if (!HOME) throw new Error('Missing canonical home route');
+---
+
+<Layout title={HOME.title} description={HOME.description}>
+  <main class="oh-page">
+    <Hero />
+    <ValueProp />
+    <Features />
+    <Cta />
+  </main>
+</Layout>

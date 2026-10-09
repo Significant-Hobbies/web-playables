@@ -1,0 +1,261 @@
+{
+  "base": "https://historia.aliveville.com",
+  "mode": "after",
+  "fixture": "Previously captured real guest AI campaign, three snapshots including a branch. No new AI calls.",
+  "views": [
+    {
+      "width": 390,
+      "height": 844,
+      "overlap": {
+        "story": {
+          "top": 878.953125,
+          "bottom": 1479.953125
+        },
+        "commands": {
+          "top": 524.953125,
+          "bottom": 866.953125
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 110,
+          "y": 662.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 230,
+          "y": 662.703125,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 230,
+          "y": 742.703125,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 768,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 844,
+          "bottom": 1277
+        },
+        "commands": {
+          "top": 490,
+          "bottom": 832
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 130,
+          "y": 818.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 818.875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 898.875,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 262
+        },
+        "commands": {
+          "top": 274,
+          "bottom": 572
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 643,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 643,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 723,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1440,
+      "height": 1000,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 462
+        },
+        "commands": {
+          "top": 474,
+          "bottom": 772
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 843,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 843,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 923,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1100,
+      "height": 741,
+      "overlap": {
+        "story": {
+          "top": 80,
+          "bottom": 203
+        },
+        "commands": {
+          "top": 215,
+          "bottom": 513
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 118,
+          "y": 584,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 584,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 258,
+          "y": 664,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    },
+    {
+      "width": 1280,
+      "height": 720,
+      "overlap": {
+        "story": {
+          "top": 696.796875,
+          "bottom": 1045.796875
+        },
+        "commands": {
+          "top": 342.796875,
+          "bottom": 684.796875
+        },
+        "area": 0
+      },
+      "collisions": 0,
+      "targets": [
+        {
+          "x": 130,
+          "y": 538.671875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 538.671875,
+          "width": 44,
+          "height": 44
+        },
+        {
+          "x": 270,
+          "y": 618.671875,
+          "width": 44,
+          "height": 44
+        }
+      ],
+      "providerCalls": 0
+    }
+  ],
+  "source": "9445110fc7857238eadff2de27804deca754f380",
+  "ci": "https://github.com/sarthakagrawal927/open-historia/actions/runs/34326491238",
+  "workerVersion": "e529a943-f06e-4529-9323-dd3a384d5fc7",
+  "deployment": "21a0e2d9-30a1-4636-a6f5-c884b501a960",
+  "deployedAt": "2026-09-09T08:05:24.296828Z",
+  "trafficPercent": 100,
+  "guard": "6/6 passed",
+  "rollbackVersion": "e4a26fe5-9d2f-46fd-83e6-228d1e8c7a75",
+  "assetParity": {
+    "status": 200,
+    "url": "https://historia.aliveville.com/play",
+    "actual": ["/assets/app-DxSSGJvv.js"],
+    "expected": "/assets/app-DxSSGJvv.js"
+  },
+  "guestSaveReload": {
+    "url": "https://historia.aliveville.com/play/36d96ec6-679a-4294-839c-5ed1d092cd90",
+    "viewports": [390, 1280],
+    "savedViaUI": true,
+    "reloaded": true,
+    "timelineCount": 3,
+    "relationsCount": 3,
+    "summaryPreserved": true,
+    "selectedSnapshotPreserved": true,
+    "nonGetApiCalls": 0
+  },
+  "scope": "Hosted panel/branch layout plus guest local save/reload. Historical scenario quality and authenticated saves remain unqualified.",
+  "ciQualification": {
+    "conclusion": "success",
+    "flakyCase": "Five-viewport WebKit case exhausted 120s total on first attempt, passed existing retry in about 78s. Not a clean first-attempt run.",
+    "followup": "Test-only source 2dec77bdd09930acda66a4e9231626f2545a3af4 assigns native mobile and desktop boundary responsibilities separately; local retries-disabled focused run passed both browsers.",
+    "followupRun": "https://github.com/sarthakagrawal927/open-historia/actions/runs/34327596281"
+  }
+}

@@ -12,7 +12,8 @@
     "**/*.test.{ts,tsx,js,mjs}",
     "**/*.spec.{ts,tsx,js,mjs}",
     "**/*.d.mts",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "networked-games/**"
   ],
   "ignoreDependencies": [
     "typescript",

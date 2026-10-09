@@ -1,0 +1,82 @@
+{
+  "url": "https://historia.aliveville.com",
+  "source": "d6d052f69942e19362c665ac1ed8dfc99d62a17c",
+  "turns": [
+    {
+      "status": 200,
+      "durationMs": 2441,
+      "year": 1940,
+      "summarySent": "",
+      "message": "The UK and France have reached a humanitarian shipping access agreement. The pact allows for mutual aid in times of crisis and establishes a framework for cooperation in the face of the Nazi threat. Relations between the two nations have shifted to 'allied'.",
+      "updateCount": 2
+    },
+    {
+      "status": 200,
+      "durationMs": 2543,
+      "year": 1941,
+      "summarySent": "Welcome to Open Historia. Scenario: September 1, 1939. Nazi Germany has invaded Poland with overwhelming force, unleashing Blitzkrieg warfare. Britain and France have declared war on Germany. The Soviet Union has invaded Poland from the east. Italy wavers. Japan is already at war in China. The United States remains isolationist but watches with growing alarm. The League of Nations has failed. The UK has initiated diplomacy with France, negotiating a humanitarian shipping access agreement. Relations between the UK and France have shifted to 'allied'.",
+      "message": "The UK and France have expanded their humanitarian agreement into joint civilian relief operations, providing aid to Polish refugees and establishing a framework for cooperation in the face of the Nazi threat. Relations between the two nations remain strong, but the Soviet Union's invasion of Eastern Poland has raised concerns about the Molotov-Ribbentrop Pact.",
+      "updateCount": 3
+    },
+    {
+      "status": 200,
+      "durationMs": 1859,
+      "year": 1941,
+      "summarySent": "Welcome to Open Historia. Scenario: September 1, 1939. Nazi Germany has invaded Poland with overwhelming force, unleashing Blitzkrieg warfare. Britain and France have declared war on Germany. The Soviet Union has invaded Poland from the east. Italy wavers. Japan is already at war in China. The United States remains isolationist but watches with growing alarm. The League of Nations has failed. The UK has initiated diplomacy with France, negotiating a humanitarian shipping access agreement. Relations between the UK and France have shifted to 'allied'.",
+      "message": "Humanitarian shipping access agreement continues, with UK and French convoys safely delivering aid to war-torn Poland. Italy, still wavering, cautiously approaches the Axis, while the Soviet Union solidifies its hold on Eastern Europe.",
+      "updateCount": 3
+    }
+  ],
+  "syntheticProvider": false,
+  "account": "guest",
+  "persistence": {
+    "savedUrl": "https://historia.aliveville.com/play/36d96ec6-679a-4294-839c-5ed1d092cd90",
+    "checkpointId": "99be7884-335b-4012-8cd3-a09ae1a9baf0",
+    "restoredSummary": true,
+    "restoredRelations": true,
+    "restoredTimeline": true,
+    "nextPromptUsesCheckpoint": true,
+    "nextSnapshotUsesCheckpointParent": true,
+    "snapshotCount": 3,
+    "relationCount": 3,
+    "finalDesktopReopen": true
+  },
+  "success": true,
+  "deployment": {
+    "id": "26b34bf1-5493-4f59-89b7-a9557ea54a65",
+    "created_on": "2026-09-09T07:24:08.486597Z",
+    "versions": [
+      {
+        "version_id": "e4a26fe5-9d2f-46fd-83e6-228d1e8c7a75",
+        "percentage": 100
+      }
+    ],
+    "tag": "d6d052f69942e19362c665ac1ed8dfc99d62a17c"
+  },
+  "rollback": {
+    "id": "e52bc48d-da5a-4ec2-9ee4-d5fded78c575",
+    "strategy": "percentage",
+    "versions": [
+      {
+        "version_id": "d420bcf2-f9e9-46af-9703-c1aa78b38731",
+        "percentage": 100
+      }
+    ],
+    "created_on": "2026-09-08T14:29:18.81803Z"
+  },
+  "ci": "https://github.com/sarthakagrawal927/open-historia/actions/runs/34323177334",
+  "guard": "6 gates passed",
+  "localChecks": {
+    "unitPassed": 87,
+    "browserPassed": 22,
+    "browserSkipped": 2,
+    "skipReason": "mobile-only tests skipped in desktop project",
+    "typecheck": "passed",
+    "lint": "passed"
+  },
+  "assets": {
+    "localEntry": ["/assets/app-CH4jS2Ma.js"],
+    "publicEntry": ["/assets/app-CH4jS2Ma.js"],
+    "parity": true
+  }
+}

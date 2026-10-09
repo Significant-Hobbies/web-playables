@@ -1,0 +1,3 @@
+[submodule "networked-games/open-historia/server"]
+	path = networked-games/open-historia/server
+	url = https://github.com/sarthakagrawal927/local-ai.git
