@@ -11,6 +11,11 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!networked-games"]
+    "includes": [
+      "**",
+      "!networked-games",
+      "!apps/hub/public/footer.js",
+      "!apps/hub/public/footer.css"
+    ]
   }
 }

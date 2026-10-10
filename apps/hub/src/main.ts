@@ -147,15 +147,43 @@ proof.innerHTML = `
 `;
 main.append(proof);
 
-const footer = document.createElement("footer");
-footer.className = "site-footer";
-const githubLink = document.createElement("a");
-githubLink.href = "https://github.com/sarthakagrawal927/web-playables";
-githubLink.target = "_blank";
-githubLink.rel = "noopener noreferrer";
-githubLink.setAttribute("aria-label", "GitHub repository");
-githubLink.title = "GitHub repository";
-githubLink.addEventListener("click", () => {
+const repositoryUrl = "https://github.com/sarthakagrawal927/web-playables";
+const footer = document.createElement("studio-footer");
+footer.setAttribute("product", "Web Playables");
+footer.setAttribute("url", "https://idle.aliveville.com");
+footer.setAttribute("catalog-id", "web-playables");
+footer.setAttribute("capture", "newsletter");
+footer.setAttribute("variant", "studio");
+footer.setAttribute("art-mode", "scene");
+footer.setAttribute("wordmark", "poster");
+footer.setAttribute("data-mode", "dark");
+
+const footerConfig = document.createElement("script");
+footerConfig.type = "application/json";
+footerConfig.textContent = JSON.stringify({
+  summary: "A parked browser-game lab: one idle game and a reusable gamekit.",
+  groups: [
+    {
+      title: "project",
+      links: [
+        { label: "GitHub repository", href: repositoryUrl },
+        { label: "idle startup", href: "/play/idle-startup/" },
+      ],
+    },
+  ],
+  art: {
+    src: "/footer-art/web-playables.webp",
+    alt: "Web Playables: A browser-game packaging workshop centers an original miniature level and save capsule. Distinct playable-world props sit in open frames beside an offline travel case and modest packaging tools.",
+  },
+});
+footer.append(footerConfig);
+app.replaceChildren(backdrop, main, footer);
+
+document.addEventListener("click", (event) => {
+  const githubLink = event
+    .composedPath()
+    .find((target) => target instanceof HTMLAnchorElement && target.href === repositoryUrl);
+  if (!githubLink) return;
   const health = (
     window as Window & {
       appHealth?: { track: (name: string) => void; flush?: () => Promise<unknown> };
@@ -164,27 +192,3 @@ githubLink.addEventListener("click", () => {
   health?.track("source_repository_opened");
   void Promise.resolve(health?.flush?.()).catch(() => {});
 });
-githubLink.innerHTML =
-  '<svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>';
-footer.append(githubLink);
-main.append(footer);
-
-const footerHost = document.createElement("fleet-footer-extension");
-footerHost.setAttribute("data-fleet-footer-project", "web-playables");
-footerHost.setAttribute("product-name", "Web Playables");
-footerHost.setAttribute("signature-name", "idle.");
-footerHost.setAttribute("signature-font", "inherit");
-footerHost.setAttribute("surface", "app");
-footerHost.setAttribute("theme", "dark");
-footerHost.setAttribute("font-base", "/fonts/fleet-footer-precise-v1/");
-footerHost.setAttribute("art-src", "/footer-art/web-playables.webp");
-footerHost.setAttribute(
-  "art-alt",
-  "Web Playables: A browser-game packaging workshop centers an original miniature level and save capsule. Distinct playable-world props sit in open frames beside an offline travel case and modest packaging tools.",
-);
-footerHost.setAttribute("art-width", "2169");
-footerHost.setAttribute("art-height", "725");
-footerHost.setAttribute("art-credit", "Original illustration for Web Playables");
-footer.slot = "navigation";
-app.replaceChildren(backdrop, main, footerHost);
-footerHost.append(footer);
