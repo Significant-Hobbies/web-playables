@@ -13,6 +13,7 @@
   --violet: #a08bff;
   --amber: #ffc45e;
   --font-display: "Space Grotesk Variable", "Avenir Next", system-ui, sans-serif;
+  --font-text: var(--font-display);
   --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
   --radius: 14px;
 }
@@ -210,24 +211,6 @@ h1 {
   line-height: 1.7;
 }
 
-.site-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: clamp(28px, 5vw, 48px);
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-
-.site-footer a {
-  display: inline-flex;
-  color: var(--text-faint);
-  transition: color 0.15s ease;
-}
-
-.site-footer a:hover {
-  color: var(--text);
-}
-
 .game-card__play {
   color: var(--cash);
 }
@@ -264,8 +247,14 @@ h1 {
   }
 }
 
-.site-footer[slot="navigation"] {
-  margin: 0;
-  padding: 0;
-  border: 0;
+/* studio-footer v0.1.15 gaps: the stacked subscribe input collapses to zero
+   height on phones, and the poster wordmark clips descenders. */
+@media (max-width: 639px) {
+  studio-footer #subscribe-email {
+    flex: none;
+  }
+}
+
+studio-footer p[aria-hidden="true"].absolute {
+  bottom: 0.14em;
 }
