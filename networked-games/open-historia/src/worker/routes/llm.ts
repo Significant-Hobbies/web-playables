@@ -201,6 +201,17 @@ const extractJson = (text: string): string => {
   );
 };
 
+class MalformedProviderOutputError extends Error {}
+
+const parseProviderJson = (text: string): unknown => {
+  try {
+    return JSON.parse(extractJson(text));
+  } catch {
+    // Classify provider output separately from request JSON without retaining private text.
+    throw new MalformedProviderOutputError('Malformed provider output');
+  }
+};
+
 const DIPLOMACY_OVERRIDE_KEYS = ['diplomacyInstructions'] as const;
 const MAX_OVERRIDE_LENGTH = 4000;
 
@@ -300,7 +311,8 @@ async function callProvider(
             output: Output.object({ schema: jsonSchema(AI_RESPONSE_SCHEMAS[responseKind]) }),
             system: systemPrompt,
             prompt,
-            maxRetries: 0,
+            // Recover once from transient gateway failures within the route's shared deadline.
+            maxRetries: 1,
           });
           return result.text || '{}';
         } catch (error) {
@@ -602,22 +614,35 @@ llm.post('/chat', async (c) => {
       config.provider
     );
 
-    const cleanJson = extractJson(responseText);
-    const parsed = JSON.parse(cleanJson);
+    const parsed = parseProviderJson(responseText);
     const sanitized = sanitizeDiplomacyResponse(parsed);
 
     return c.json(sanitized);
   } catch (error) {
-    console.error('Diplomacy Chat Error:', 'provider-or-response');
+    console.error(
+      'Diplomacy Chat Error:',
+      error instanceof MalformedProviderOutputError
+        ? 'malformed-provider-output'
+        : 'provider-or-response'
+    );
     const status =
-      error instanceof LLMTimeoutError ? 504 : error instanceof SharedAiBudgetError ? 503 : 500;
+      error instanceof LLMTimeoutError
+        ? 504
+        : error instanceof SharedAiBudgetError
+          ? 503
+          : error instanceof MalformedProviderOutputError
+            ? 502
+            : 500;
     return c.json(
       {
         message:
           'The diplomatic envoy was unable to deliver the message. A courier returns with troubling news of communication failure.',
         tone: 'neutral' as DiplomacyTone,
         relationChange: null,
-        error: 'The AI provider could not complete this request.',
+        error:
+          error instanceof MalformedProviderOutputError
+            ? 'The AI provider returned malformed output. Please try again.'
+            : 'The AI provider could not complete this request.',
       },
       status
     );
@@ -683,22 +708,35 @@ llm.post('/advisor', async (c) => {
       config.provider
     );
 
-    const cleanJson = extractJson(responseText);
-    const parsed = JSON.parse(cleanJson);
+    const parsed = parseProviderJson(responseText);
     const sanitized = sanitizeAdvisorResponse(parsed);
 
     return c.json(sanitized);
   } catch (error) {
-    console.error('Advisor Error:', 'provider-or-response');
+    console.error(
+      'Advisor Error:',
+      error instanceof MalformedProviderOutputError
+        ? 'malformed-provider-output'
+        : 'provider-or-response'
+    );
     const status =
-      error instanceof LLMTimeoutError ? 504 : error instanceof SharedAiBudgetError ? 503 : 500;
+      error instanceof LLMTimeoutError
+        ? 504
+        : error instanceof SharedAiBudgetError
+          ? 503
+          : error instanceof MalformedProviderOutputError
+            ? 502
+            : 500;
     return c.json(
       {
         advice:
           'Forgive me, my liege. An unforeseen disturbance has interrupted my counsel. I shall compose my thoughts and return shortly.',
         category: 'general' as AdvisorCategory,
         suggestedActions: ['Wait and try consulting the advisor again'],
-        error: 'The AI provider could not complete this request.',
+        error:
+          error instanceof MalformedProviderOutputError
+            ? 'The AI provider returned malformed output. Please try again.'
+            : 'The AI provider could not complete this request.',
       },
       status
     );
