@@ -55,6 +55,60 @@ const normalizeFreeAiModel = (model: string | undefined) => {
   return trimmed;
 };
 
+type GatewayReceipt = {
+  request_id: string;
+  project_id: 'open-historia';
+  provider: string;
+  model: string;
+  attempts: number;
+};
+
+const safeGatewayValue = (value: unknown, maxLength: number) =>
+  typeof value === 'string' && value.length > 0 && value.length <= maxLength
+    ? /^[A-Za-z0-9@._:/-]+$/.test(value)
+      ? value
+      : null
+    : null;
+
+export function sanitizeGatewayReceipt(value: unknown): GatewayReceipt | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const metadata = (value as Record<string, unknown>).x_gateway;
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+
+  const fields = metadata as Record<string, unknown>;
+  const requestId = safeGatewayValue(fields.request_id, 128);
+  const provider = safeGatewayValue(fields.provider, 64);
+  const model = safeGatewayValue(fields.model, 128);
+  if (
+    !requestId ||
+    fields.project_id !== 'open-historia' ||
+    !provider ||
+    !model ||
+    !Number.isInteger(fields.attempts) ||
+    (fields.attempts as number) < 1 ||
+    (fields.attempts as number) > 8
+  ) {
+    return null;
+  }
+
+  return {
+    request_id: requestId,
+    project_id: 'open-historia',
+    provider,
+    model,
+    attempts: fields.attempts as number,
+  };
+}
+
+const setGatewayReceiptHeaders = (headers: Headers, receipt: GatewayReceipt | null) => {
+  if (!receipt) return;
+  headers.set('x-open-historia-gateway-request-id', receipt.request_id);
+  headers.set('x-open-historia-gateway-project-id', receipt.project_id);
+  headers.set('x-open-historia-gateway-provider', receipt.provider);
+  headers.set('x-open-historia-gateway-model', receipt.model);
+  headers.set('x-open-historia-gateway-attempts', String(receipt.attempts));
+};
+
 function createFreeAiGatewayModel(binding: Fetcher) {
   const provider = createOpenAICompatible({
     name: 'free-ai',
@@ -263,7 +317,8 @@ async function callProvider(
   config: { provider: string; apiKey: string; model: string },
   systemPrompt: string,
   env: WorkerEnv,
-  responseKind: keyof typeof AI_RESPONSE_SCHEMAS = 'turn'
+  responseKind: keyof typeof AI_RESPONSE_SCHEMAS = 'turn',
+  onGatewayReceipt?: (receipt: GatewayReceipt | null) => void
 ): Promise<string> {
   switch (config.provider) {
     case 'local': {
@@ -314,6 +369,7 @@ async function callProvider(
             // Recover once from transient gateway failures within the route's shared deadline.
             maxRetries: 1,
           });
+          onGatewayReceipt?.(sanitizeGatewayReceipt(result.response.body));
           return result.text || '{}';
         } catch (error) {
           if (NoObjectGeneratedError.isInstance(error)) return '';
@@ -456,6 +512,7 @@ llm.post('/turn', async (c) => {
     });
 
     let responseText = '';
+    let gatewayReceipt: GatewayReceipt | null = null;
 
     switch (config.provider) {
       case 'local': {
@@ -511,7 +568,9 @@ llm.post('/turn', async (c) => {
             systemPrompt,
             config,
             'You are a JSON-only response bot for a grand strategy game. Never explain your answer, only return valid JSON.',
-            c.env
+            c.env,
+            'turn',
+            config.provider === 'free-ai' ? (receipt) => (gatewayReceipt = receipt) : undefined
           ),
           config.provider
         );
@@ -523,6 +582,13 @@ llm.post('/turn', async (c) => {
 
     const fallbackYear = gameState && typeof gameState.turn === 'number' ? gameState.turn : 0;
     const parsedTurn = parseAiTurnResponse(responseText, fallbackYear);
+    if (!parsedTurn.parseError) {
+      const headers = new Headers();
+      setGatewayReceiptHeaders(headers, gatewayReceipt);
+      headers.forEach((value, name) => {
+        c.header(name, value);
+      });
+    }
     return c.json(
       {
         message: parsedTurn.message,

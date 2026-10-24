@@ -6,7 +6,7 @@ import llm, { selectFreeAiGatewayModel } from '../src/worker/routes/llm';
 
 const app = new Hono().route('/', llm);
 
-function gatewayBinding(responses: string[]) {
+function gatewayBinding(responses: string[], x_gateway?: unknown) {
   const requests: Request[] = [];
   const fetch = vi.fn(async (request: Request) => {
     requests.push(request);
@@ -23,12 +23,95 @@ function gatewayBinding(responses: string[]) {
       choices: [
         { message: { role: 'assistant', content: responses.shift() }, finish_reason: 'stop' },
       ],
+      ...(x_gateway === undefined ? {} : { x_gateway }),
     });
   });
   return { binding: { fetch } as unknown as Fetcher, fetch, requests };
 }
 
 describe('Free AI gateway SDK adapter', () => {
+  it('returns bounded gateway receipt headers with the completed turn response', async () => {
+    const { binding } = gatewayBinding(
+      [
+        JSON.stringify({
+          message: 'The agreement is accepted.',
+          updates: [],
+          storySoFar: 'Ready.',
+        }),
+      ],
+      {
+        request_id: 'gw_req-20261025-abc123',
+        project_id: 'open-historia',
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        attempts: 1,
+        ignored: 'must not be exposed',
+      }
+    );
+    const response = await app.request(
+      '/turn',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          command: 'Negotiate aid.',
+          gameState: { turn: 1940, players: { player: { name: 'Britain' } } },
+          config: { provider: 'free-ai', model: 'auto' },
+        }),
+      },
+      { FREE_AI: binding, NODE_ENV: 'production' } as never
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ message: 'The agreement is accepted.' });
+    expect(response.headers.get('x-open-historia-gateway-request-id')).toBe(
+      'gw_req-20261025-abc123'
+    );
+    expect(response.headers.get('x-open-historia-gateway-project-id')).toBe('open-historia');
+    expect(response.headers.get('x-open-historia-gateway-provider')).toBe('gemini');
+    expect(response.headers.get('x-open-historia-gateway-model')).toBe('gemini-2.5-flash');
+    expect(response.headers.get('x-open-historia-gateway-attempts')).toBe('1');
+    expect(response.headers.get('x-open-historia-gateway-ignored')).toBeNull();
+    expect(Array.from(response.headers.keys()).join(' ')).not.toContain('prompt');
+  });
+
+  it('keeps a completed turn intact and omits headers for malformed gateway metadata', async () => {
+    const { binding } = gatewayBinding(
+      [
+        JSON.stringify({
+          message: 'The agreement is accepted.',
+          updates: [],
+          storySoFar: 'Ready.',
+        }),
+      ],
+      {
+        request_id: 'bad\r\nset-cookie: secret',
+        project_id: 'open-historia',
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        attempts: 1,
+      }
+    );
+    const response = await app.request(
+      '/turn',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          command: 'Negotiate aid.',
+          gameState: { turn: 1940, players: { player: { name: 'Britain' } } },
+          config: { provider: 'free-ai', model: 'auto' },
+        }),
+      },
+      { FREE_AI: binding, NODE_ENV: 'production' } as never
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ message: 'The agreement is accepted.' });
+    expect(response.headers.get('x-open-historia-gateway-request-id')).toBeNull();
+    expect(response.headers.get('x-open-historia-gateway-attempts')).toBeNull();
+  });
+
   it('attributes actual SDK JSON-mode and streaming calls and fails closed without production binding', async () => {
     const { binding, fetch, requests } = gatewayBinding(['{"message":"ok"}']);
     const model = selectFreeAiGatewayModel(binding, 'production');
