@@ -1,3 +1,5 @@
+import sourceContent from './generated-public-markdown.json' with { type: 'json' };
+import { absoluteMarkdownLinks } from '../../../shared/agent-surfaces/format.mjs';
 export const PUBLIC_ORIGIN = 'https://historia.aliveville.com';
 
 export type PublicRoute = {
@@ -131,11 +133,18 @@ export function markdownPath(route: PublicRoute): string {
   return route.path === '/' ? '/index.md' : `${route.path}.md`;
 }
 
-export function renderMarkdown(route: PublicRoute): string {
+export function renderMarkdown(
+  route: PublicRoute,
+  content: Record<string, string> = sourceContent
+): string {
   const sections = route.sections
     .map(({ heading, body }) => `## ${heading}\n\n${body}`)
     .join('\n\n');
-  return `# ${route.heading}\n\n${route.summary}\n\n${sections}\n\n## Canonical page\n\n${PUBLIC_ORIGIN}${route.path}\n`;
+  const body = content[route.path] || `${route.summary}\n\n${sections}`;
+  return absoluteMarkdownLinks(
+    `# ${route.heading}\n\n> ${route.description}\n\nCanonical: ${PUBLIC_ORIGIN}${route.path}\n\n${body.trimEnd()}\n`,
+    `${PUBLIC_ORIGIN}${route.path}`
+  );
 }
 
 export function agentCatalog(origin = PUBLIC_ORIGIN) {
@@ -284,6 +293,52 @@ export function openApiSpec(origin = PUBLIC_ORIGIN) {
       { name: 'public-pages', description: 'Public HTML pages with Markdown alternates' },
     ],
     paths: Object.fromEntries([
+      [
+        '/api/md',
+        {
+          get: {
+            summary: 'Public homepage as Markdown',
+            responses: {
+              200: {
+                description: 'Markdown',
+                content: { 'text/markdown': { schema: { type: 'string' } } },
+              },
+            },
+          },
+        },
+      ],
+      [
+        '/api/md/_catalog',
+        {
+          get: {
+            summary: 'Public Markdown route catalog',
+            responses: {
+              200: {
+                description: 'Registered routes',
+                content: {
+                  'application/json': { schema: { type: 'array', items: { type: 'object' } } },
+                },
+              },
+            },
+          },
+        },
+      ],
+      [
+        '/api/md/{path}',
+        {
+          get: {
+            summary: 'Registered public page as Markdown',
+            parameters: [{ name: 'path', in: 'path', required: true, schema: { type: 'string' } }],
+            responses: {
+              200: {
+                description: 'Markdown',
+                content: { 'text/markdown': { schema: { type: 'string' } } },
+              },
+              404: { description: 'No public page at this path' },
+            },
+          },
+        },
+      ],
       ...MACHINE_SURFACES.map((surface) => [surface.path, machinePathItem(surface)]),
       ...PUBLIC_ROUTES.map((route) => [route.path, publicPagePathItem(route)]),
     ]),
@@ -313,7 +368,7 @@ export function renderPublicHtml(shell: string, route: PublicRoute): string {
     description: route.description,
     url: canonical,
   }).replace(/</g, '\\u003c');
-  const head = `<title>${escapeHtml(route.title)}</title>\n    <meta name="description" content="${escapeHtml(route.description)}" />\n    <meta name="robots" content="index, follow" />\n    <link rel="canonical" href="${canonical}" />\n    <meta property="og:type" content="website" />\n    <meta property="og:site_name" content="Open Historia" />\n    <meta property="og:title" content="${escapeHtml(route.title)}" />\n    <meta property="og:description" content="${escapeHtml(route.description)}" />\n    <meta property="og:url" content="${canonical}" />\n    <meta property="og:image" content="${PUBLIC_ORIGIN}/og.png" />\n    <meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:title" content="${escapeHtml(route.title)}" />\n    <meta name="twitter:description" content="${escapeHtml(route.description)}" />\n    <script type="application/ld+json">${structured}</script>`;
+  const head = `<title>${escapeHtml(route.title)}</title>\n    <meta name="description" content="${escapeHtml(route.description)}" />\n    <meta name="robots" content="index, follow" />\n    <meta name="ai-summary" content="${escapeHtml(route.description)}" />\n    <link rel="alternate" type="text/markdown" href="${PUBLIC_ORIGIN}${markdownPath(route)}" />\n    <link rel="canonical" href="${canonical}" />\n    <meta property="og:type" content="website" />\n    <meta property="og:site_name" content="Open Historia" />\n    <meta property="og:title" content="${escapeHtml(route.title)}" />\n    <meta property="og:description" content="${escapeHtml(route.description)}" />\n    <meta property="og:url" content="${canonical}" />\n    <meta property="og:image" content="${PUBLIC_ORIGIN}/og.png" />\n    <meta name="twitter:card" content="summary_large_image" />\n    <meta name="twitter:title" content="${escapeHtml(route.title)}" />\n    <meta name="twitter:description" content="${escapeHtml(route.description)}" />\n    <script type="application/ld+json">${structured}</script>`;
   const fallback = `<main data-public-fallback><h1>${escapeHtml(route.heading)}</h1><p>${escapeHtml(route.summary)}</p>${route.sections.map(({ heading, body }) => `<section><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></section>`).join('')}<p><a href="${markdownPath(route)}">Read this page as Markdown</a></p></main>`;
   return shell
     .replace(/<title>[\s\S]*?<\/title>[\s\S]*?<link rel="icon"/, `${head}\n    <link rel="icon"`)

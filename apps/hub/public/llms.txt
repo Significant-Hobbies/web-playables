@@ -1,15 +1,20 @@
 # Idle — Web Playables
 
-> A parked browser-game lab with one playable idle game and a reusable gamekit for web and YouTube Playables distribution.
+> A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
 
-## Public surfaces
 
-- [Project overview](https://idle.aliveville.com/index.md): Purpose, proof, and current held state.
-- [Idle Startup](https://idle.aliveville.com/play/idle-startup/): The retained browser-playable idle game.
+<!-- Keep in sync with robots.txt and ai.txt. -->
 
-## Machine surfaces
+## Public pages
 
-- [Full product brief](https://idle.aliveville.com/llms-full.txt)
-- [Agent catalog](https://idle.aliveville.com/api/ai)
-- [Sitemap](https://idle.aliveville.com/sitemap.xml)
-- [Robots policy](https://idle.aliveville.com/robots.txt)
+- [idle.](https://idle.aliveville.com/index.md): A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
+- [Idle Startup](https://idle.aliveville.com/play/idle-startup.md): Ship features. Hire the team. Raise the round.
+
+## Machine-readable
+
+- [Full content](https://idle.aliveville.com/llms-full.txt): Bounded public page content
+- [Markdown catalog](https://idle.aliveville.com/api/md/_catalog): All registered public routes
+- [Agent catalog](https://idle.aliveville.com/api/ai): Existing discovery contract
+- [AI usage policy](https://idle.aliveville.com/ai.txt): Permissions and attribution
+- [Sitemap](https://idle.aliveville.com/sitemap.xml): Canonical HTML pages
+- [OpenAPI](https://idle.aliveville.com/openapi.json): Public API contract

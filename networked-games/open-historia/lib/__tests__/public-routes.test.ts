@@ -85,7 +85,7 @@ describe('public route discovery', () => {
     );
     expect(catalogResponse.status).toBe(200);
     const runtimeCatalog = (await catalogResponse.json()) as ReturnType<typeof agentCatalog>;
-    expect(runtimeCatalog).toEqual(agentCatalog('https://example.test'));
+    expect(runtimeCatalog).toEqual(agentCatalog());
     expect(catalogResponse.headers.get('Cache-Control')).toBe('public, max-age=300');
     expect(catalogResponse.headers.get('RateLimit-Limit')).toBe('60');
     expect(catalogResponse.headers.get('RateLimit-Remaining')).toBe('59');
@@ -106,7 +106,7 @@ describe('public route discovery', () => {
       env,
       context
     );
-    expect(await runtimeSitemap.text()).toContain('<loc>https://example.test/play</loc>');
+    expect(await runtimeSitemap.text()).toContain(`<loc>${PUBLIC_ORIGIN}/play</loc>`);
 
     for (const route of PUBLIC_ROUTES) {
       const suffixResponse = await worker.fetch(
@@ -163,5 +163,96 @@ describe('public route discovery', () => {
       context
     );
     expect(await save.text()).toContain('name="robots" content="noindex, nofollow"');
+  });
+});
+
+describe('public Markdown transport contract', () => {
+  it('serves each representation with canonical headers, HEAD parity and CORS', async () => {
+    for (const route of PUBLIC_ROUTES) {
+      const canonical = PUBLIC_ORIGIN + route.path;
+      const suffix = await worker.fetch(
+        new Request(PUBLIC_ORIGIN + markdownPath(route)),
+        env,
+        context
+      );
+      expect(suffix.status).toBe(200);
+      expect(suffix.headers.get('Content-Location')).toBe(canonical);
+      expect(suffix.headers.get('X-Robots-Tag')).toBe('noindex, follow');
+      expect(suffix.headers.get('Access-Control-Allow-Origin')).toBe('*');
+      expect(Number(suffix.headers.get('X-Markdown-Tokens'))).toBeGreaterThan(0);
+      const body = await suffix.text();
+      expect(body).toContain('Canonical: ' + canonical);
+      for (const path of ['/api/md' + route.path, route.path]) {
+        const response = await worker.fetch(
+          new Request(PUBLIC_ORIGIN + path, { headers: { Accept: 'text/markdown' } }),
+          env,
+          context
+        );
+        expect(await response.text()).toBe(body);
+      }
+      const head = await worker.fetch(
+        new Request(PUBLIC_ORIGIN + markdownPath(route), { method: 'HEAD' }),
+        env,
+        context
+      );
+      expect(await head.text()).toBe('');
+      for (const name of ['Content-Location', 'X-Markdown-Tokens', 'Content-Type'])
+        expect(head.headers.get(name)).toBe(suffix.headers.get(name));
+      const options = await worker.fetch(
+        new Request(PUBLIC_ORIGIN + '/api/md' + route.path, { method: 'OPTIONS' }),
+        env,
+        context
+      );
+      expect(options.status).toBe(204);
+    }
+  });
+  it('keeps HTML preferences and private identifiers outside Markdown', async () => {
+    for (const accept of [
+      '*/*',
+      'text/markdown;q=0',
+      'text/markdown, text/html',
+      'text/markdown;q=0.1, text/html;q=0.9',
+    ]) {
+      const response = await worker.fetch(
+        new Request(PUBLIC_ORIGIN + '/about', { headers: { accept } }),
+        env,
+        context
+      );
+      expect(response.headers.get('Content-Type')).toContain('text/html');
+      expect(response.headers.get('Link')).toContain('llms-full.txt');
+    }
+    const noindex = await worker.fetch(
+      new Request(PUBLIC_ORIGIN + '/about/', { headers: { Accept: 'text/markdown' } }),
+      env,
+      context
+    );
+    expect(noindex.headers.get('Content-Type')).toContain('text/html');
+    expect(await noindex.text()).toContain('noindex, nofollow');
+    for (const path of [
+      '/play/private-save.md',
+      '/story-room.md',
+      '/api/md/play/private-save',
+      '/api/md/api/saves',
+      '/api/md/admin',
+    ]) {
+      const response = await worker.fetch(new Request(PUBLIC_ORIGIN + path), env, context);
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain('game state');
+    }
+  });
+  it('includes the actual public component text rather than only old summaries', () => {
+    const body = (path: string) => {
+      const route = publicRoute(path);
+      if (!route) throw new Error(`Missing public route ${path}`);
+      return renderMarkdown(route);
+    };
+    expect(body('/privacy')).toContain('90 days');
+    expect(body('/privacy')).toContain('normalized route template');
+    expect(body('/about')).toContain('Saves & alternate timelines');
+    expect(body('/about')).toContain('https://historia.aliveville.com/play');
+    expect(body('/pax-historia-alternative')).toContain('Cost model');
+    expect(body('/pax-historia-alternative')).toContain('Closed-source platform.');
+    expect(body('/')).toContain('The memory works.');
+    expect(body('/')).toContain('The campaign still needs better game feel.');
   });
 });

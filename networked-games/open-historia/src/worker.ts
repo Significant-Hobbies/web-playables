@@ -1,3 +1,4 @@
+import { handleReadability, publicResponse, robots, wantsMarkdown } from './public-readability.mjs';
 import { Hono } from 'hono';
 
 import { createAuth } from '../lib/auth';
@@ -11,7 +12,6 @@ import {
   agentCatalog,
   openApiSpec,
   publicRoute,
-  renderMarkdown,
   renderPublicHtml,
   sitemapXml,
 } from './public-routes';
@@ -40,13 +40,6 @@ function withRateLimit(headers: Record<string, string>): Record<string, string> 
     'RateLimit-Remaining': String(RATE_LIMIT - 1),
     'RateLimit-Reset': String(RATE_LIMIT_WINDOW),
   };
-}
-
-function wantsMarkdown(request: Request): boolean {
-  const accept = (request.headers.get('accept') || '').toLowerCase();
-  if (!accept.includes('text/markdown')) return false;
-  if (!accept.includes('text/html')) return true;
-  return accept.indexOf('text/markdown') < accept.indexOf('text/html');
 }
 
 function markdown404(pathname: string, origin: string, method: string): Response {
@@ -99,9 +92,11 @@ export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = requestOrigin(request, url);
+    const readable = await handleReadability(request);
+    if (readable) return readable;
 
     if ((request.method === 'GET' || request.method === 'HEAD') && url.pathname === '/api/ai') {
-      const response = Response.json(agentCatalog(origin), {
+      const response = Response.json(agentCatalog(), {
         headers: withRateLimit({ 'Cache-Control': 'public, max-age=300' }),
       });
       return request.method === 'HEAD'
@@ -116,37 +111,13 @@ export default {
     }
 
     if (request.method === 'GET' && url.pathname === '/sitemap.xml') {
-      return new Response(sitemapXml(origin), {
+      return new Response(sitemapXml(), {
         headers: { 'Content-Type': 'application/xml; charset=utf-8' },
       });
     }
 
     if (request.method === 'GET' && url.pathname === '/robots.txt') {
-      return new Response(
-        `User-agent: *\nAllow: /\nAllow: /*.md$\nAllow: /api/ai\nDisallow: /api/\nDisallow: /play/\nDisallow: /story-room\nSitemap: ${origin}/sitemap.xml\n`,
-        { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
-      );
-    }
-
-    if (request.method === 'GET') {
-      const markdownRoute = url.pathname.endsWith('.md')
-        ? publicRoute(url.pathname === '/index.md' ? '/' : url.pathname.slice(0, -3))
-        : undefined;
-      const negotiatedRoute = publicRoute(url.pathname);
-      const acceptsMarkdown = request.headers
-        .get('Accept')
-        ?.split(',')
-        .some((mediaType) => mediaType.trim().split(';')[0] === 'text/markdown');
-      const route = markdownRoute ?? (acceptsMarkdown ? negotiatedRoute : undefined);
-      if (route) {
-        return new Response(renderMarkdown(route), {
-          headers: {
-            'Content-Type': 'text/markdown; charset=utf-8',
-            Link: `<${origin}${route.path}>; rel="canonical"`,
-            Vary: 'Accept',
-          },
-        });
-      }
+      return new Response(robots(), { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
 
     if (url.pathname.startsWith('/api/')) {
@@ -166,19 +137,22 @@ export default {
       const spaRequest = new Request(new URL('/app', url), request);
       const shell = await env.ASSETS.fetch(spaRequest);
       if (!shell.ok) return shell;
-      return new Response(renderPublicHtml(await shell.text(), exactPublicRoute), {
-        status: shell.status,
-        headers: {
-          'Content-Type': 'text/html; charset=utf-8',
-          'Cache-Control': 'public, max-age=300',
-          Vary: 'Accept',
-        },
-      });
+      return publicResponse(
+        request,
+        new Response(renderPublicHtml(await shell.text(), exactPublicRoute), {
+          status: shell.status,
+          headers: {
+            'Content-Type': 'text/html; charset=utf-8',
+            'Cache-Control': 'public, max-age=300',
+            Vary: 'Accept',
+          },
+        })
+      );
     }
 
     const assetResponse = await env.ASSETS.fetch(request);
     if (assetResponse.status !== 404) {
-      return assetResponse;
+      return publicResponse(request, assetResponse);
     }
 
     if (isSpaRoute(url.pathname)) {

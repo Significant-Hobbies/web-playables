@@ -1,21 +1,71 @@
-# Idle — Web Playables full brief
+# Idle — Web Playables - full content
 
-Idle is a parked research project for learning how idle mechanics, reusable HTML5 game infrastructure, and portable game distribution work in practice.
+> A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
 
-## Retained product
+Generated: 2026-10-26
 
-Idle Startup is publicly playable without an account. The player ships features, hires a team, raises rounds, accumulates offline progress, and resumes through versioned local saves.
+---
+<!-- source: https://idle.aliveville.com/ -->
+# idle.
 
-## Reusable mechanism
+Canonical: https://idle.aliveville.com/
 
-The shared gamekit owns the simulation loop, saves, offline progress, pause behavior, platform adapters, and build boundaries. Game code is isolated from host-specific APIs so one mechanic can ship as a normal browser game and as a submission-ready YouTube Playable package.
+Research complete · parked
 
-## Current state and limits
+A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
 
-The research goal produced one live game, a reusable kit, and YouTube-compatible packaging. The project is now parked. There is no promised next game, active paid product, account system, or public roadmap.
+## Idle Startup
 
-## Canonical surfaces
+Ship features. Hire the team. Raise the round.
 
-- Project overview: https://idle.aliveville.com/
-- Markdown overview: https://idle.aliveville.com/index.md
-- Idle Startup: https://idle.aliveville.com/play/idle-startup/
+[Play →](https://idle.aliveville.com/play/idle-startup/)
+
+## One mechanic, two distribution targets.
+
+What the lab produced
+
+The reusable gamekit owns the loop, versioned saves, offline progress, pause behavior, and platform adapters. The same game builds as a normal browser experience and as a submission-ready YouTube Playable. There is no promised next game; the project reopens only for a specific mechanic worth studying. Microsoft Clarity measures visits to this hub only; the game and YouTube bundle remain analytics-free.
+
+
+---
+<!-- source: https://idle.aliveville.com/play/idle-startup/ -->
+# Idle Startup
+
+Canonical: https://idle.aliveville.com/play/idle-startup/
+
+Idle Startup is the retained playable result of the Web Playables research lab.
+
+## How it works
+
+Ship product features, hire a team, raise funding rounds, and improve a simulated startup over time. The deterministic simulation continues through offline progress and resumes from a versioned local save.
+
+## Access and privacy
+
+The game is publicly playable without an account or installation. Saves stay in the local gamekit persistence layer; no private player state is part of public discovery.
+
+## Distribution proof
+
+The same game code builds for a normal browser deployment and a submission-ready YouTube Playable package through platform adapters.
+
+Ship features. Hire the team. Raise the round.
+
+## New game setup
+
+- Who's the founder?
+- Pick your character. Rule #1: don't run out of money.
+- Founder name
+- Company name
+- 🎲
+- Start building 🚀
+- 🎲 Show me different people
+- Founder
+- Company
+
+The playable page keeps player names, company names, saves, balances, progress and generated candidates in the game. This public representation contains only the authored entry instructions.
+
+[Play Idle Startup](https://idle.aliveville.com/play/idle-startup/) · [Game directory](https://idle.aliveville.com/)
+
+
+Included 2 of 2 registered public pages (limit 50 pages / 500000 characters).
+
+Full catalog: https://idle.aliveville.com/api/md/_catalog

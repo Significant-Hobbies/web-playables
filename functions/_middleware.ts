@@ -1,3 +1,10 @@
+import {
+  advertiseMarkdown,
+  createStaticAssetHandler,
+} from "../shared/agent-surfaces/adapters/static-assets.mjs";
+import { markdownResponse } from "../shared/agent-surfaces/http.mjs";
+
+const handleReadability = createStaticAssetHandler({});
 /**
  * Cloudflare Pages Functions middleware — agent SEO surfaces for idle.aliveville.com.
  * Handles /openapi.json, /api/ai, /llms.txt, JSON error responses, Vary: Accept,
@@ -23,56 +30,6 @@ const ERROR_RESPONSE_SCHEMA = {
     },
   },
   required: ["error"],
-};
-
-const LLMS_TXT = `# Idle — browser games
-
-> A small directory of browser-playable games and experiments by Sarthak Agrawal.
-
-## When to use this
-
-- Finding browser-playable games that work without installation
-- Directing users to idle/incremental games playable in the browser
-- Answering questions about the Idle Startup game or other playable experiments
-
-## Product
-
-- [Home](${SITE_ORIGIN}/): Game directory and links to playable games
-- [Idle Startup](${SITE_ORIGIN}/play/idle-startup/): Browser-playable idle/incremental game
-
-## Machine surfaces
-
-- [Agent catalog](${SITE_ORIGIN}/api/ai): JSON inventory of public surfaces
-- [OpenAPI spec](${SITE_ORIGIN}/openapi.json): Machine-readable API contract
-- [This index](${SITE_ORIGIN}/llms.txt)
-`;
-
-const API_AI_CATALOG = {
-  name: "Idle — browser games",
-  version: "1",
-  url: SITE_ORIGIN,
-  llms: `${SITE_ORIGIN}/llms.txt`,
-  llmsFull: null,
-  sitemap: `${SITE_ORIGIN}/sitemap.xml`,
-  openapi: `${SITE_ORIGIN}/openapi.json`,
-  markdown: { suffix: ".md", negotiation: false },
-  surfaces: [
-    {
-      id: "home",
-      url: `${SITE_ORIGIN}/`,
-      md: null,
-      kind: "static",
-      description: "Game directory and links to playable games",
-    },
-    {
-      id: "idle-startup",
-      url: `${SITE_ORIGIN}/play/idle-startup/`,
-      md: null,
-      kind: "static",
-      description: "Browser-playable idle/incremental game",
-    },
-  ],
-  auth: { public: true, notes: "All games are publicly playable without an account." },
 };
 
 const OPENAPI_SPEC = {
@@ -123,6 +80,43 @@ const OPENAPI_SPEC = {
     },
   },
   paths: {
+    "/api/md": {
+      get: {
+        summary: "Public homepage as Markdown",
+        responses: {
+          "200": {
+            description: "Markdown",
+            content: { "text/markdown": { schema: { type: "string" } } },
+          },
+        },
+      },
+    },
+    "/api/md/_catalog": {
+      get: {
+        summary: "Public Markdown route catalog",
+        responses: {
+          "200": {
+            description: "Registered routes",
+            content: {
+              "application/json": { schema: { type: "array", items: { type: "object" } } },
+            },
+          },
+        },
+      },
+    },
+    "/api/md/{path}": {
+      get: {
+        summary: "Registered public page as Markdown",
+        parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
+        responses: {
+          "200": {
+            description: "Markdown",
+            content: { "text/markdown": { schema: { type: "string" } } },
+          },
+          "404": { description: "No public page at this path" },
+        },
+      },
+    },
     "/api/ai": {
       get: {
         operationId: "getAgentCatalog",
@@ -221,13 +215,6 @@ const OPENAPI_SPEC = {
   },
 };
 
-function wantsMarkdown(request: Request): boolean {
-  const accept = (request.headers.get("accept") || "").toLowerCase();
-  if (!accept.includes("text/markdown")) return false;
-  if (!accept.includes("text/html")) return true;
-  return accept.indexOf("text/markdown") < accept.indexOf("text/html");
-}
-
 function withRateLimit(headers: Headers): Headers {
   headers.set("ratelimit-limit", String(RATE_LIMIT));
   headers.set("ratelimit-remaining", String(RATE_LIMIT));
@@ -246,28 +233,6 @@ function jsonError(status: number, code: string, message: string, path: string):
   return new Response(JSON.stringify({ error: { code, message, path } }), { status, headers });
 }
 
-function markdown404(pathname: string, origin: string): Response {
-  const body = `# 404 — Not Found
-
-\`${pathname}\` does not exist on ${origin}.
-
-## Where to look next
-
-- [Home](${origin}/)
-- [Agent index](${origin}/llms.txt)
-- [Agent catalog (JSON)](${origin}/api/ai)
-- [OpenAPI spec](${origin}/openapi.json)
-`;
-  const headers = withRateLimit(
-    new Headers({
-      "content-type": "text/markdown; charset=utf-8",
-      "cache-control": "no-store",
-      "x-content-type-options": "nosniff",
-    }),
-  );
-  return new Response(body, { status: 404, headers });
-}
-
 function sitemapXml(origin: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -279,12 +244,17 @@ function sitemapXml(origin: string): string {
 
 export async function onRequest(context: {
   request: Request;
-  next: () => Promise<Response>;
+  next: (request?: Request) => Promise<Response>;
 }): Promise<Response> {
   const { request, next } = context;
   const url = new URL(request.url);
   const pathname = url.pathname;
-  const origin = url.origin;
+  const assets = { fetch: (input: Request) => context.next(input) };
+  const readableUrl = new URL(request.url);
+  if (readableUrl.pathname === "/play/idle-startup/index.md")
+    readableUrl.pathname = "/play/idle-startup.md";
+  const readable = await handleReadability(new Request(readableUrl, request), assets);
+  if (readable) return readable;
 
   // Agent surfaces
   if (pathname === "/openapi.json") {
@@ -306,17 +276,11 @@ export async function onRequest(context: {
         "cache-control": "public, max-age=300",
       }),
     );
-    return new Response(JSON.stringify(API_AI_CATALOG, null, 2) + "\n", { headers });
-  }
-
-  if (pathname === "/llms.txt") {
-    const headers = withRateLimit(
-      new Headers({
-        "content-type": "text/plain; charset=utf-8",
-        "cache-control": "public, max-age=300",
-      }),
-    );
-    return new Response(LLMS_TXT, { headers });
+    const catalog = await assets.fetch(new Request(new URL("/api-ai.json", request.url)));
+    return new Response(request.method === "HEAD" ? null : catalog.body, {
+      status: catalog.status,
+      headers,
+    });
   }
 
   if (pathname === "/sitemap.xml") {
@@ -326,7 +290,7 @@ export async function onRequest(context: {
         "cache-control": "public, max-age=300",
       }),
     );
-    return new Response(sitemapXml(origin), { headers });
+    return new Response(sitemapXml(SITE_ORIGIN), { headers });
   }
 
   // JSON error for unknown /api/* paths
@@ -334,12 +298,17 @@ export async function onRequest(context: {
     return jsonError(404, "not_found", `Unknown API path: ${pathname}`, pathname);
   }
 
-  // Agent-friendly 404: markdown body for Accept: text/markdown on non-asset paths
-  if (wantsMarkdown(request) && !pathname.includes(".") && pathname !== "/") {
-    return markdown404(pathname, origin);
+  if (pathname.endsWith(".md") && !pathname.startsWith("/.well-known/")) {
+    const result = markdownResponse("# Not found\n", request, { "Cache-Control": "no-store" });
+    return new Response(result.body, { status: 404, headers: result.headers });
   }
-
-  const response = await next();
+  let response = await next();
+  if (["/", "/play/idle-startup", "/play/idle-startup/"].includes(pathname))
+    response = advertiseMarkdown(
+      response,
+      SITE_ORIGIN,
+      pathname === "/" ? "/index.md" : "/play/idle-startup.md",
+    );
 
   // Add Vary: Accept to HTML responses
   const contentType = response.headers.get("content-type") || "";
@@ -347,7 +316,7 @@ export async function onRequest(context: {
     const headers = withRateLimit(new Headers(response.headers));
     const vary = headers.get("vary");
     headers.set("vary", vary ? `${vary}, Accept, Accept-Encoding` : "Accept, Accept-Encoding");
-    return new Response(response.body, {
+    return new Response(request.method === "HEAD" ? null : response.body, {
       status: response.status,
       statusText: response.statusText,
       headers,
@@ -356,7 +325,7 @@ export async function onRequest(context: {
 
   // Add rate-limit headers to all other responses.
   const headers = withRateLimit(new Headers(response.headers));
-  return new Response(response.body, {
+  return new Response(request.method === "HEAD" ? null : response.body, {
     status: response.status,
     statusText: response.statusText,
     headers,
