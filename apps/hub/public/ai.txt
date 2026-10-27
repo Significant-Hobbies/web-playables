@@ -21,6 +21,7 @@ cite: Idle — Web Playables and the canonical HTML URL
 included: public routes listed at https://idle.aliveville.com/api/md/_catalog
 public-route-count: 2
 excluded: /api, /auth, /admin, /dashboard
+public-machine-endpoints: /api/ai, /api/md/*
 
 [contact]
 contact: https://github.com/Significant-Hobbies/web-playables

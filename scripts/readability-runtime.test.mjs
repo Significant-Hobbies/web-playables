@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdtemp, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -28,18 +28,27 @@ for (const product of ["idle", "historia"]) {
         await symlink(resolve(folder), join(directory, folder), "dir");
       args = ["pages", "dev", resolve("apps/hub/dist")];
     } else {
+      const sourceConfig = JSON.parse(
+        (
+          await readFile(
+            process.env.READABILITY_ROUTING_CONFIG ||
+              resolve("networked-games/open-historia/wrangler.jsonc"),
+            "utf8",
+          )
+        ).replace(/^\s*\/\/.*$/gm, ""),
+      );
       const config = join(directory, "wrangler.json");
       await writeFile(
         config,
         JSON.stringify({
           name: "historia-readability-local",
           main: resolve("networked-games/open-historia/src/worker.ts"),
-          compatibility_date: "2026-06-09",
-          compatibility_flags: ["nodejs_compat"],
+          compatibility_date: sourceConfig.compatibility_date,
+          compatibility_flags: sourceConfig.compatibility_flags,
           assets: {
+            ...sourceConfig.assets,
             directory: resolve("networked-games/open-historia/dist"),
             binding: "ASSETS",
-            run_worker_first: true,
           },
         }),
       );
@@ -161,6 +170,11 @@ for (const product of ["idle", "historia"]) {
         "Bytespider",
       ])
         assert.ok(robots.includes(`User-agent: ${bot}\nAllow: /`));
+      if (product === "idle") {
+        const missing = await fetch(runtime + "/missing", { headers: { accept: "text/markdown" } });
+        assert.equal(missing.status, 404);
+        assert.match(missing.headers.get("content-type"), /text\/markdown/);
+      }
       const full = await (await fetch(runtime + "/llms-full.txt")).text();
       assert.ok(full.length <= 500000);
       console.log(
@@ -182,18 +196,23 @@ for (const product of ["idle", "historia"]) {
   });
 }
 
-test('unknown Markdown paths cannot advertise off-origin canonicals', async () => {
-  const { createAgentSurfaceManifest } = await import('../shared/agent-surfaces/manifest.mjs');
-  const { createAgentSurfaceHandler } = await import('../shared/agent-surfaces/handler.mjs');
-  const fixtureOrigin = 'https://public.example';
-  const manifest = createAgentSurfaceManifest({ name: 'Public fixture', url: fixtureOrigin, summary: 'Public fixture', pages: { '/': '# Public' } });
+test("unknown Markdown paths cannot advertise off-origin canonicals", async () => {
+  const { createAgentSurfaceManifest } = await import("../shared/agent-surfaces/manifest.mjs");
+  const { createAgentSurfaceHandler } = await import("../shared/agent-surfaces/handler.mjs");
+  const fixtureOrigin = "https://public.example";
+  const manifest = createAgentSurfaceManifest({
+    name: "Public fixture",
+    url: fixtureOrigin,
+    summary: "Public fixture",
+    pages: { "/": "# Public" },
+  });
   const handler = createAgentSurfaceHandler({ manifest });
-  for (const path of ['/api/md//evil.example/x', '//evil.example/x.md']) {
+  for (const path of ["/api/md//evil.example/x", "//evil.example/x.md"]) {
     const response = await handler(new Request(fixtureOrigin + path));
     assert.equal(response.status, 404);
-    assert.equal(response.headers.get('content-location'), fixtureOrigin + '//evil.example/x');
-    assert.equal(response.headers.get('cache-control'), 'no-store');
-    assert.equal(response.headers.get('x-robots-tag'), 'noindex, follow');
-    assert.ok(response.headers.get('link').includes(fixtureOrigin + '/llms.txt'));
+    assert.equal(response.headers.get("content-location"), fixtureOrigin + "//evil.example/x");
+    assert.equal(response.headers.get("cache-control"), "no-store");
+    assert.equal(response.headers.get("x-robots-tag"), "noindex, follow");
+    assert.ok(response.headers.get("link").includes(fixtureOrigin + "/llms.txt"));
   }
 });

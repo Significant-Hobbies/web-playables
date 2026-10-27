@@ -2,7 +2,7 @@ import {
   advertiseMarkdown,
   createStaticAssetHandler,
 } from "../shared/agent-surfaces/adapters/static-assets.mjs";
-import { markdownResponse } from "../shared/agent-surfaces/http.mjs";
+import { markdownResponse, wantsMarkdown } from "../shared/agent-surfaces/http.mjs";
 
 const handleReadability = createStaticAssetHandler({});
 /**
@@ -299,6 +299,15 @@ export async function onRequest(context: {
   }
 
   if (pathname.endsWith(".md") && !pathname.startsWith("/.well-known/")) {
+    const result = markdownResponse("# Not found\n", request, { "Cache-Control": "no-store" });
+    return new Response(result.body, { status: 404, headers: result.headers });
+  }
+  if (
+    ["GET", "HEAD"].includes(request.method) &&
+    wantsMarkdown(request) &&
+    !pathname.includes(".") &&
+    !pathname.startsWith("/play/")
+  ) {
     const result = markdownResponse("# Not found\n", request, { "Cache-Control": "no-store" });
     return new Response(result.body, { status: 404, headers: result.headers });
   }

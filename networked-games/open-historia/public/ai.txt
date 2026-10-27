@@ -21,6 +21,7 @@ cite: Open Historia and the canonical HTML URL
 included: public routes listed at https://historia.aliveville.com/api/md/_catalog
 public-route-count: 5
 excluded: /api, /auth, /admin, /dashboard, /play/, /story-room
+public-machine-endpoints: /api/ai, /api/md/*
 
 [contact]
 contact: https://github.com/Significant-Hobbies/web-playables
