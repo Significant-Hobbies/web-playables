@@ -1,3 +1,4 @@
+import { PUBLIC_COPY } from "./public-copy";
 import "./style.css";
 
 import { drawCover } from "./cover";
@@ -115,17 +116,16 @@ main.className = "frame";
 const header = document.createElement("header");
 const status = document.createElement("p");
 status.className = "status";
-status.textContent = "Research complete · parked";
+status.textContent = PUBLIC_COPY.status;
 header.append(status);
 
 const wordmark = document.createElement("h1");
-wordmark.textContent = "idle.";
+wordmark.textContent = PUBLIC_COPY.wordmark;
 header.append(wordmark);
 
 const intro = document.createElement("p");
 intro.className = "intro";
-intro.textContent =
-  "A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.";
+intro.textContent = PUBLIC_COPY.intro;
 header.append(intro);
 main.append(header);
 
@@ -140,10 +140,10 @@ proof.className = "proof";
 proof.setAttribute("aria-labelledby", "proof-title");
 proof.innerHTML = `
   <div>
-    <p class="proof__eyebrow">What the lab produced</p>
-    <h2 id="proof-title">One mechanic, two distribution targets.</h2>
+    <p class="proof__eyebrow">${PUBLIC_COPY.proofEyebrow}</p>
+    <h2 id="proof-title">${PUBLIC_COPY.proofTitle}</h2>
   </div>
-  <p class="proof__copy">The reusable gamekit owns the loop, versioned saves, offline progress, pause behavior, and platform adapters. The same game builds as a normal browser experience and as a submission-ready YouTube Playable. There is no promised next game; the project reopens only for a specific mechanic worth studying. Microsoft Clarity measures visits to this hub only; the game and YouTube bundle remain analytics-free.</p>
+  <p class="proof__copy">${PUBLIC_COPY.proofBody}</p>
 `;
 main.append(proof);
 

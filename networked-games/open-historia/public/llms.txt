@@ -1,17 +1,23 @@
 # Open Historia
 
-> AI-powered grand-strategy history game — command nations through natural language.
+> Play an experimental AI grand-strategy game with natural-language orders, persistent campaign memory, and 20+ scenarios.
+
+
+<!-- Keep in sync with robots.txt and ai.txt. -->
 
 ## Public pages
 
-- [Rewrite history, one order at a time](https://historia.aliveville.com/index.md): Play an experimental AI grand-strategy game with natural-language orders, persistent campaign memory, and 20+ scenarios.
-- [Start an alternate history](https://historia.aliveville.com/play.md): Choose a scenario and command a civilization with natural-language orders in Open Historia.
-- [Steer history, one order at a time](https://historia.aliveville.com/about.md): Learn how Open Historia combines natural-language strategy, an AI rules engine, and rewindable timelines.
-- [Privacy](https://historia.aliveville.com/privacy.md): How Open Historia handles sign-in identity, private saves, provider requests, and deletion.
-- [A free, open-source Pax Historia alternative](https://historia.aliveville.com/pax-historia-alternative.md): Open Historia is a free, open-source, browser-playable alternative to Pax Historia: natural-language orders, 20+ scenarios, campaign memory, and no credit meter.
+- [Open Historia — AI Grand Strategy Game](https://historia.aliveville.com/index.md): Play an experimental AI grand-strategy game with natural-language orders, persistent campaign memory, and 20+ scenarios.
+- [Play Open Historia — AI Grand Strategy](https://historia.aliveville.com/play.md): Choose a scenario and command a civilization with natural-language orders in Open Historia.
+- [About Open Historia — AI as the Rules Engine](https://historia.aliveville.com/about.md): Learn how Open Historia combines natural-language strategy, an AI rules engine, and rewindable timelines.
+- [Privacy — Open Historia](https://historia.aliveville.com/privacy.md): How Open Historia handles sign-in identity, private saves, provider requests, and deletion.
+- [Pax Historia Alternative — Free, Open-Source AI Grand Strategy](https://historia.aliveville.com/pax-historia-alternative.md): Open Historia is a free, open-source, browser-playable alternative to Pax Historia: natural-language orders, 20+ scenarios, campaign memory, and no credit meter.
 
-## Machine surfaces
+## Machine-readable
 
-- [Agent catalog](https://historia.aliveville.com/api/ai)
-- [Sitemap](https://historia.aliveville.com/sitemap.xml)
-- [Robots](https://historia.aliveville.com/robots.txt)
+- [Full content](https://historia.aliveville.com/llms-full.txt): Bounded public page content
+- [Markdown catalog](https://historia.aliveville.com/api/md/_catalog): All registered public routes
+- [Agent catalog](https://historia.aliveville.com/api/ai): Existing discovery contract
+- [AI usage policy](https://historia.aliveville.com/ai.txt): Permissions and attribution
+- [Sitemap](https://historia.aliveville.com/sitemap.xml): Canonical HTML pages
+- [OpenAPI](https://historia.aliveville.com/openapi.json): Public API contract

@@ -1,0 +1,29 @@
+# Keep in sync with robots.txt and llms.txt.
+[identity]
+name: Open Historia
+url: https://historia.aliveville.com
+description: Play an experimental AI grand-strategy game with natural-language orders, persistent campaign memory, and 20+ scenarios.
+contact: https://github.com/Significant-Hobbies/web-playables
+
+[permissions]
+allowed: summarise, quote with attribution, cite, index for search/answers
+training: allowed on public pages only
+
+[restrictions]
+No fabricated quotes or reviews/ratings.
+Do not present this content as your own.
+No training on private user data.
+
+[attribution]
+cite: Open Historia and the canonical HTML URL
+
+[scope]
+included: public routes listed at https://historia.aliveville.com/api/md/_catalog
+public-route-count: 5
+excluded: /api, /auth, /admin, /dashboard, /play/, /story-room
+public-machine-endpoints: /api/ai, /api/md/*
+
+[contact]
+contact: https://github.com/Significant-Hobbies/web-playables
+
+Last updated: 2026-10-27

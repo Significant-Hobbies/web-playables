@@ -1,3 +1,12 @@
+import { sourceMarkdown } from './public-source-markdown.mjs';
+import { identity, routes } from '../src/public-readability.mjs';
+import { robotsPolicy } from '../../../shared/robots-policy.mjs';
+import { createAgentSurfaceManifest } from '../../../shared/agent-surfaces/manifest.mjs';
+import {
+  buildAiTxt,
+  buildMarkdownIndex,
+  buildFullMarkdown,
+} from '../../../shared/agent-surfaces/documents.mjs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
@@ -42,3 +51,22 @@ for (const route of PUBLIC_ROUTES) {
 }
 
 console.log(`[discovery] generated ${PUBLIC_ROUTES.length} public route representations`);
+
+const content = await sourceMarkdown();
+await writeFile(
+  resolve('src/generated-public-markdown.json'),
+  JSON.stringify(content, null, 2) + '\n'
+);
+const pages = Object.fromEntries(
+  PUBLIC_ROUTES.map((route) => [route.path, renderMarkdown(route, content)])
+);
+const manifest = createAgentSurfaceManifest({ ...identity, pages });
+for (const route of PUBLIC_ROUTES) await write(markdownPath(route).slice(1), pages[route.path]);
+await write('api/md/_catalog', JSON.stringify(routes));
+await write('ai.txt', buildAiTxt(manifest, routes));
+await write('robots.txt', robotsPolicy(identity));
+await write('llms.txt', buildMarkdownIndex(manifest, routes));
+await write(
+  'llms-full.txt',
+  await buildFullMarkdown(manifest, routes, (path: string) => pages[path])
+);

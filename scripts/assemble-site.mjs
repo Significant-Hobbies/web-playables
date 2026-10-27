@@ -1,4 +1,4 @@
-import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
@@ -25,6 +25,16 @@ for (const entry of readdirSync(gamesDir, { withFileTypes: true })) {
 
   const destination = path.join(playDir, entry.name);
   cpSync(source, destination, { recursive: true });
+  const htmlFile = path.join(destination, "index.html");
+  const html = readFileSync(htmlFile, "utf8");
+  const description = html.match(/name="description"\s+content="([^"]+)"/)?.[1] || entry.name;
+  writeFileSync(
+    htmlFile,
+    html.replace(
+      "</head>",
+      `<meta name="ai-summary" content="${description}" /><link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/${entry.name}.md" /></head>`,
+    ),
+  );
   copied += 1;
   console.log(`Copied games/${entry.name}/dist/web to apps/hub/dist/play/${entry.name}/`);
 }

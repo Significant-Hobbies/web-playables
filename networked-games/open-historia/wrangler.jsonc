@@ -16,7 +16,12 @@
       "/privacy",
       "/api/*",
       "/sitemap.xml",
-      "/robots.txt"
+      "/robots.txt",
+      "/*.md",
+      "/llms.txt",
+      "/llms-full.txt",
+      "/ai.txt",
+      "/pax-historia-alternative"
     ]
   },
   "routes": [{ "pattern": "historia.aliveville.com", "custom_domain": true }],

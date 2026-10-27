@@ -1,0 +1,29 @@
+# Keep in sync with robots.txt and llms.txt.
+[identity]
+name: Idle — Web Playables
+url: https://idle.aliveville.com
+description: A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
+contact: https://github.com/Significant-Hobbies/web-playables
+
+[permissions]
+allowed: summarise, quote with attribution, cite, index for search/answers
+training: allowed on public pages only
+
+[restrictions]
+No fabricated quotes or reviews/ratings.
+Do not present this content as your own.
+No training on private user data.
+
+[attribution]
+cite: Idle — Web Playables and the canonical HTML URL
+
+[scope]
+included: public routes listed at https://idle.aliveville.com/api/md/_catalog
+public-route-count: 2
+excluded: /api, /auth, /admin, /dashboard
+public-machine-endpoints: /api/ai, /api/md/*
+
+[contact]
+contact: https://github.com/Significant-Hobbies/web-playables
+
+Last updated: 2026-10-27
