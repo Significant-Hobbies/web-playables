@@ -80,6 +80,7 @@ export function useGameState(initialGameId?: string) {
   const [initialStorySoFar, setInitialStorySoFar] = useState('');
   const [initialCompletedStepIds, setInitialCompletedStepIds] = useState<string[]>([]);
   const [initialGameIdLoaded, setInitialGameIdLoaded] = useState<string | null>(null);
+  const [initialRestoreUnavailable, setInitialRestoreUnavailable] = useState(false);
   const trackedInitialRestoreRef = useRef<InitialRestoreAttempt | null>(null);
 
   useEffect(() => {
@@ -102,10 +103,12 @@ export function useGameState(initialGameId?: string) {
         if (initialGameId) {
           const saved = await loadGame(initialGameId);
           if (!saved) {
+            setInitialRestoreUnavailable(true);
             if (shouldTrackInitialRestore) trackRestoreOutcome('unavailable', 'url');
           } else if (data.length === 0) {
             if (shouldTrackInitialRestore) trackRestoreOutcome('unavailable', 'url');
           } else {
+            setInitialRestoreUnavailable(false);
             const restoredState = restoreSavedGameState(saved, data);
             setGameConfig(saved.gameConfig);
             if (saved.gameConfig.presetId) {
@@ -319,6 +322,7 @@ export function useGameState(initialGameId?: string) {
     initialStorySoFar,
     initialCompletedStepIds,
     initialGameIdLoaded,
+    initialRestoreUnavailable,
 
     // Actions
     refreshSavedGames,

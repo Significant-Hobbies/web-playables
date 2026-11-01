@@ -20,6 +20,57 @@ async function startCampaign(page: import('@playwright/test').Page) {
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
 }
 
+test('unavailable URL save explains recovery and preserves existing saves', async ({
+  page,
+}, testInfo) => {
+  await startCampaign(page);
+  await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
+  const saved = await page.evaluate(() => localStorage.getItem('open_historia_saves'));
+  await page.goto('/play/synthetic-unavailable-save');
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await expect(page.getByText(/could not restore this saved game/i)).toBeVisible();
+  await expect(page.getByText('synthetic-unavailable-save', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: /Enter orders/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('open_historia_saves'))).toBe(saved);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeInViewport();
+    await expect(page.getByRole('link', { name: 'New game', exact: true })).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await page.screenshot({ path: testInfo.outputPath(`unavailable-${width}.png`) });
+  }
+  await page.getByRole('link', { name: 'New game', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^war World War II/ })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('open_historia_saves'))).toBe(saved);
+});
+
+test('retry restores a URL save that becomes available', async ({ page }) => {
+  await startCampaign(page);
+  await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
+  const save = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('open_historia_saves')!)[0]
+  );
+  const url = page.url();
+  await page.evaluate(() => localStorage.removeItem('open_historia_saves'));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await page.evaluate(
+    (save) => localStorage.setItem('open_historia_saves', JSON.stringify([save])),
+    save
+  );
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toHaveCount(0);
+  expect(page.url()).toBe(url);
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('open_historia_saves')!)[0])
+  ).toEqual(save);
+});
+
 test('failed turn retains orders and year; retry commits once and save reloads', async ({
   page,
 }) => {

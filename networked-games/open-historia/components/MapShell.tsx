@@ -140,6 +140,42 @@ export function MapLoadingState() {
   );
 }
 
+export function SaveUnavailableState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <StateFrame>
+      <div className="flex flex-col items-center gap-6">
+        <StylizedGlobe />
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-rose-400 font-bold">
+            Campaign unavailable
+          </p>
+          <h1 className="mt-1 text-2xl text-slate-100 font-bold">Saved game is unavailable</h1>
+          <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+            We could not restore this saved game. It may be saved in another browser or account, or
+            temporarily unavailable. Retry here, or start a new campaign. Your existing saves are
+            kept.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={onRetry}
+            className="min-h-11 px-4 py-2 rounded-lg bg-amber-700 hover:bg-amber-600 text-white text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            Retry
+          </button>
+          <Link
+            to="/play"
+            className="min-h-11 inline-flex items-center justify-center px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold uppercase tracking-wider transition-colors"
+          >
+            New game
+          </Link>
+        </div>
+      </div>
+    </StateFrame>
+  );
+}
+
 export function MapUnavailableState({
   error,
   onRetry,

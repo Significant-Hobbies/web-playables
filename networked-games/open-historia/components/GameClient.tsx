@@ -16,7 +16,7 @@ import { useTurnProcessing } from '@/hooks/useTurnProcessing';
 import type { LogEntry } from '@/lib/game-storage';
 import type { GameConfig } from '@/lib/types';
 
-import { MapLoadingState, MapUnavailableState } from '@/components/MapShell';
+import { MapLoadingState, MapUnavailableState, SaveUnavailableState } from '@/components/MapShell';
 
 const MapView = lazy(() => import('@/components/MapView'));
 const DiplomacyChat = lazy(() => import('@/components/DiplomacyChat'));
@@ -272,6 +272,10 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   // fallback that still explains the situation instead of a blank map.
   if (game.provincesCache.length === 0) {
     return <MapUnavailableState error={game.worldLoadError} onRetry={game.retryWorldLoad} />;
+  }
+
+  if (initialGameId && game.initialRestoreUnavailable && !game.gameConfig) {
+    return <SaveUnavailableState onRetry={game.retryWorldLoad} />;
   }
 
   // Phase 1: Preset selection
