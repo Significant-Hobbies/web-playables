@@ -1,5 +1,7 @@
 import posthog from 'posthog-js';
 
+import { sanitizePlayRouteMetadata } from './telemetry-route-privacy';
+
 type AuthFailureStage = 'signin' | 'signup' | 'callback' | 'session' | 'unknown';
 const PROJECT_SLUG = 'open-historia';
 const POSTHOG_KEY =
@@ -76,6 +78,10 @@ export function installBrowserMonitoring() {
     person_profiles: 'always',
     capture_pageview: false,
     autocapture: false,
+    // These unused channels bypass captured-event metadata sanitization.
+    advanced_disable_flags: true,
+    disable_session_recording: true,
+    before_send: (event) => sanitizePlayRouteMetadata(event, window.location.origin),
   });
 
   const onError = (event: ErrorEvent) => {

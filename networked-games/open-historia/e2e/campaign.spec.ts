@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gunzipSync } from 'node:zlib';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', async (route) => {
@@ -19,6 +20,134 @@ async function startCampaign(page: import('@playwright/test').Page) {
   await page.getByRole('button', { name: 'Initialize Simulation' }).click();
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
 }
+
+test('unavailable URL save explains recovery and preserves existing saves', async ({
+  page,
+}, testInfo) => {
+  await startCampaign(page);
+  await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
+  const saved = await page.evaluate(() => localStorage.getItem('open_historia_saves'));
+  await page.goto('/play/synthetic-unavailable-save');
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await expect(page.getByText(/could not restore this saved game/i)).toBeVisible();
+  await expect(page.getByText('synthetic-unavailable-save', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('textbox', { name: /Enter orders/ })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('open_historia_saves'))).toBe(saved);
+  for (const width of [390, 768, 1440]) {
+    await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+    await expect(page.getByRole('button', { name: 'Retry', exact: true })).toBeInViewport();
+    await expect(page.getByRole('link', { name: 'New game', exact: true })).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    await page.screenshot({ path: testInfo.outputPath(`unavailable-${width}.png`) });
+  }
+  await page.getByRole('link', { name: 'New game', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^war World War II/ })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('open_historia_saves'))).toBe(saved);
+});
+
+test('retry restores a URL save that becomes available', async ({ page }) => {
+  await startCampaign(page);
+  await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
+  const save = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('open_historia_saves')!)[0]
+  );
+  const url = page.url();
+  await page.evaluate(() => localStorage.removeItem('open_historia_saves'));
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await page.evaluate(
+    (save) => localStorage.setItem('open_historia_saves', JSON.stringify([save])),
+    save
+  );
+  await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toHaveCount(0);
+  expect(page.url()).toBe(url);
+  expect(
+    await page.evaluate(() => JSON.parse(localStorage.getItem('open_historia_saves')!)[0])
+  ).toEqual(save);
+});
+
+test('PostHog before_send sanitizes generated play-route metadata', async ({ page }) => {
+  // Exercise the real SDK while preserving an explicit QA label. Its default
+  // bot filtering remains unchanged in the product; this test adjusts signals.
+  await page.addInitScript(() => {
+    const userAgent = navigator.userAgent.replace(/HeadlessChrome/g, 'Chrome');
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    Object.defineProperty(navigator, 'userAgent', { get: () => userAgent });
+    Object.defineProperty(navigator, 'userAgentData', { get: () => undefined });
+  });
+  const syntheticId = 'synthetic-private-save';
+  const records: {
+    outcome: unknown;
+    origin: unknown;
+    traffic: unknown;
+    currentUrl: unknown;
+    pathname: unknown;
+    containsId: boolean;
+  }[] = [];
+  const sdkPosts: { kind: string; containsId: boolean }[] = [];
+  await page.route('https://us.i.posthog.com/**', async (route) => {
+    const request = route.request();
+    const body = request.postDataBuffer();
+    if (request.method() === 'POST' && body) {
+      const url = new URL(request.url());
+      const json =
+        url.searchParams.get('compression') === 'gzip-js'
+          ? gunzipSync(body).toString()
+          : body.toString();
+      const payload = JSON.parse(
+        json.startsWith('data=')
+          ? Buffer.from(new URLSearchParams(json).get('data') || '', 'base64').toString()
+          : json
+      );
+      sdkPosts.push({
+        kind: url.pathname.includes('/flags')
+          ? 'flags'
+          : /^\/s\/?$/.test(url.pathname)
+            ? 'replay'
+            : 'capture',
+        containsId: JSON.stringify(payload).includes(syntheticId),
+      });
+      for (const event of Array.isArray(payload) ? payload : payload.batch || [payload]) {
+        if (event.event !== 'foundry_restore_result') continue;
+        records.push({
+          outcome: event.properties.outcome,
+          origin: event.properties.origin,
+          traffic: event.properties.measurement_traffic,
+          currentUrl: event.properties.$current_url,
+          pathname: event.properties.$pathname,
+          containsId: JSON.stringify(event).includes(syntheticId),
+        });
+      }
+    }
+    // This is an SDK integration test with a local collector. The separate
+    // shipped-runtime acceptance uses the actual collector without routing.
+    await route.fulfill({ json: {} });
+  });
+  await page.goto(`/play/${syntheticId}?measurement_traffic=qa`);
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await expect.poll(() => records.length).toBeGreaterThan(0);
+  expect(records).toEqual([
+    {
+      outcome: 'unavailable',
+      origin: 'url',
+      traffic: 'qa',
+      currentUrl: 'http://127.0.0.1:43187/play/:id',
+      pathname: '/play/:id',
+      containsId: false,
+    },
+  ]);
+  expect(sdkPosts.length).toBeGreaterThan(0);
+  expect(sdkPosts.every((request) => !request.containsId)).toBe(true);
+  expect(sdkPosts.some((request) => request.kind === 'flags' || request.kind === 'replay')).toBe(
+    false
+  );
+});
 
 test('failed turn retains orders and year; retry commits once and save reloads', async ({
   page,
