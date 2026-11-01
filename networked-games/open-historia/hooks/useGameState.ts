@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { isNewInitialRestoreAttempt, trackRestoreOutcome, type InitialRestoreAttempt } from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
 import type { LogEntry, SavedGame } from '@/lib/game-storage';
 import {
@@ -75,45 +76,65 @@ export function useGameState(initialGameId?: string) {
   const [initialStorySoFar, setInitialStorySoFar] = useState('');
   const [initialCompletedStepIds, setInitialCompletedStepIds] = useState<string[]>([]);
   const [initialGameIdLoaded, setInitialGameIdLoaded] = useState<string | null>(null);
+  const trackedInitialRestoreRef = useRef<InitialRestoreAttempt | null>(null);
 
   useEffect(() => {
     async function load() {
-      const { provinces: data, error } = await worldLoadRequest.load();
-      setProvincesCache(data);
-      setWorldLoadError(error);
-      await refreshSavedGames();
-
-      if (initialGameId) {
-        const saved = await loadGame(initialGameId);
-        if (saved && data.length > 0) {
-          const restoredState = restoreSavedGameState(saved, data);
-          setGameConfig(saved.gameConfig);
-          if (saved.gameConfig.presetId) {
-            setSelectedPreset(getPresetById(saved.gameConfig.presetId) || null);
-          }
-          setGameState(restoredState);
-          setRelations(restoredState.relations || []);
-          setProvincesCache(restoredState.provinces);
-          setInitialEvents(saved.events || []);
-          setInitialStorySoFar(saved.storySoFar || '');
-          setInitialCompletedStepIds(
-            saved.completedStepIds || restoredState.completedStepIds || []
-          );
-          setShowPresets(false);
-          setInitialGameIdLoaded(initialGameId);
-          const restoredLogs = saved.logs?.length ? saved.logs : [];
-          setInitialLogs([
-            ...restoredLogs,
-            {
-              id: uid(),
-              type: 'success',
-              text: `Resumed game from ${new Date(saved.timestamp).toLocaleString()}.`,
-            },
-          ]);
-        }
+      const shouldTrackInitialRestore = isNewInitialRestoreAttempt(
+        initialGameId,
+        worldLoadRequest,
+        trackedInitialRestoreRef.current
+      );
+      if (initialGameId && shouldTrackInitialRestore) {
+        trackedInitialRestoreRef.current = { gameId: initialGameId, request: worldLoadRequest };
       }
 
-      setLoading(false);
+      try {
+        const { provinces: data, error } = await worldLoadRequest.load();
+        setProvincesCache(data);
+        setWorldLoadError(error);
+        await refreshSavedGames();
+
+        if (initialGameId) {
+          const saved = await loadGame(initialGameId);
+          if (!saved) {
+            if (shouldTrackInitialRestore) trackRestoreOutcome('missing', 'url');
+          } else if (data.length === 0) {
+            if (shouldTrackInitialRestore) trackRestoreOutcome('error', 'url');
+          } else {
+            const restoredState = restoreSavedGameState(saved, data);
+            setGameConfig(saved.gameConfig);
+            if (saved.gameConfig.presetId) {
+              setSelectedPreset(getPresetById(saved.gameConfig.presetId) || null);
+            }
+            setGameState(restoredState);
+            setRelations(restoredState.relations || []);
+            setProvincesCache(restoredState.provinces);
+            setInitialEvents(saved.events || []);
+            setInitialStorySoFar(saved.storySoFar || '');
+            setInitialCompletedStepIds(
+              saved.completedStepIds || restoredState.completedStepIds || []
+            );
+            setShowPresets(false);
+            setInitialGameIdLoaded(initialGameId);
+            const restoredLogs = saved.logs?.length ? saved.logs : [];
+            setInitialLogs([
+              ...restoredLogs,
+              {
+                id: uid(),
+                type: 'success',
+                text: `Resumed game from ${new Date(saved.timestamp).toLocaleString()}.`,
+              },
+            ]);
+            if (shouldTrackInitialRestore) trackRestoreOutcome('success', 'url');
+          }
+        }
+
+        setLoading(false);
+      } catch (error) {
+        if (shouldTrackInitialRestore) trackRestoreOutcome('error', 'url');
+        throw error;
+      }
     }
     load();
   }, [refreshSavedGames, initialGameId, worldLoadRequest]);

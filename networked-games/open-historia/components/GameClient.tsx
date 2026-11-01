@@ -1,6 +1,12 @@
 import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
-import { trackCoreAction } from '@/lib/analytics';
+import {
+  captureMeasurementTraffic,
+  trackCoreAction,
+  trackInitialResumeOnce,
+  trackRestoreOutcome,
+  trackResumeResult,
+} from '@/lib/analytics';
 import { useAdvisor } from '@/hooks/useAdvisor';
 import { useDiplomacy } from '@/hooks/useDiplomacy';
 import { useGameState } from '@/hooks/useGameState';
@@ -39,9 +45,18 @@ function uid(): string {
 // ---------------------------------------------------------------------------
 
 function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
+  captureMeasurementTraffic();
   // ── Core game state + initialization ──
   const game = useGameState(initialGameId);
   const { relations, setRelations } = game;
+
+  const trackedInitialResume = useRef<string | null>(null);
+  useEffect(() => {
+    trackedInitialResume.current = trackInitialResumeOnce(
+      game.initialGameIdLoaded,
+      trackedInitialResume.current
+    );
+  }, [game.initialGameIdLoaded]);
 
   // ── Timeline (needs setEvents and setRelations) ──
   // We pass a placeholder addLog first and fix after turn hook is created
@@ -178,28 +193,36 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   const handleLoadSavedGame = useCallback(
     async (saveId: string) => {
       if (turn.processingTurn) return;
-      const result = await game.handleLoadSavedGame(saveId);
-      if (!result) {
-        turn.addLog(`Save "${saveId}" not found.`, 'error');
-        return;
+      try {
+        const result = await game.handleLoadSavedGame(saveId);
+        if (!result) {
+          trackRestoreOutcome('missing', 'manual');
+          turn.addLog(`Save "${saveId}" not found.`, 'error');
+          return;
+        }
+        turn.setPendingOrders(result.state.pendingOrders || []);
+        diplomacy.setChatThreads(result.state.chatThreads || []);
+        advisor.setAdvisorMessages(result.state.advisorHistory || []);
+        timeline.setTimelineSnapshots(result.state.timeline || []);
+        setRelations(result.state.relations || []);
+        turn.setEvents(result.events);
+        turn.setStorySoFar(result.storySoFar);
+        turn.setCompletedStepIds(result.completedStepIds);
+        turn.setLogs([
+          ...result.logs,
+          {
+            id: uid(),
+            type: 'success' as LogEntry['type'],
+            text: `Loaded save from ${new Date(Date.now()).toLocaleString()}.`,
+          },
+        ]);
+        save.onLoadComplete(saveId);
+        trackRestoreOutcome('success', 'manual');
+        trackResumeResult(true);
+      } catch (error) {
+        trackRestoreOutcome('error', 'manual');
+        throw error;
       }
-      turn.setPendingOrders(result.state.pendingOrders || []);
-      diplomacy.setChatThreads(result.state.chatThreads || []);
-      advisor.setAdvisorMessages(result.state.advisorHistory || []);
-      timeline.setTimelineSnapshots(result.state.timeline || []);
-      setRelations(result.state.relations || []);
-      turn.setEvents(result.events);
-      turn.setStorySoFar(result.storySoFar);
-      turn.setCompletedStepIds(result.completedStepIds);
-      turn.setLogs([
-        ...result.logs,
-        {
-          id: uid(),
-          type: 'success' as LogEntry['type'],
-          text: `Loaded save from ${new Date(Date.now()).toLocaleString()}.`,
-        },
-      ]);
-      save.onLoadComplete(saveId);
     },
     [game, turn, save, diplomacy, advisor, timeline, setRelations]
   );
