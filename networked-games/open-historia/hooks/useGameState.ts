@@ -104,7 +104,7 @@ export function useGameState(initialGameId?: string) {
           if (!saved) {
             if (shouldTrackInitialRestore) trackRestoreOutcome('unavailable', 'url');
           } else if (data.length === 0) {
-            if (shouldTrackInitialRestore) trackRestoreOutcome('error', 'url');
+            if (shouldTrackInitialRestore) trackRestoreOutcome('unavailable', 'url');
           } else {
             const restoredState = restoreSavedGameState(saved, data);
             setGameConfig(saved.gameConfig);
