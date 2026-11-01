@@ -43,7 +43,7 @@ describe('save resume measurement', () => {
     });
   });
 
-  it('does not record a missing or failed restore', () => {
+  it('does not record an unsuccessful restore as a core action', () => {
     trackResumeResult(false);
 
     expect(posthog.capture).not.toHaveBeenCalled();
@@ -55,15 +55,19 @@ describe('save resume measurement', () => {
     expect(isNewInitialRestoreAttempt('save-id-in-memory', firstRequest, null)).toBe(true);
     trackRestoreOutcome('error', 'url');
     trackResumeResult(false);
-    expect(isNewInitialRestoreAttempt('save-id-in-memory', firstRequest, {
-      gameId: 'save-id-in-memory',
-      request: firstRequest,
-    })).toBe(false);
+    expect(
+      isNewInitialRestoreAttempt('save-id-in-memory', firstRequest, {
+        gameId: 'save-id-in-memory',
+        request: firstRequest,
+      })
+    ).toBe(false);
 
-    expect(isNewInitialRestoreAttempt('save-id-in-memory', retryRequest, {
-      gameId: 'save-id-in-memory',
-      request: firstRequest,
-    })).toBe(true);
+    expect(
+      isNewInitialRestoreAttempt('save-id-in-memory', retryRequest, {
+        gameId: 'save-id-in-memory',
+        request: firstRequest,
+      })
+    ).toBe(true);
     trackRestoreOutcome('success', 'url');
     trackResumeResult(true);
 
@@ -84,15 +88,17 @@ describe('save resume measurement', () => {
       action: 'game_resumed',
       measurement_traffic: 'qa',
     });
-    expect(JSON.stringify(vi.mocked(posthog.capture).mock.calls)).not.toContain('save-id-in-memory');
+    expect(JSON.stringify(vi.mocked(posthog.capture).mock.calls)).not.toContain(
+      'save-id-in-memory'
+    );
   });
 
-  it('tracks missing manual restores without adding a core action', () => {
-    trackRestoreOutcome('missing', 'manual');
+  it('tracks unavailable manual restores without adding a core action', () => {
+    trackRestoreOutcome('unavailable', 'manual');
 
     expect(posthog.capture).toHaveBeenCalledWith('foundry_restore_result', {
       project_id: 'open-historia',
-      outcome: 'missing',
+      outcome: 'unavailable',
       origin: 'manual',
       measurement_traffic: 'qa',
     });

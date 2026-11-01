@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { isNewInitialRestoreAttempt, trackRestoreOutcome, type InitialRestoreAttempt } from '@/lib/analytics';
+import {
+  isNewInitialRestoreAttempt,
+  trackRestoreOutcome,
+  type InitialRestoreAttempt,
+} from '@/lib/analytics';
 import { authClient } from '@/lib/auth-client';
 import type { LogEntry, SavedGame } from '@/lib/game-storage';
 import {
@@ -98,7 +102,7 @@ export function useGameState(initialGameId?: string) {
         if (initialGameId) {
           const saved = await loadGame(initialGameId);
           if (!saved) {
-            if (shouldTrackInitialRestore) trackRestoreOutcome('missing', 'url');
+            if (shouldTrackInitialRestore) trackRestoreOutcome('unavailable', 'url');
           } else if (data.length === 0) {
             if (shouldTrackInitialRestore) trackRestoreOutcome('error', 'url');
           } else {

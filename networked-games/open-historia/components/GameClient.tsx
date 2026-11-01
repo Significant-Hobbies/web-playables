@@ -196,7 +196,7 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
       try {
         const result = await game.handleLoadSavedGame(saveId);
         if (!result) {
-          trackRestoreOutcome('missing', 'manual');
+          trackRestoreOutcome('unavailable', 'manual');
           turn.addLog(`Save "${saveId}" not found.`, 'error');
           return;
         }
