@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { gunzipSync } from 'node:zlib';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', async (route) => {
@@ -69,6 +70,64 @@ test('retry restores a URL save that becomes available', async ({ page }) => {
   expect(
     await page.evaluate(() => JSON.parse(localStorage.getItem('open_historia_saves')!)[0])
   ).toEqual(save);
+});
+
+test('PostHog before_send sanitizes generated play-route metadata', async ({ page }) => {
+  // Exercise the real SDK while preserving an explicit QA label. Its default
+  // bot filtering remains unchanged in the product; this test adjusts signals.
+  await page.addInitScript(() => {
+    const userAgent = navigator.userAgent.replace(/HeadlessChrome/g, 'Chrome');
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    Object.defineProperty(navigator, 'userAgent', { get: () => userAgent });
+  });
+  const syntheticId = 'synthetic-private-save';
+  const records: {
+    outcome: unknown;
+    origin: unknown;
+    traffic: unknown;
+    currentUrl: unknown;
+    pathname: unknown;
+    containsId: boolean;
+  }[] = [];
+  await page.route('https://us.i.posthog.com/**', async (route) => {
+    const request = route.request();
+    const body = request.postDataBuffer();
+    if (request.method() === 'POST' && body) {
+      const url = new URL(request.url());
+      const json =
+        url.searchParams.get('compression') === 'gzip-js'
+          ? gunzipSync(body).toString()
+          : body.toString();
+      const payload = JSON.parse(json);
+      for (const event of Array.isArray(payload) ? payload : payload.batch || [payload]) {
+        if (event.event !== 'foundry_restore_result') continue;
+        records.push({
+          outcome: event.properties.outcome,
+          origin: event.properties.origin,
+          traffic: event.properties.measurement_traffic,
+          currentUrl: event.properties.$current_url,
+          pathname: event.properties.$pathname,
+          containsId: JSON.stringify(event).includes(syntheticId),
+        });
+      }
+    }
+    // This is an SDK integration test with a local collector. The separate
+    // shipped-runtime acceptance uses the actual collector without routing.
+    await route.fulfill({ json: {} });
+  });
+  await page.goto(`/play/${syntheticId}?measurement_traffic=qa`);
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toBeVisible();
+  await expect.poll(() => records.length).toBeGreaterThan(0);
+  expect(records).toEqual([
+    {
+      outcome: 'unavailable',
+      origin: 'url',
+      traffic: 'qa',
+      currentUrl: 'http://127.0.0.1:43187/play/:id',
+      pathname: '/play/:id',
+      containsId: false,
+    },
+  ]);
 });
 
 test('failed turn retains orders and year; retry commits once and save reloads', async ({
