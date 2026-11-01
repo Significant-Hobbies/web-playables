@@ -78,6 +78,9 @@ export function installBrowserMonitoring() {
     person_profiles: 'always',
     capture_pageview: false,
     autocapture: false,
+    // These unused channels bypass captured-event metadata sanitization.
+    advanced_disable_flags: true,
+    disable_session_recording: true,
     before_send: (event) => sanitizePlayRouteMetadata(event, window.location.origin),
   });
 

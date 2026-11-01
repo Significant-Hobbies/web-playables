@@ -79,6 +79,7 @@ test('PostHog before_send sanitizes generated play-route metadata', async ({ pag
     const userAgent = navigator.userAgent.replace(/HeadlessChrome/g, 'Chrome');
     Object.defineProperty(navigator, 'webdriver', { get: () => false });
     Object.defineProperty(navigator, 'userAgent', { get: () => userAgent });
+    Object.defineProperty(navigator, 'userAgentData', { get: () => undefined });
   });
   const syntheticId = 'synthetic-private-save';
   const records: {
@@ -89,6 +90,7 @@ test('PostHog before_send sanitizes generated play-route metadata', async ({ pag
     pathname: unknown;
     containsId: boolean;
   }[] = [];
+  const sdkPosts: { kind: string; containsId: boolean }[] = [];
   await page.route('https://us.i.posthog.com/**', async (route) => {
     const request = route.request();
     const body = request.postDataBuffer();
@@ -103,6 +105,14 @@ test('PostHog before_send sanitizes generated play-route metadata', async ({ pag
           ? Buffer.from(new URLSearchParams(json).get('data') || '', 'base64').toString()
           : json
       );
+      sdkPosts.push({
+        kind: url.pathname.includes('/flags')
+          ? 'flags'
+          : /^\/s\/?$/.test(url.pathname)
+            ? 'replay'
+            : 'capture',
+        containsId: JSON.stringify(payload).includes(syntheticId),
+      });
       for (const event of Array.isArray(payload) ? payload : payload.batch || [payload]) {
         if (event.event !== 'foundry_restore_result') continue;
         records.push({
@@ -132,6 +142,11 @@ test('PostHog before_send sanitizes generated play-route metadata', async ({ pag
       containsId: false,
     },
   ]);
+  expect(sdkPosts.length).toBeGreaterThan(0);
+  expect(sdkPosts.every((request) => !request.containsId)).toBe(true);
+  expect(sdkPosts.some((request) => request.kind === 'flags' || request.kind === 'replay')).toBe(
+    false
+  );
 });
 
 test('failed turn retains orders and year; retry commits once and save reloads', async ({
