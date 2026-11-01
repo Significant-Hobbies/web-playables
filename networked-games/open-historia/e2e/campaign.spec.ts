@@ -98,7 +98,11 @@ test('PostHog before_send sanitizes generated play-route metadata', async ({ pag
         url.searchParams.get('compression') === 'gzip-js'
           ? gunzipSync(body).toString()
           : body.toString();
-      const payload = JSON.parse(json);
+      const payload = JSON.parse(
+        json.startsWith('data=')
+          ? Buffer.from(new URLSearchParams(json).get('data') || '', 'base64').toString()
+          : json
+      );
       for (const event of Array.isArray(payload) ? payload : payload.batch || [payload]) {
         if (event.event !== 'foundry_restore_result') continue;
         records.push({
