@@ -57,6 +57,20 @@ try {
     await new Promise((done) => setTimeout(done, 250));
   }
   assert(ready, `Pages did not start; see ${evidence}/pages.log`);
+  for (const path of ["/play/war-chest/", "/play/ember-road/", "/play/idle-startup/"]) {
+    const game = await fetch(`${origin}${path}`);
+    assert.equal(game.status, 200);
+    assert.match(
+      game.headers.get("cache-control"),
+      /no-transform/,
+      "Game HTML must opt out of edge analytics injection",
+    );
+  }
+  const hub = await fetch(origin);
+  assert(
+    !hub.headers.get("cache-control")?.includes("no-transform"),
+    "The hub keeps its existing analytics policy",
+  );
   const wasm = await fetch(`${origin}/play/war-chest/index.wasm`, {
     headers: { "Accept-Encoding": "br" },
   });

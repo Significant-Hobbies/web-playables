@@ -336,6 +336,8 @@ export async function onRequest(context: {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("text/html")) {
     const headers = withRateLimit(new Headers(response.headers));
+    if (pathname.startsWith("/play/"))
+      headers.set("Cache-Control", "public, max-age=0, must-revalidate, no-transform");
     const vary = headers.get("vary");
     headers.set("vary", vary ? `${vary}, Accept, Accept-Encoding` : "Accept, Accept-Encoding");
     return new Response(request.method === "HEAD" ? null : response.body, {
