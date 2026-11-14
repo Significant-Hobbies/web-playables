@@ -1,0 +1,16 @@
+.godot/
+.local/
+.fleet-local/
+artifacts/
+assets/models/
+assets/audio/
+assets/textures/
+assets/portraits/
+assets/siege/
+assets/pocket-v2/
+*.import
+.DS_Store
+builds/
+/War Chest.app/
+/Practice War Chest.app/
+assets/banner-steel/

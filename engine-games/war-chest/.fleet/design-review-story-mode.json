@@ -1,0 +1,564 @@
+{
+  "$schema": "fleet.design-review.v2",
+  "version": 2,
+  "project": "war-chest",
+  "target": "Authored story campaign: company scenes, preparation, twelve encounters and ending",
+  "surfaceMode": "experience",
+  "mode": "overhaul",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "source": "comparison",
+    "references": [
+      "The Banner Saga: consequences along a company road",
+      "Pyre: a party sharing a concrete journey",
+      "Wildermyth: short character scenes tied to tactical transitions"
+    ],
+    "probes": [
+      {
+        "id": "a-company-consequences",
+        "name": "Company & Consequences",
+        "path": "artifacts/story-directions/a-company-consequences-dialogue-1440x900.png",
+        "thesis": "The company in the world, human speech at the center, practical orders and exact costs immediately below.",
+        "layout": "World-scale dialogue with a broad decision rail; a three-chapter company road beside next mission/preparation and the companions.",
+        "typography": "Georgia/Times serif for titles and speech; Avenir Next/Arial for practical task text, metadata and native controls.",
+        "report": ".fleet/story-directions-review.md",
+        "contract": {
+          "purpose": "Make the people protected by the company matter before its next tactical order.",
+          "audience": "The owner and native desktop single-player strategy players; no commerce authorization.",
+          "job": "Hear Ivo, choose the canonical convoy preparation, and prepare The Last Supply Cart 04/12.",
+          "colors": "Paper reading surfaces; ink text and controls; olive company context; rust named stakes; gold keyboard focus. Approved Banner & Steel adult flat art.",
+          "spacing": "44\u201348 px logical outer gutters, clear speech/task/decision zones; 1440\u00d7900 canvas scales to supported 1152\u00d7720.",
+          "qualityBar": "Named immediate stakes, brief exact speech, clear truthful consequences, visible company, finite three-chapter road and coherent preparation.",
+          "thesis": "The company in the world, human speech at the center, practical orders and exact costs immediately below.",
+          "layout": "World-scale dialogue with a broad decision rail; a three-chapter company road beside next mission/preparation and the companions.",
+          "typography": "Georgia/Times serif for titles and speech; Avenir Next/Arial for practical task text, metadata and native controls.",
+          "interaction": "Short authored speech, equal unselected convoy branches and direct company-road/preparation navigation; native focus survives preview rebuild.",
+          "signature": "Rowan, Lysa and Fen stand at Lantern Gate beside Ivo\u2019s account; the company road leads to the spatial chest.",
+          "risk": "Speech can cover the world and armed atlas poses suggest combat during conversation; keep reading short and preserve faces/location."
+        },
+        "contexts": [
+          {
+            "context": "dialogue",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/a-company-consequences-dialogue-1440x900.png"
+          },
+          {
+            "context": "dialogue",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/a-company-consequences-dialogue-1152x720.png"
+          },
+          {
+            "context": "journey",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/a-company-consequences-journey-1440x900.png"
+          },
+          {
+            "context": "journey",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/a-company-consequences-journey-1152x720.png"
+          }
+        ]
+      },
+      {
+        "id": "b-orders-letters",
+        "name": "Orders & Letters",
+        "path": "artifacts/story-directions/b-orders-letters-dialogue-1440x900.png",
+        "thesis": "Military bureaucracy made personal: numbered winter orders face a rescued person\u2019s account and the missing households\u2019 wages.",
+        "layout": "Account/front split for the choice; a twelve-node single campaign route with a separate mission/preparation docket.",
+        "typography": "Menlo/Courier administrative labels and numbering; Georgia/Times account and mission titles; native sans for practical instructions and buttons.",
+        "report": ".fleet/story-directions-review.md",
+        "contract": {
+          "purpose": "Make the people protected by the company matter before its next tactical order.",
+          "audience": "The owner and native desktop single-player strategy players; no commerce authorization.",
+          "job": "Hear Ivo, choose the canonical convoy preparation, and prepare The Last Supply Cart 04/12.",
+          "colors": "Paper reading surfaces; ink text and controls; olive company context; rust named stakes; gold keyboard focus. Approved Banner & Steel adult flat art.",
+          "spacing": "44\u201348 px logical outer gutters, clear speech/task/decision zones; 1440\u00d7900 canvas scales to supported 1152\u00d7720.",
+          "qualityBar": "Named immediate stakes, brief exact speech, clear truthful consequences, visible company, finite three-chapter road and coherent preparation.",
+          "thesis": "Military bureaucracy made personal: numbered winter orders face a rescued person\u2019s account and the missing households\u2019 wages.",
+          "layout": "Account/front split for the choice; a twelve-node single campaign route with a separate mission/preparation docket.",
+          "typography": "Menlo/Courier administrative labels and numbering; Georgia/Times account and mission titles; native sans for practical instructions and buttons.",
+          "interaction": "Read a human account before signing the next order; preparation retains visible mission costs and the finite route.",
+          "signature": "The winter ledger records names behind wages beside Order 004 and Ivo\u2019s account.",
+          "risk": "Document-first hierarchy can create emotional distance; keep the account prominent and avoid an anonymous contract dashboard."
+        },
+        "contexts": [
+          {
+            "context": "dialogue",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/b-orders-letters-dialogue-1440x900.png"
+          },
+          {
+            "context": "dialogue",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/b-orders-letters-dialogue-1152x720.png"
+          },
+          {
+            "context": "journey",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/b-orders-letters-journey-1440x900.png"
+          },
+          {
+            "context": "journey",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/b-orders-letters-journey-1152x720.png"
+          }
+        ]
+      },
+      {
+        "id": "c-at-the-fire",
+        "name": "At the Fire",
+        "path": "artifacts/story-directions/c-at-the-fire-dialogue-1440x900.png",
+        "thesis": "The company pauses between encounters; faces and recent shared history lead into the next promise.",
+        "layout": "Large conversation region with paired close companion portraits, lower promise/choice area; episodic next mission/recap and companion-side chest preparation.",
+        "typography": "Serif scene/chapter framing and brief speech; native sans task text, portrait captions, recent-memory recap and decisions.",
+        "report": ".fleet/story-directions-review.md",
+        "contract": {
+          "purpose": "Make the people protected by the company matter before its next tactical order.",
+          "audience": "The owner and native desktop single-player strategy players; no commerce authorization.",
+          "job": "Hear Ivo, choose the canonical convoy preparation, and prepare The Last Supply Cart 04/12.",
+          "colors": "Paper reading surfaces; ink text and controls; olive company context; rust named stakes; gold keyboard focus. Approved Banner & Steel adult flat art.",
+          "spacing": "44\u201348 px logical outer gutters, clear speech/task/decision zones; 1440\u00d7900 canvas scales to supported 1152\u00d7720.",
+          "qualityBar": "Named immediate stakes, brief exact speech, clear truthful consequences, visible company, finite three-chapter road and coherent preparation.",
+          "thesis": "The company pauses between encounters; faces and recent shared history lead into the next promise.",
+          "layout": "Large conversation region with paired close companion portraits, lower promise/choice area; episodic next mission/recap and companion-side chest preparation.",
+          "typography": "Serif scene/chapter framing and brief speech; native sans task text, portrait captions, recent-memory recap and decisions.",
+          "interaction": "Brief conversation and remembered actions precede departure from a recurring company context.",
+          "signature": "Rowan\u2019s old orders and Lysa\u2019s rescued brother face the next cart promise; the company packs the chest together.",
+          "risk": "Conversation pauses can become filler; atlas crops still show Lysa aiming a bow and no new calm camp artwork is implied."
+        },
+        "contexts": [
+          {
+            "context": "dialogue",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/c-at-the-fire-dialogue-1440x900.png"
+          },
+          {
+            "context": "dialogue",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/c-at-the-fire-dialogue-1152x720.png"
+          },
+          {
+            "context": "journey",
+            "width": 1440,
+            "height": 900,
+            "path": "artifacts/story-directions/c-at-the-fire-journey-1440x900.png"
+          },
+          {
+            "context": "journey",
+            "width": 1152,
+            "height": 720,
+            "path": "artifacts/story-directions/c-at-the-fire-journey-1152x720.png"
+          }
+        ]
+      }
+    ],
+    "selected": "a-company-consequences",
+    "approval": "approved",
+    "ownerEvidence": {
+      "path": ".fleet/story-mode-owner-selection.md",
+      "quote": "A \u2014 Company & Consequences (Recommended): visible companions, world scenes, clear campaign road."
+    },
+    "supplied": "",
+    "before": "",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "existing-project-system",
+      "sources": [],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": "Existing native Godot Control widgets and Banner & Steel assets; no web library or new production dependency."
+      }
+    },
+    "contract": {
+      "purpose": "War Chest helps a strategy-game lover grow an enduring warband through an authored story, tactical battles and spatial equipment choices.",
+      "purposeSource": "PRODUCT.md and STORY.md; owner story-mode request. Canonical catalog remains the local tactical-game experiment.",
+      "canonicalPurpose": "Explore a playable tactical war game with a persistent company and spatial equipment choices.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Sarthak, and potential paying strategy players as a quality bar; native desktop single-player, no commerce authorization.",
+      "job": "Understand whom the company protects, make a practical story decision, prepare a loadout, and play the next encounter through to its consequences.",
+      "thesis": "Make responsibility personal: a company recovering ordinary households' winter wages, with people visible before rewards.",
+      "system": "Three distinct native composition/interaction systems will retain the approved adult flat Banner & Steel art and semantic olive/stone/paper/ink colors. Typography, dialogue hierarchy, road composition and preparation transitions are compared using the same real scene.",
+      "signature": "Named households in a stolen war chest connect the people at Lantern Gate, the spatial chest the player packs, and the final return of the wages.",
+      "risk": "Dialogue can become a decorative reskin or bury decisions. Keep speech short, expose actual consequences, tie missions to rescue/escort/recovery, and test complete earned routes.",
+      "qualityBar": "Owner doubts a buyer would be happy and requests story mode. The scene must establish named immediate stakes, readable character voices, consequential choices, a finite campaign road and coherent preparation. No interface score or solver completion is evidence of attachment or commercial satisfaction."
+    },
+    "productSurfaces": {
+      "scope": "standalone",
+      "reason": "Personal standalone native Godot desktop game. PRODUCT.md, DESIGN.md and README.md expose local launch/onboarding only; this repo has no landing page, public app route or storefront. Commercial discussion is a quality bar, not authorization to create or publish a marketing surface.",
+      "landing": "",
+      "app": "scenes/pocket.tscn: native story, chest and tactical battle"
+    }
+  },
+  "evidence": {
+    "slopScale": {
+      "platform": "native",
+      "posture": "advisory",
+      "reason": "Godot desktop Control rendering has no DOM/CSS or browser page. The pinned web scanner cannot inspect native story scenes; use direct rendered native review and actual input. No browser score is fabricated.",
+      "checkpoints": [
+        {
+          "stage": "directions",
+          "direction": "a-company-consequences",
+          "status": "not-applicable",
+          "report": ".fleet/story-directions-review.md",
+          "reason": "Native Godot Control renders have no DOM, CSS or browser page; the pinned web scanner cannot inspect these scenes. No numeric score is claimed.",
+          "findingsReview": "Company & Consequences: direct primary/secondary native review at 1440\u00d7900 and 1152\u00d7720; exact Ivo/convoy story data; distinct composition and navigation; known limitations in the report."
+        },
+        {
+          "stage": "directions",
+          "direction": "b-orders-letters",
+          "status": "not-applicable",
+          "report": ".fleet/story-directions-review.md",
+          "reason": "Native Godot Control renders have no DOM, CSS or browser page; the pinned web scanner cannot inspect these scenes. No numeric score is claimed.",
+          "findingsReview": "Orders & Letters: direct primary/secondary native review at 1440\u00d7900 and 1152\u00d7720; exact Ivo/convoy story data; distinct composition and navigation; known limitations in the report."
+        },
+        {
+          "stage": "directions",
+          "direction": "c-at-the-fire",
+          "status": "not-applicable",
+          "report": ".fleet/story-directions-review.md",
+          "reason": "Native Godot Control renders have no DOM, CSS or browser page; the pinned web scanner cannot inspect these scenes. No numeric score is claimed.",
+          "findingsReview": "At the Fire: direct primary/secondary native review at 1440\u00d7900 and 1152\u00d7720; exact Ivo/convoy story data; distinct composition and navigation; known limitations in the report."
+        },
+        {
+          "stage": "iteration",
+          "status": "not-applicable",
+          "report": ".fleet/story-mode-native-review.md",
+          "reason": "Native Godot Control scene has no browser page, DOM or CSS; pinned web scanner cannot inspect it. No numeric slop score is claimed.",
+          "findingsReview": "Direct native review of actual Main across 18 fixtures; final caption/control overlap and duplicate-error strip corrected; exact cart costs readable. Remaining art, accessibility and performance limits are reported."
+        },
+        {
+          "stage": "final",
+          "status": "not-applicable",
+          "report": ".fleet/story-mode-native-review.md",
+          "reason": "Native Godot Control scene has no browser page, DOM or CSS; pinned web scanner cannot inspect it. No numeric slop score is claimed.",
+          "findingsReview": "Direct native review of actual Main across 18 fixtures; final caption/control overlap and duplicate-error strip corrected; exact cart costs readable. Remaining art, accessibility and performance limits are reported."
+        }
+      ]
+    },
+    "visualReview": {
+      "status": "pass",
+      "reviewer": "presentation_review: independent review of root-authored production interface",
+      "direction": "a-company-consequences",
+      "report": ".fleet/story-mode-native-review.md",
+      "checks": {
+        "hierarchy": {
+          "status": "pass",
+          "observation": "Named speaker, human stakes and one clear next action across actual opening, choice, preparation, reward, defeat and ending. Exact cart costs appear before activation; future route entries remain secondary."
+        },
+        "typography": {
+          "status": "pass",
+          "observation": "Serif speech/titles and native sans controls/task text remain readable at actual content lengths. Full Ivo and evacuation lines fit. Deduction: compact secondary metadata and limited weight range; increased text sizes unverified."
+        },
+        "composition": {
+          "status": "pass",
+          "observation": "Selected world/company/speech/decision system continues into actual three-chapter road and spatial chest. Final caption/button overlap and duplicate raw-error strip are corrected. Deduction: repeated armed poses and reused gate background."
+        },
+        "identity": {
+          "status": "pass",
+          "observation": "Rowan, Lysa/Ivo, winter wages, Lantern Gate, three fronts and the spatial rune chest tie the system to War Chest. Approved adult flat Banner & Steel is preserved."
+        },
+        "interaction": {
+          "status": "pass",
+          "observation": "90 actual Main callback checks cover dialogue, exact guide return, focus handoffs, preparation, retry, banner claim/equipment, invalid choice feedback, real decoy convoy, journal and ending/free-play. Root manually earned Gate and Rune-Cleave Ashen. Full late manual routes unverified."
+        },
+        "responsive": {
+          "status": "pass",
+          "observation": "18 actual-Main native fixtures at 1440x900 and 1152x720. Final required-size states preserve speech/actions/costs without clipping. New-surface wide/tall resize and increased text sizes unverified; 390/768 unsupported."
+        }
+      }
+    },
+    "screenshots": [
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "initial-scene",
+        "path": "artifacts/story-mode/initial-scene-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "preparation",
+        "path": "artifacts/story-mode/preparation-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "gate-reward",
+        "path": "artifacts/story-mode/gate-reward-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "earned-rune-chest",
+        "path": "artifacts/story-mode/earned-rune-chest-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "ivo-choice",
+        "path": "artifacts/story-mode/ivo-choice-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "ivo-choice-save-warning",
+        "path": "artifacts/story-mode/ivo-choice-save-warning-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "defeat",
+        "path": "artifacts/story-mode/defeat-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "ending-decoy",
+        "path": "artifacts/story-mode/ending-decoy-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1440,
+        "height": 900,
+        "state": "ending-evacuation",
+        "path": "artifacts/story-mode/ending-evacuation-1440x900.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "initial-scene",
+        "path": "artifacts/story-mode/initial-scene-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "preparation",
+        "path": "artifacts/story-mode/preparation-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "gate-reward",
+        "path": "artifacts/story-mode/gate-reward-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "earned-rune-chest",
+        "path": "artifacts/story-mode/earned-rune-chest-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "ivo-choice",
+        "path": "artifacts/story-mode/ivo-choice-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "ivo-choice-save-warning",
+        "path": "artifacts/story-mode/ivo-choice-save-warning-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "defeat",
+        "path": "artifacts/story-mode/defeat-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "ending-decoy",
+        "path": "artifacts/story-mode/ending-decoy-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      },
+      {
+        "width": 1152,
+        "height": 720,
+        "state": "ending-evacuation",
+        "path": "artifacts/story-mode/ending-evacuation-1152x720.png",
+        "kind": "native-UI-fixture",
+        "note": "Actual Main render; injected late-route progress/settlement is not earned-route proof."
+      }
+    ],
+    "projectCheck": {
+      "command": "sh scripts/check.sh",
+      "status": "pass",
+      "report": ".fleet/story-mode-review-2026-10-02.md",
+      "log": "/var/folders/9_/1109_2dd1qz6zyvmxb5zp8pc0000gn/T/war-chest-check.Zeno6c",
+      "note": "Definitive frozen source run: source import,17 game suites and isolated runner/local/app launcher harnesses pass; story rules263/0, earned routes2589/0, UI90/0, slots32/0."
+    },
+    "critique": {
+      "score": 36,
+      "maximum": 40,
+      "dimensions": {
+        "hierarchy": 8,
+        "typography": 7,
+        "composition": 7,
+        "identity": 8,
+        "interaction": 3,
+        "responsive": 3
+      },
+      "deductions": {
+        "typography": "Compact secondary metadata and limited weight range; no larger-text proof.",
+        "composition": "Repeated armed atlas poses and a single gate backdrop limit scene range.",
+        "interaction": "Late branches/ending checked through actual UI callbacks and fixtures; full manual physical-input route unverified.",
+        "responsive": "Only supported fixed-aspect 1440x900/1152x720 new-surface captures; wide/tall resize and increased text sizes unverified."
+      }
+    },
+    "audit": {
+      "score": 16,
+      "maximum": 20,
+      "dimensions": {
+        "purpose": 4,
+        "accessibility": 4,
+        "behavior": 3,
+        "responsive": 3,
+        "performance": 2
+      },
+      "deductions": {
+        "accessibility": "VoiceOver/assistive navigation and increased text sizing unverified.",
+        "behavior": "Later physical-input routes and slot-switch/recovery paths not independently exercised by this reviewer.",
+        "performance": "No production-equivalent story frame/memory profile; earlier frame tails not claimed fixed."
+      }
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": []
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    },
+    "productContinuity": {
+      "status": "not-applicable",
+      "reason": "Personal standalone native Godot desktop game. PRODUCT.md, DESIGN.md and README.md expose local launch/onboarding only; this repo has no landing page, public app route or storefront. Commercial discussion is a quality bar, not authorization to create or publish a marketing surface."
+    },
+    "viewportLimitations": {
+      "platform": "native",
+      "minimumWindow": {
+        "width": 1152,
+        "height": 720
+      },
+      "unsupportedWidths": [
+        390,
+        768
+      ],
+      "reason": "Phone/web widths are below the supported native minimum. No native screenshot is relabelled as mobile evidence. Current shared validator requests generic web widths; retain this limitation instead of fabricating proof."
+    },
+    "workflowCheck": {
+      "command": "node /Users/sarthak/Desktop/fleet/saas-maker/tooling/scripts/design-workflow.mjs check --project /Users/sarthak/Desktop/fleet/war-chest --receipt .fleet/design-review-story-mode.json --json",
+      "status": "failed",
+      "exitCode": 1,
+      "findings": [
+        "missing required viewport 390",
+        "missing required viewport 768"
+      ],
+      "note": "These generic web widths are below the supported native minimum. Native review passes; formal visual workflow gate remains open. OwnerFeedback keep records direction selection, not acceptance of implemented game."
+    },
+    "nativeLaunch": {
+      "status": "pass",
+      "app": "builds/Practice War Chest Story Mode v2.app",
+      "report": ".fleet/story-mode-review-2026-10-02.md",
+      "observations": [
+        "actual wrapper launch and opening speech",
+        "physical mouse dialogue advancement",
+        "Menu/Esc exact third-line return",
+        "Tab focus and Enter preparation",
+        "clean quit and fresh first-scene launch",
+        "native zoom preserves full opening with side letterboxes"
+      ],
+      "limits": [
+        "full physical-input twelve-encounter route unverified",
+        "corner drag did not resize; no new minimum-size physical-input claim",
+        "persistent campaign wrapper never launched"
+      ],
+      "playerStorage": "isolated --story-demo; no player save or preferences access"
+    },
+    "packageCheck": {
+      "status": "pass",
+      "sourceSuites": 17,
+      "packagedSuites": 12,
+      "packedResources": 36,
+      "proof": "artifacts/story-build-audit-v2/complete-content-proof.json",
+      "packSha256": "7d64fc5357268e282ed6a319ed22e5a5b8498c9adc7042c4298a6eb61d2b6134",
+      "note": "All resource bytes/current source/manifests match, original runtime signatures verify, prior artifacts preserved. Unsigned local wrappers, no release."
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner explicitly selected A \u2014 Company & Consequences on October 2; this field records the evidenced direction decision, as required by the skill. Acceptance of the implemented game remains pending.",
+    "evidence": ".fleet/story-mode-owner-selection.md"
+  }
+}

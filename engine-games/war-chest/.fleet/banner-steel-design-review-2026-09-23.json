@@ -1,0 +1,98 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "war-chest",
+  "target": "Selected Banner & Steel opening — implemented locally, native visual qualification pending",
+  "surfaceMode": "experience",
+  "mode": "overhaul",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [],
+    "probes": [
+      {"id":"banner-steel","path":"artifacts/onboarding-directions/a-banner-steel.png"},
+      {"id":"field-orders","path":"artifacts/onboarding-directions/b-field-orders.png"},
+      {"id":"ink-ember","path":"artifacts/onboarding-directions/c-ink-ember.png"}
+    ],
+    "selected": "banner-steel",
+    "approval": "approved",
+    "before": "artifacts/motion-wide/heal-06.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "Godot native Control widgets",
+      "sources": [],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": "Native Godot desktop game using existing Control widgets; web-library standard does not apply."
+      }
+    },
+    "contract": {
+      "purpose": "War Chest helps a strategy-game lover grow an enduring warband through tactical battles and spatial equipment builds.",
+      "purposeSource": "PRODUCT.md and owner conversation",
+      "canonicalPurpose": "No catalog contract exists for this new private project",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Sarthak, personal computer play, fully turn-based and without purchases",
+      "job": "Learn one meaningful combat decision, earn and pack equipment, experience its payoff in the next battle",
+      "thesis": "Simple mature 2D strategy, a world-first playable opening instead of a menu tour",
+      "system": "Owner selected A. Flat adult-proportioned illustration, compact serif titles, legible sans rules, olive/stone/navy with hostile brick and active ochre; square low-chrome controls and three explicit fronts.",
+      "signature": "The company banner and packed equipment connect the first defense to enduring company growth",
+      "risk": "Perspective and compact labels must remain readable in native play. UI uses actual attack power and target names; headless geometry checks are not native visual acceptance."
+    }
+  },
+  "evidence": {
+    "screenshots": [],
+    "projectCheck": {
+      "command": "sh scripts/check.sh; source and packaged suite details in .fleet/banner-steel-review.md",
+      "status": "fail"
+    },
+    "critique": {
+      "score": null,
+      "maximum": 40
+    },
+    "audit": {
+      "score": null,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": [],
+      "note": "One advisory detector run returned zero findings; GDScript generic scanning is not native layout/accessibility assurance. Independent reviews and fixes recorded in .fleet/banner-steel-review.md. No current native screenshots or invented visual scores."
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner explicitly selected A after the refined Banner & Steel preview. Implement that approved direction; implementation quality and native validation remain separate gates."
+  }
+}
