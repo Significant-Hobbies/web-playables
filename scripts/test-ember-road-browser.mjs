@@ -55,6 +55,22 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       () => !document.getElementById("save-status").textContent.includes("Loading"),
     );
   }
+  async function spritesReady() {
+    await page.waitForFunction(
+      () =>
+        window.__heroDraws > 0 &&
+        performance.getEntriesByType("resource").some((entry) => /\/enemies-/.test(entry.name)),
+    );
+    await page.evaluate(async () => {
+      const resource = performance
+        .getEntriesByType("resource")
+        .find((entry) => /\/enemies-/.test(entry.name));
+      const image = new Image();
+      image.src = resource.name;
+      await image.decode();
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    });
+  }
   try {
     await ready();
     for (const viewport of [
@@ -102,7 +118,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     );
     await ready();
     await page.locator(".decision--choice").waitFor();
-    await page.waitForFunction(() => window.__heroDraws > 0);
+    await spritesReady();
     assert.equal(
       await page.evaluate(() => window.__enemyDraws),
       0,
@@ -148,7 +164,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       await page.locator(".decision--victory").count(),
       "Full reload retains the terminal run",
     );
-    await page.waitForFunction(() => window.__heroDraws > 0);
+    await spritesReady();
     assert.equal(
       await page.evaluate(() => window.__enemyDraws),
       0,
