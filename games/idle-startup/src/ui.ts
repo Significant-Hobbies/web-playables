@@ -460,12 +460,14 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   const storyGoal = el("p", "company-story-goal");
   const storyAction = el("button", "company-story-action", "Plan the next step");
   storyAction.addEventListener("click", () => {
-    const goal = lastState ? (currentQuest(lastState)?.goal.toLowerCase() ?? "") : "";
-    const label = /campaign|research|office/.test(goal)
-      ? "Growth"
-      : /round|raise|investor/.test(goal)
-        ? "Funding"
-        : "Team";
+    const questId = lastState ? (currentQuest(lastState)?.id ?? "") : "";
+    const panels: Record<string, string> = {
+      "campaign-1": "Growth",
+      "office-1": "Growth",
+      "research-1": "Growth",
+      "raise-1": "Funding",
+    };
+    const label = panels[questId] ?? "Team";
     for (const button of dock.querySelectorAll<HTMLButtonElement>("button"))
       if (button.textContent === label) button.click();
   });

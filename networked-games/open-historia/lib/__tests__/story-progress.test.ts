@@ -41,6 +41,9 @@ describe('guided campaign adjudication', () => {
     const progress = storyProgress(path, ['poland-invasion', 'poland-invasion', 'wrong-story']);
     expect(progress.completed).toEqual(['poland-invasion']);
     expect(progress.current?.id).toBe('battle-of-france');
+    const legacy = storyProgress(path, ['battle-of-france']);
+    expect(legacy.completed).toEqual(['battle-of-france']);
+    expect(legacy.current?.id).toBe('poland-invasion');
     expect(resolveStoryContext('custom', ['poland-invasion'])).toBeNull();
     expect(
       validateStoryUpdates([{ type: 'storyStep', stepId: 'poland-invasion', message: 'No.' }], null)

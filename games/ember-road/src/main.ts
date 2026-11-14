@@ -628,6 +628,7 @@ try {
 bootLoaded = true;
 updateSaveStatus(loadMessage || "Progress stays in this browser", Boolean(loadMessage));
 heroDeath = state.phase.kind === "defeat" ? 1 : 0;
+enemyDeath = ["camp", "travel", "choice", "victory"].includes(state.phase.kind) ? 1 : 0;
 renderUi();
 drawWorld();
 platform.gameReady();

@@ -131,12 +131,13 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
     const companySeed = await page.evaluate(() =>
       JSON.parse(localStorage.getItem("save:idle-startup")),
     );
-    async function companyFixture(cash, age, office) {
+    async function companyFixture(cash, age, office, questIndex = 0) {
       const envelope = structuredClone(companySeed);
       envelope.state.cash = cash;
       envelope.state.ageSeconds = age;
       envelope.state.officeIndex = office;
       envelope.state.lastDecisionQuarter = 0;
+      envelope.state.questIndex = questIndex;
       envelope.savedAt = Date.now();
       await page.evaluate((raw) => {
         window.name = "idle-fixture:" + JSON.stringify(raw);
@@ -144,6 +145,14 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
       await page.reload();
       await page.getByRole("button", { name: "Team", exact: true }).click();
     }
+    // The named goal assertion guards this intentionally advanced quest fixture.
+    await companyFixture(25000, 10, 0, 7);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator(".company-story-goal").innerText(), "Move out of the garage");
+    await page.getByRole("button", { name: "Plan the next step", exact: true }).click();
+    assert.match(await page.getByRole("dialog").innerText(), /^GROWTH/);
+    assert(await page.getByRole("button", { name: /20K.*morale/ }).isVisible());
+    await page.keyboard.press("Escape");
     await companyFixture(25000, 88, 0);
     await page.locator(".decision-modal").waitFor({ timeout: 6000 });
     assert.equal(

@@ -28,6 +28,19 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
   const errors = [];
   const external = [];
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  // Observe the real renderer, including draws hidden behind a modal.
+  await context.addInitScript(() => {
+    window.__enemyDraws = 0;
+    window.__heroDraws = 0;
+    const original = CanvasRenderingContext2D.prototype.drawImage;
+    CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
+      if (this.canvas.id === "world") {
+        if (/\/enemies-/.test(image.src || "")) window.__enemyDraws++;
+        if (/\/hero-knight-/.test(image.src || "")) window.__heroDraws++;
+      }
+      return original.call(this, image, ...args);
+    };
+  });
   const page = await context.newPage();
   page.on("pageerror", (error) => errors.push(error.message));
   page.on("request", (request) => {
@@ -79,12 +92,21 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     assert.equal(await page.locator("#hp-text").innerText(), pausedHealth);
     await page.getByRole("button", { name: "Resume journey", exact: true }).click();
     await page.locator(".decision--choice").waitFor({ timeout: 30000 });
+    assert((await page.evaluate(() => window.__enemyDraws)) > 0, "Combat drew its real enemies");
     const choiceHealth = await page.locator("#hp-text").innerText();
     await page.waitForTimeout(500);
     assert.equal(
       await page.locator("#hp-text").innerText(),
       choiceHealth,
       "Choosing a perk cannot cost health",
+    );
+    await ready();
+    await page.locator(".decision--choice").waitFor();
+    await page.waitForFunction(() => window.__heroDraws > 0);
+    assert.equal(
+      await page.evaluate(() => window.__enemyDraws),
+      0,
+      "Reloading an oath choice cannot resurrect a defeated enemy",
     );
     await page.screenshot({ path: join(evidence, "choice-390.png") });
     result.choices = [];
@@ -125,6 +147,12 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     assert(
       await page.locator(".decision--victory").count(),
       "Full reload retains the terminal run",
+    );
+    await page.waitForFunction(() => window.__heroDraws > 0);
+    assert.equal(
+      await page.evaluate(() => window.__enemyDraws),
+      0,
+      "Reloading victory keeps the road clear of defeated enemies",
     );
     assert.equal(
       await page.locator("#gold").innerText(),
