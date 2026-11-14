@@ -272,6 +272,7 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   // ── Save & Exit (reset all subsystems) ──
   const handleSaveAndExit = useCallback(async () => {
     if (turn.processingTurn || !(await save.handleSaveAndExit())) return;
+    setPanel(null);
     game.setGameConfig(null);
     game.setGameState(null);
     game.setShowPresets(true);

@@ -200,6 +200,9 @@ try {
     { width: 844, height: 390 },
   ]) {
     await page.setViewportSize(viewport);
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
     assert(
       await page.evaluate(
         () =>

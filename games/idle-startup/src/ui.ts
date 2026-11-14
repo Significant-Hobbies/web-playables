@@ -272,6 +272,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     backdrop.append(float);
   }
   app.append(backdrop);
+  let decisionPending = false;
   const frame = el("div", "frame");
   app.append(frame);
 
@@ -428,6 +429,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     ops.append(panel);
     const button = el("button", "dock-button", label);
     button.addEventListener("click", () => {
+      if (decisionPending || !crashVeil.classList.contains("hidden")) return;
       managementTitle.textContent = label;
       for (const [, item] of panels) item.hidden = item !== panel;
       management.showModal();
@@ -460,11 +462,26 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   app.append(fxLayer, toastBox, celebration, hireVeil, crashVeil, pauseVeil);
 
   // ---- hire modal: choose WHO you hire -----------------------------------
-  const closeHireModal = () => hireVeil.classList.add("hidden");
+  const closeHireModal = () => {
+    if (decisionPending) return;
+    hireVeil.classList.add("hidden");
+    frame.inert = false;
+    dock.querySelector<HTMLButtonElement>("button")?.focus();
+  };
+  const showHireModal = () => {
+    management.close();
+    frame.inert = true;
+    hireVeil.classList.remove("hidden");
+    hireVeil.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  };
+  hireVeil.setAttribute("role", "dialog");
+  hireVeil.setAttribute("aria-modal", "true");
+  hireVeil.setAttribute("aria-label", "Company decision");
   hireVeil.addEventListener("click", (e) => {
     if (e.target === hireVeil) closeHireModal();
   });
   const openHireModal = (def: GeneratorDef, cost: number) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal hire-modal");
     modal.style.setProperty("--medal-h", String(deptHue(def.id)));
@@ -500,11 +517,12 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     cancel.addEventListener("click", closeHireModal);
     modal.append(cancel);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- quarterly board decision --------------------------------------------
   const showDecision = (decision: DecisionDef) => {
+    decisionPending = true;
     hireVeil.textContent = "";
     const modal = el("div", "modal decision-modal");
     modal.append(el("div", "modal-title", decision.title), el("div", "modal-sub", decision.blurb));
@@ -517,18 +535,20 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
         el("span", "decision-desc", option.desc),
       );
       btn.addEventListener("click", () => {
-        hireVeil.classList.add("hidden");
+        decisionPending = false;
+        closeHireModal();
         hooks.onDecision(decision, index);
       });
       box.append(btn);
     });
     modal.append(box);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- the ledger: every addition and multiplier, itemized ----------------
   const showBreakdown = (state: GameState) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal ledger-modal");
     modal.append(
@@ -552,11 +572,12 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     close.addEventListener("click", () => hireVeil.classList.add("hidden"));
     modal.append(close);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- squad view: the whole company, face by face ------------------------
   const showSquad = (state: GameState) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal squad-modal");
     modal.append(
@@ -600,7 +621,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
       const fire = el("button", "fire-btn", `Fire · $${formatNumber(severanceCost(state, index))}`);
       fire.type = "button";
       fire.addEventListener("click", () => {
-        hireVeil.classList.add("hidden");
+        closeHireModal();
         hooks.onFire(index);
       });
       card.append(fire);
@@ -616,7 +637,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     close.addEventListener("click", () => hireVeil.classList.add("hidden"));
     modal.append(close);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- founder picker ------------------------------------------------------
@@ -680,7 +701,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     startBtn.disabled = true;
     startBtn.addEventListener("click", () => {
       if (chosenSeed === null) return;
-      hireVeil.classList.add("hidden");
+      closeHireModal();
       hooks.onPickFounder(
         chosenSeed,
         nameField.value.trim() || "Founder",
@@ -702,7 +723,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
       startBtn,
     );
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- generator rows -----------------------------------------------------
@@ -799,6 +820,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
 
   let celebrationTimer: ReturnType<typeof setTimeout> | undefined;
   const celebrate = (title: string, sub: string) => {
+    management.close();
     celebration.textContent = "";
     celebration.append(el("div", "celebration-title", title), el("div", "celebration-sub", sub));
     celebration.classList.remove("hidden");
@@ -825,11 +847,16 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   };
 
   const showCrash = (sub: string) => {
+    management.close();
+    decisionPending = false;
+    closeHireModal();
+    frame.inert = true;
     crashVeil.textContent = "";
     const box = el("div", "crash-box");
     const restart = el("button", "crash-btn", "Start over 🌱");
     restart.addEventListener("click", () => {
       crashVeil.classList.add("hidden");
+      frame.inert = false;
       hooks.onRestart();
     });
     box.append(
@@ -840,6 +867,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     );
     crashVeil.append(box);
     crashVeil.classList.remove("hidden");
+    restart.focus();
   };
 
   // lucky bubble (one at a time)

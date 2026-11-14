@@ -79,11 +79,55 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
     await page.getByRole("button", { name: "Team", exact: true }).click();
     await page.locator(".gen-row:not(:disabled)").first().click();
     assert(
-      !(await page.getByRole("dialog").isVisible()),
+      (await page.locator("dialog[open]").count()) === 0,
       "Candidate selection takes over from management",
     );
     assert(await page.getByText("Who gets the offer?", { exact: true }).isVisible());
     await page.getByRole("button", { name: "Not now", exact: true }).click();
+    await page.addInitScript(() => {
+      if (window.name.startsWith("idle-fixture:")) {
+        localStorage.setItem("save:idle-startup", window.name.slice("idle-fixture:".length));
+        window.name = "";
+      }
+    });
+    const companySeed = await page.evaluate(() =>
+      JSON.parse(localStorage.getItem("save:idle-startup")),
+    );
+    async function companyFixture(cash, age, office) {
+      const envelope = structuredClone(companySeed);
+      envelope.state.cash = cash;
+      envelope.state.ageSeconds = age;
+      envelope.state.officeIndex = office;
+      envelope.state.lastDecisionQuarter = 0;
+      envelope.savedAt = Date.now();
+      await page.evaluate((raw) => {
+        window.name = "idle-fixture:" + JSON.stringify(raw);
+      }, envelope);
+      await page.reload();
+      await page.getByRole("button", { name: "Team", exact: true }).click();
+    }
+    await companyFixture(25000, 88, 0);
+    await page.locator(".decision-modal").waitFor({ timeout: 6000 });
+    assert.equal(
+      await page.locator("dialog[open]").count(),
+      0,
+      "A board decision takes over from management",
+    );
+    assert(
+      await page.locator(".frame").evaluate((element) => element.inert),
+      "Management cannot replace the pending decision",
+    );
+    await page.locator(".decision-option").first().click();
+    assert(!(await page.locator(".frame").evaluate((element) => element.inert)));
+    await companyFixture(1500, 10, 1);
+    await page.locator(".crash-veil:not(.hidden)").waitFor({ timeout: 15000 });
+    assert.equal(
+      await page.locator("dialog[open]").count(),
+      0,
+      "A crash takes over from management",
+    );
+    await page.getByRole("button", { name: "Start over" }).click();
+    assert(!(await page.locator(".frame").evaluate((element) => element.inert)));
     assert.equal(errors.length, 0, errors.join("\n"));
   }),
 );

@@ -1923,3 +1923,46 @@ dialog {
     margin-bottom: 10px;
   }
 }
+
+.save-warning {
+  padding: 10px 14px;
+  background: #f1d4ad;
+  color: #692f23;
+  border: 1px solid #af7651;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.save-warning[hidden] {
+  display: none;
+}
+#journey > .save-warning {
+  margin: 20px 20px 0;
+}
+.world-save-warning {
+  position: absolute;
+  right: 20px;
+  top: 200px;
+  max-width: min(360px, calc(100% - 40px));
+  z-index: 1;
+}
+@media (max-width: 600px) {
+  .world-save-warning {
+    top: 250px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+@media (max-height: 500px) {
+  .world-save-warning {
+    top: 160px;
+    max-width: 280px;
+    font-size: 12px;
+  }
+}
+
+.oaths-toggle {
+  background: #183127ed;
+  color: var(--paper);
+  border-color: #718368;
+}

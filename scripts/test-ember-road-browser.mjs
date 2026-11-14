@@ -209,7 +209,15 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     const protectedPage = await protectedContext.newPage();
     await ready(protectedPage);
     assert.match(await protectedPage.locator("#save-status").innerText(), /untouched/);
+    assert(
+      await protectedPage.locator("#journey [data-save-warning]").isVisible(),
+      "Protected-save warning is visible before starting",
+    );
     await protectedPage.locator("#start").click();
+    assert(
+      await protectedPage.locator("#save-alert").isVisible(),
+      "Protected-save warning remains visible on the road",
+    );
     await protectedPage.locator("#pause").click();
     assert.equal(
       await protectedPage.evaluate(() => localStorage.getItem("save:ember-road:v1")),
@@ -229,7 +237,15 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     await unavailable.waitForFunction(() =>
       document.getElementById("save-status").textContent.includes("unavailable"),
     );
+    assert(
+      await unavailable.locator("#journey [data-save-warning]").isVisible(),
+      "Failed-save warning is visible in camp",
+    );
     await unavailable.locator("#start").click();
+    assert(
+      await unavailable.locator("#save-alert").isVisible(),
+      "Failed-save warning remains visible while playing",
+    );
     await unavailable.waitForFunction(() =>
       document.getElementById("enemy-label").textContent.includes("ENCOUNTER"),
     );
