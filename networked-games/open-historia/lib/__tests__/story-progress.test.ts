@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { buildGameMasterPrompt } from '../ai-prompts';
 import { getPresetById } from '../presets';
-import { resolveStoryContext, storyProgress, validateStoryUpdates } from '../story-progress';
+import {
+  adjudicateStoryUpdates,
+  resolveStoryContext,
+  storyProgress,
+  validateStoryUpdates,
+} from '../story-progress';
+import { parseAiTurnResponse } from '../turn-parser';
 import type { ParsedUpdate } from '../turn-parser';
 
 describe('guided campaign adjudication', () => {
@@ -53,5 +59,43 @@ describe('guided campaign adjudication', () => {
       current: null,
       total: 0,
     });
+  });
+
+  it('uses an explicit resolved decision and rejects conflicting or malformed awards', () => {
+    const context = resolveStoryContext('ww2-1939', []);
+    const payload = {
+      message: 'RAF raids begin.',
+      updates: [{ type: 'event', description: 'RAF raids begin.', eventType: 'war', year: 1939 }],
+      storyDecision: {
+        stepId: 'poland-invasion',
+        achieved: true,
+        evidence: 'The RAF began raids in response to the invasion.',
+      },
+    };
+    const turn = parseAiTurnResponse(JSON.stringify(payload), 1939);
+    expect(adjudicateStoryUpdates(turn, context)).toEqual([
+      ...payload.updates,
+      { type: 'storyStep', stepId: 'poland-invasion', message: payload.storyDecision.evidence },
+    ]);
+    for (const decision of [
+      { ...payload.storyDecision, achieved: false },
+      { ...payload.storyDecision, achieved: 'true' },
+      { ...payload.storyDecision, stepId: 'battle-of-france' },
+      { ...payload.storyDecision, evidence: '' },
+    ]) {
+      const parsed = parseAiTurnResponse(
+        JSON.stringify({
+          ...payload,
+          storyDecision: decision,
+          updates: [
+            ...payload.updates,
+            { type: 'storyStep', stepId: 'poland-invasion', message: 'Conflict' },
+          ],
+        }),
+        1939
+      );
+      expect(adjudicateStoryUpdates(parsed, context)).toEqual(payload.updates);
+    }
+    expect(adjudicateStoryUpdates(turn, null)).toEqual(payload.updates);
   });
 });

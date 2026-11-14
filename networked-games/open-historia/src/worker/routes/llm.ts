@@ -14,7 +14,11 @@ import { LLMTimeoutError, withTimeout } from '../../../lib/llm-timeout';
 import { callLocalAI } from '../../../lib/local-ai';
 import { getClientIp, rateLimit } from '../../../lib/rate-limit';
 import { parseAiTurnResponse } from '../../../lib/turn-parser';
-import { resolveStoryContext, validateStoryUpdates } from '../../../lib/story-progress';
+import {
+  adjudicateStoryUpdates,
+  resolveStoryContext,
+  type StoryTurnContext,
+} from '../../../lib/story-progress';
 import { reserveWorkersAiCall, SharedAiBudgetError } from '../shared-ai-budget';
 import type { WorkerEnv } from '../../../lib/worker-env';
 import { resolveWorkersAiModel } from '../../../lib/workers-ai-model';
@@ -313,14 +317,37 @@ const AI_RESPONSE_SCHEMAS = {
   },
 } satisfies Record<string, Parameters<typeof jsonSchema>[0]>;
 
+function turnResponseSchema(context: StoryTurnContext | null): Parameters<typeof jsonSchema>[0] {
+  if (!context?.currentStep) return AI_RESPONSE_SCHEMAS.turn;
+  return {
+    ...AI_RESPONSE_SCHEMAS.turn,
+    properties: {
+      ...AI_RESPONSE_SCHEMAS.turn.properties,
+      storyDecision: {
+        type: 'object',
+        properties: {
+          stepId: { type: 'string', enum: [context.currentStep.id] },
+          achieved: { type: 'boolean' },
+          evidence: { type: 'string', minLength: 1 },
+        },
+        required: ['stepId', 'achieved', 'evidence'],
+        additionalProperties: false,
+      },
+    },
+    required: [...AI_RESPONSE_SCHEMAS.turn.required, 'storyDecision'],
+  };
+}
+
 async function callProvider(
   prompt: string,
   config: { provider: string; apiKey: string; model: string },
   systemPrompt: string,
   env: WorkerEnv,
   responseKind: keyof typeof AI_RESPONSE_SCHEMAS = 'turn',
-  onGatewayReceipt?: (receipt: GatewayReceipt | null) => void
+  onGatewayReceipt?: (receipt: GatewayReceipt | null) => void,
+  responseSchema?: Parameters<typeof jsonSchema>[0]
 ): Promise<string> {
+  const schema = responseSchema ?? AI_RESPONSE_SCHEMAS[responseKind];
   switch (config.provider) {
     case 'local': {
       return callLocalAI({
@@ -364,7 +391,7 @@ async function callProvider(
           const result = await generateText({
             model: gatewayModel,
             maxOutputTokens: 2048,
-            output: Output.object({ schema: jsonSchema(AI_RESPONSE_SCHEMAS[responseKind]) }),
+            output: Output.object({ schema: jsonSchema(schema) }),
             system: systemPrompt,
             prompt,
             // Recover once from transient gateway failures within the route's shared deadline.
@@ -382,7 +409,7 @@ async function callProvider(
         const budgetInput = {
           system: systemPrompt,
           prompt,
-          outputSchema: AI_RESPONSE_SCHEMAS[responseKind],
+          outputSchema: schema,
           maxOutputTokens: 2048,
         };
         await reserveWorkersAiCall(env, model, budgetInput, 2048);
@@ -392,7 +419,7 @@ async function callProvider(
             model: workersAi(model),
             // Turn narratives and compressed memory need more than the provider default.
             maxOutputTokens: 2048,
-            output: Output.object({ schema: jsonSchema(AI_RESPONSE_SCHEMAS[responseKind]) }),
+            output: Output.object({ schema: jsonSchema(schema) }),
             system: systemPrompt,
             prompt,
             maxRetries: 0,
@@ -499,6 +526,7 @@ llm.post('/turn', async (c) => {
       return c.json({ error: 'API Key missing' }, 400);
     }
 
+    const storyContext = resolveStoryContext(config.presetId, completedStepIds);
     const systemPrompt = buildGameMasterPrompt({
       command,
       gameState,
@@ -571,7 +599,8 @@ llm.post('/turn', async (c) => {
             'You are a JSON-only response bot for a grand strategy game. Never explain your answer, only return valid JSON.',
             c.env,
             'turn',
-            config.provider === 'free-ai' ? (receipt) => (gatewayReceipt = receipt) : undefined
+            config.provider === 'free-ai' ? (receipt) => (gatewayReceipt = receipt) : undefined,
+            turnResponseSchema(storyContext)
           ),
           config.provider
         );
@@ -583,6 +612,7 @@ llm.post('/turn', async (c) => {
 
     const fallbackYear = gameState && typeof gameState.turn === 'number' ? gameState.turn : 0;
     const parsedTurn = parseAiTurnResponse(responseText, fallbackYear);
+    const updates = adjudicateStoryUpdates(parsedTurn, storyContext);
     if (!parsedTurn.parseError) {
       const headers = new Headers();
       setGatewayReceiptHeaders(headers, gatewayReceipt);
@@ -590,13 +620,25 @@ llm.post('/turn', async (c) => {
         c.header(name, value);
       });
     }
+    if (
+      !parsedTurn.parseError &&
+      storyContext?.currentStep &&
+      parsedTurn.storyDecision?.stepId !== storyContext.currentStep.id &&
+      !updates.some((update) => update.type === 'storyStep')
+    ) {
+      return c.json(
+        {
+          message:
+            'The Game Master did not judge the current objective. No changes were applied — try the turn again.',
+          updates: [],
+        },
+        502
+      );
+    }
     return c.json(
       {
         message: parsedTurn.message,
-        updates: validateStoryUpdates(
-          parsedTurn.updates,
-          resolveStoryContext(config.presetId, completedStepIds)
-        ),
+        updates,
         storySoFar: parsedTurn.storySoFar,
       },
       parsedTurn.parseError ? 502 : 200

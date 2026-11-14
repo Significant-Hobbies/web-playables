@@ -1,6 +1,6 @@
 import { getPresetById } from './presets';
 import type { StoryPath, StoryStep } from './types';
-import type { ParsedUpdate } from './turn-parser';
+import type { ParsedUpdate, SanitizedTurn } from './turn-parser';
 
 export function storyProgress(path: StoryPath, savedIds: unknown) {
   const saved = new Set(
@@ -57,5 +57,18 @@ HISTORICAL ANCHOR: ${step.year} (context, not a forced outcome)
 SITUATION: ${step.description}
 OBJECTIVE: ${step.objective}
 HINT: ${step.hint}
-Adjudicate the player's orders and their actual consequences. If the narrated outcome fulfills this objective, include exactly one storyStep update with stepId "${step.id}" and explain the achievement. For an objective to respond, prepare, or attempt an action, a meaningful executed response can fulfill it even when the larger historical conflict goes badly. An order merely queued, a repeated phrase, or time passing alone is not completion. Do not require an unmentioned conquest or a guaranteed historical outcome. Never award future, invented, or already completed steps. If the objective is not fulfilled, briefly explain what remains to do in the narrative.`;
+Every response MUST include storyDecision with stepId "${step.id}", achieved (a boolean), and evidence (the resolved action or what remains). Decide this AFTER adjudicating the actual consequences. Set achieved true when the narrated outcome fulfills this objective, false otherwise. For an objective to respond, prepare, or attempt an action, a meaningful executed response can fulfill it even when the larger historical conflict goes badly. An order merely queued, a repeated phrase, or time passing alone is not completion. Do not require an unmentioned conquest or a guaranteed historical outcome. Never award future, invented, or already completed steps. If the objective is not fulfilled, briefly explain what remains to do in the narrative.`;
+}
+
+/** Explicit adjudication takes precedence over optional legacy achievement updates. */
+export function adjudicateStoryUpdates(turn: SanitizedTurn, context: StoryTurnContext | null) {
+  if (turn.storyDecision === undefined) return validateStoryUpdates(turn.updates, context);
+  const consequences = turn.updates.filter((update) => update.type !== 'storyStep');
+  const decision = turn.storyDecision;
+  if (!context?.currentStep || !decision?.achieved || decision.stepId !== context.currentStep.id)
+    return consequences;
+  return [
+    ...consequences,
+    { type: 'storyStep' as const, stepId: decision.stepId, message: decision.evidence },
+  ];
 }

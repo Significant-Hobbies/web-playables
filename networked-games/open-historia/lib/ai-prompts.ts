@@ -160,6 +160,7 @@ export function buildGameMasterPrompt(args: {
     promptOverrides,
   } = args;
   const playerNation = gameState.players['player']?.name ?? 'Unknown';
+  const guidedStory = resolveStoryContext(config.presetId, completedStepIds);
 
   const overrides = {
     gameMasterPreamble: promptOverrides?.gameMasterPreamble ?? GM_DEFAULT_PREAMBLE,
@@ -179,7 +180,7 @@ ${DIFFICULTY_PROFILES[config.difficulty] || DIFFICULTY_PROFILES['Realistic']}
 
 ${storyBlock}
 
-${storyPrompt(resolveStoryContext(config.presetId, completedStepIds))}
+${storyPrompt(guidedStory)}
 
 CURRENT RELATIONS: ${formatRelations(relations)}
 TERRITORY: ${formatProvinces(provinceSummary)}
@@ -196,6 +197,7 @@ RELATION TYPES: neutral, friendly, allied, hostile, war, vassal.
 
 OUTPUT: Return EXACTLY one raw JSON object. No markdown fences. No text outside JSON.
 {
+  ${guidedStory?.currentStep ? `"storyDecision": { "stepId": "${guidedStory.currentStep.id}", "achieved": false, "evidence": "The resolved action that fulfills this objective, or what remains. Set achieved true when fulfilled." },` : ''}
   "message": "1-3 sentence vivid narrative. Outcome, reactions, and consequences.",
   "updates": [
     { "type": "owner", "provinceName": "EXACT province name from territory list", "newOwnerId": "player or ai_id" },
