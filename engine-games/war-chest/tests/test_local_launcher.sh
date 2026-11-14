@@ -2,6 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 LOCAL_TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/war-chest-launcher.XXXXXX")
+LOCAL_TEST_ROOT=$(cd "$LOCAL_TEST_ROOT" && pwd -P)
 LOCAL_FIXTURE="$LOCAL_TEST_ROOT/Game With Spaces"
 mkdir -p "$LOCAL_FIXTURE/runtime/Godot.app/Contents/MacOS"
 cp scripts/local/launch.sh "$LOCAL_FIXTURE/launch.sh"
