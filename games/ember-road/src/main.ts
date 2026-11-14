@@ -21,6 +21,7 @@ import {
   xpNeeded,
 } from "./model";
 import { type Scene, WorldRenderer } from "./renderer";
+import { journeyStory } from "./story";
 import "./style.css";
 
 const app = document.querySelector<HTMLElement>("#app");
@@ -58,7 +59,7 @@ app.innerHTML = `
         <p class="save-warning world-save-warning" id="save-alert" data-save-warning role="status" hidden></p><div class="battle-note" id="battle-note">Your knight walks and fights automatically. You shape the build.</div>
         <div class="pause-veil" id="pause-veil" hidden><span class="eyebrow">TAKE A BREATH</span><strong>The road can wait.</strong><button class="primary" id="resume">${icon("play", 16)} Resume journey</button></div>
       </section>
-      <section class="status-rail" aria-label="Knight condition"><div class="health-stat"><div><span>${icon("heart", 16)} Health</span><b id="hp-text">180 / 180</b></div><div class="meter health"><span id="hp-fill"></span></div></div><div class="xp-stat"><div><span>Level <b id="level">1</b></span><span id="xp-text">0 / 4 XP</span></div><div class="meter xp"><span id="xp-fill"></span></div></div><div class="combat-stats"><span title="Sword damage">${icon("sword", 18)}<b id="damage">23</b></span><span title="Attacks per second">${icon("wind", 18)}<b id="speed">1.05/s</b></span><span title="Flat damage blocked per hit">${icon("shield", 18)}<b id="armor">0</b></span></div></section>
+      <section class="status-rail" aria-label="Rook’s condition"><div class="health-stat"><div><span>${icon("heart", 16)} Health</span><b id="hp-text">180 / 180</b></div><div class="meter health"><span id="hp-fill"></span></div></div><div class="xp-stat"><div><span>Level <b id="level">1</b></span><span id="xp-text">0 / 4 XP</span></div><div class="meter xp"><span id="xp-fill"></span></div></div><div class="combat-stats"><span title="Sword damage">${icon("sword", 18)}<b id="damage">23</b></span><span title="Attacks per second">${icon("wind", 18)}<b id="speed">1.05/s</b></span><span title="Flat damage blocked per hit">${icon("shield", 18)}<b id="armor">0</b></span></div></section>
 
       <button class="oaths-toggle secondary" id="oaths-toggle">Your oaths</button><dialog id="oaths" aria-label="Your oaths"><form method="dialog"><button class="close" aria-label="Close oaths">×</button><h2>What carries you.</h2></form><section class="build-rail" aria-label="Current journey perks"><span class="build-label">YOUR OATHS</span><div class="build-perks" id="build-perks"><span class="empty-perks">Defeat enemies to earn your first choice.</span></div><span class="build-tip" id="build-tip">Every journey is a different build.</span></section></dialog>
     </main>
@@ -90,6 +91,7 @@ let saveBusy = false;
 let saveAgain = false;
 let currentDecision = "";
 let currentBuild = "";
+let forgeRequested = false;
 let sceneTime = 0;
 let heroSwing = -1;
 let enemySwing = -1;
@@ -191,7 +193,7 @@ async function persist() {
 function finishAction() {
   currentDecision = "";
   heroDeath = 0;
-  enemyDeath = 0;
+  enemyDeath = state.phase.kind === "travel" ? 1 : 0;
   heroSwing = -1;
   enemySwing = -1;
   renderer.sparks.length = 0;
@@ -203,6 +205,7 @@ function finishAction() {
 function launch(chapter?: number) {
   if (startRun(state, chapter)) {
     userPaused = false;
+    lastEnemyKind = "raider";
     setNote("Your knight fights automatically. Watch for a new oath at level up.", 6);
     finishAction();
   }
@@ -231,7 +234,10 @@ function perkIcon(id: PerkId) {
 
 function syncDecisionDialog() {
   const journey = get<HTMLDialogElement>("journey");
+  const impactResolving =
+    !reducedMotion && ((enemyDeath > 0 && enemyDeath < 1) || (heroDeath > 0 && heroDeath < 1));
   const needsDecision =
+    !impactResolving &&
     bootLoaded &&
     !settingsOpen &&
     ["camp", "choice", "victory", "defeat"].includes(state.phase.kind);
@@ -240,6 +246,8 @@ function syncDecisionDialog() {
 }
 
 function renderDecision() {
+  syncDecisionDialog();
+  const story = journeyStory(state.run.chapter);
   const key = `${state.phase.kind}:${state.run.chapter}:${state.meta.gold}:${JSON.stringify(state.meta.upgrades)}:${state.phase.kind === "choice" ? state.phase.options.join() : ""}`;
   if (key === currentDecision) return;
   const focused = document.activeElement;
@@ -250,8 +258,7 @@ function renderDecision() {
   syncDecisionDialog();
   box.className = `decision decision--${phase.kind}`;
   if (phase.kind === "camp") {
-    const chapter = CHAPTERS[state.run.chapter - 1] ?? CHAPTERS[0];
-    box.innerHTML = `<div class="camp-intro"><span class="eyebrow">A KNIGHT. A LANTERN. AN UNFINISHED OATH.</span><h2>Keep a little light alive.</h2><p>${chapter.description} Walk the road, win gold, and choose the oaths that make this journey yours.</p><div class="camp-start"><button class="primary" id="start">${icon("flag", 18)} Begin chapter ${state.run.chapter}</button>${
+    box.innerHTML = `<img class="camp-portrait" src="${new URL("../assets/mira.png", import.meta.url).href}" alt="" /><div class="camp-intro"><span class="eyebrow">MIRA’S LETTER · CHAPTER ${state.run.chapter}</span><h2>${story.title}</h2><p class="story-letter">“${story.opening}”</p><p class="story-goal">${story.goal}</p><div class="camp-start"><button class="primary" id="start">${icon("flag", 18)} Begin chapter ${state.run.chapter}</button>${
       state.meta.unlockedChapter > 1
         ? `<label class="chapter-select"><span class="sr-only">Choose a chapter</span><select id="chapter-select">${CHAPTERS.slice(
             0,
@@ -263,7 +270,7 @@ function renderDecision() {
             )
             .join("")}</select></label>`
         : ""
-    }</div></div><div class="camp-tools"><button class="secondary" id="visit-forge">Visit the forge</button><button class="secondary" id="camp-settings">Settings</button></div><div class="chapter-road">${CHAPTERS.map((ch, i) => `<span class="${i + 1 === state.run.chapter ? "current" : i + 1 <= state.meta.unlockedChapter ? "unlocked" : "locked"}">${i + 1}. ${ch.place}</span>`).join("")}</div><div class="forge" hidden><button class="secondary" id="back-camp">← Back to camp</button><div class="forge-title"><span class="eyebrow">THE FORGE</span><span>Gear stays with you.</span></div><div class="forge-items">${(
+    }</div></div><div class="camp-tools"><button class="secondary" id="visit-forge">Visit the forge</button><button class="secondary" id="camp-settings">Settings</button></div><div class="chapter-road">${CHAPTERS.map((ch, i) => `<span class="${i + 1 === state.run.chapter ? "current" : i + 1 <= state.meta.unlockedChapter ? "unlocked" : "locked"}">${i + 1}. ${ch.place}</span>`).join("")}</div><div class="forge" hidden><button class="secondary" id="back-camp">← Back to camp</button><div class="forge-title"><span class="eyebrow">THE FORGE</span><span>${icon("coin", 16)} <b class="forge-balance">${state.meta.gold} gold</b> · Gear stays with you.</span></div><div class="forge-items">${(
       ["blade", "mail", "charm"] as UpgradeId[]
     )
       .map((id) => {
@@ -286,6 +293,10 @@ function renderDecision() {
       if (forge) forge.hidden = true;
       get("visit-forge").focus();
     });
+    if (forgeRequested) {
+      forgeRequested = false;
+      get("visit-forge").click();
+    }
     get("start").addEventListener("click", () => launch(state.run.chapter));
     box.querySelector<HTMLSelectElement>("#chapter-select")?.addEventListener("change", (event) => {
       const value = Number((event.target as HTMLSelectElement).value);
@@ -308,11 +319,11 @@ function renderDecision() {
       });
     });
   } else if (phase.kind === "choice") {
-    box.innerHTML = `<div class="choice-heading"><div><span class="eyebrow">LEVEL ${state.run.level} · CHOOSE AN OATH</span><h2>What will carry you onward?</h2></div><p>The road waits while you choose.</p></div><div class="perk-choices">${phase.options
+    box.innerHTML = `<div class="choice-heading"><div><span class="eyebrow">LEVEL ${state.run.level} · CHOOSE AN OATH</span><h2>What will carry you onward?</h2></div><p>The road waits while you choose.</p></div><blockquote class="oath-story"><span>MIRA · FROM THE ROAD</span>${state.run.cleared < 6 ? story.discovery : story.resolve}</blockquote><div class="perk-choices">${phase.options
       .map((id, index) => {
         const perk = PERKS.find((p) => p.id === id);
         if (!perk) return "";
-        return `<button class="perk-choice perk-choice--${perk.family}" data-perk="${id}"><span class="perk-top"><span class="perk-symbol">${icon(perkIcon(id), 29)}</span><span class="keycap">${index + 1}</span></span><span class="perk-caption">${perk.caption}</span><strong>${perk.title}</strong><span class="perk-description">${perk.description}</span><span class="perk-rank">${rank(state, id) ? `Rank ${rank(state, id)} → ${rank(state, id) + 1}` : "New oath"}<span>Choose →</span></span></button>`;
+        return `<button class="perk-choice perk-choice--${perk.family}" data-perk="${id}"><span class="perk-top"><span class="perk-symbol">${icon(perkIcon(id), 29)}</span><span class="keycap">${index + 1}</span></span><span class="perk-caption">${perk.caption}</span><strong>${perk.title}</strong><span class="perk-description">${perk.description}${rank(state, id) ? `<small>Another rank adds this benefit again.</small>` : ""}</span><span class="perk-rank">${rank(state, id) ? `Rank ${rank(state, id)} → ${rank(state, id) + 1}` : "New oath"}<span>Choose →</span></span></button>`;
       })
       .join("")}</div>`;
     box.querySelectorAll<HTMLButtonElement>("[data-perk]").forEach((button) => {
@@ -327,9 +338,10 @@ function renderDecision() {
     get("retry").addEventListener("click", () => launch(state.run.chapter));
   } else if (phase.kind === "victory") {
     const final = state.run.chapter === CHAPTERS.length;
-    box.innerHTML = `<div class="result-mark result-mark--gold">${icon("flag", 38)}</div><div class="result-copy"><span class="eyebrow">CHAPTER COMPLETE · +${phase.reward} GOLD</span><h2>${final ? "The light found its way home." : "One road further."}</h2><p>${final ? "You crossed all five roads and kept your oath. Revisit a chapter with a new build, or rest at the forge." : `${CHAPTERS[state.run.chapter]?.place ?? "The next road"} is open. Carry your gold home, or follow the light.`}</p></div><div class="result-actions">${!final ? `<button class="primary" id="next">${icon("flag", 18)} Begin chapter ${state.run.chapter + 1}</button>` : ""}<button class="secondary" id="return-camp">Return to the forge</button></div>`;
+    box.innerHTML = `<div class="result-mark result-mark--gold">${icon("flag", 38)}</div><div class="result-copy"><span class="eyebrow">CHAPTER COMPLETE · +${phase.reward} GOLD</span><h2>${final ? "The light found its way home." : "A light answers."}</h2><p class="story-letter">${story.outcome}</p><p>${final ? "All five roads are open. Revisit a chapter with a new build, or rest at the forge." : `${CHAPTERS[state.run.chapter]?.place ?? "The next road"} is open.`}</p></div><div class="result-actions">${!final ? `<button class="primary" id="next">${icon("flag", 18)} Begin chapter ${state.run.chapter + 1}</button>` : ""}<button class="secondary" id="return-camp">Return to the forge</button></div>`;
     box.querySelector("#next")?.addEventListener("click", () => launch(state.run.chapter + 1));
     get("return-camp").addEventListener("click", () => {
+      forgeRequested = true;
       returnToCamp(state);
       finishAction();
     });
@@ -440,7 +452,7 @@ function onEvents(events: GameEvent[]) {
     } else if (event.type === "hit") {
       if (event.side === "hero") heroHurt = 0;
       else enemyHurt = 0;
-      renderer.impact(event.side, event.damage, event.critical);
+      renderer.impact(event.side, event.damage, event.critical, false, event.lightning);
       if (event.lightning) setNote("Stormbound · the third strike calls lightning.", 2);
     } else if (event.type === "heal") {
       if (event.amount >= 1) renderer.impact("hero", event.amount, false, true);
@@ -472,15 +484,16 @@ function drawWorld() {
     enemyAttack: enemySwing >= 0 && enemySwing < 0.72 ? enemySwing / 0.72 : 0,
     heroHurt: heroHurt >= 0 && heroHurt < 0.24 ? heroHurt / 0.24 : 0,
     enemyHurt: enemyHurt >= 0 && enemyHurt < 0.24 ? enemyHurt / 0.24 : 0,
-    enemyDeath:
-      state.phase.kind === "camp" || state.phase.kind === "victory" || state.phase.kind === "choice"
-        ? 1
-        : enemyDeath,
+    enemyDeath: state.phase.kind === "camp" ? 1 : enemyDeath,
     heroDeath,
     enemyKind: lastEnemyKind,
     enemyHealth: battle?.enemy.hp ?? 1,
     enemyMaxHealth: battle?.enemy.maxHp ?? 1,
     chapter: state.run.chapter,
+    beacons: state.run.cleared,
+    upgrades: state.meta.upgrades,
+    storm: rank(state, "storm"),
+    thorns: rank(state, "thorns"),
     reducedMotion,
   };
   renderer.draw(scene);
@@ -615,6 +628,7 @@ try {
 bootLoaded = true;
 updateSaveStatus(loadMessage || "Progress stays in this browser", Boolean(loadMessage));
 heroDeath = state.phase.kind === "defeat" ? 1 : 0;
+enemyDeath = ["camp", "travel", "choice", "victory"].includes(state.phase.kind) ? 1 : 0;
 renderUi();
 drawWorld();
 platform.gameReady();

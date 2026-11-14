@@ -1,3 +1,5 @@
+import CouncilDispatch from './CouncilDispatch';
+import { storyProgress } from '@/lib/story-progress';
 import type React from 'react';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
@@ -367,7 +369,11 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   // Phase 3: Main game
   const { gameState } = game;
   const storyPath = game.selectedPreset?.storyPath;
-  const nextStep = storyPath?.steps.find((step) => !turn.completedStepIds.includes(step.id));
+  const story = storyPath ? storyProgress(storyPath, turn.completedStepIds) : null;
+  const nextStep = story?.current;
+  const latestDispatch =
+    [...turn.logs].reverse().find((entry) => entry.narrative)?.text || turn.storySoFar || null;
+  const lastEvent = turn.events.at(-1);
   const closePanel = () => setPanel(null);
 
   return (
@@ -401,7 +407,7 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
           >
             <span>
               {storyPath
-                ? `${turn.completedStepIds.length} / ${storyPath.steps.length} milestones`
+                ? `${story?.completed.length ?? 0} / ${storyPath.steps.length} milestones`
                 : 'Your next chapter'}
             </span>
             <strong>
@@ -411,6 +417,12 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
                   : 'Choose a province. Give an order. Shape what happens next.')}
             </strong>
           </button>
+          <CouncilDispatch
+            narrative={latestDispatch}
+            urgent={lastEvent?.type === 'war' || lastEvent?.type === 'crisis'}
+            onOrders={() => setPanel('Orders')}
+            onAdvisor={() => setPanel('Advisor')}
+          />
           <nav className="campaign-dock" aria-label="Campaign controls">
             {['Orders', 'Journey', 'Diplomacy', 'Relations', 'Advisor', 'Timeline'].map((name) => (
               <button

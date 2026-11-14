@@ -221,7 +221,11 @@ test('failed turn retains orders and year; retry commits once and save reloads',
     .getByRole('button', { name: /^advance$/i })
     .first()
     .click();
-  await expect(page.getByText('Humanitarian agreement accepted.')).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Humanitarian agreement accepted.')
+  ).toBeVisible();
   await expect(page.getByText('No orders queued')).toBeVisible();
   await expect(page.getByText('1940', { exact: true }).first()).toBeVisible();
   expect(requests).toBe(2);
@@ -246,7 +250,11 @@ test('failed turn retains orders and year; retry commits once and save reloads',
   await page.reload();
   await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
-  await expect(page.getByText('Humanitarian agreement accepted.')).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Humanitarian agreement accepted.')
+  ).toBeVisible();
   await expect(page.getByText('1940', { exact: true }).first()).toBeVisible();
   expect(page.url()).toBe(savedUrl);
   await showPanel(page, 'Relations');
@@ -300,7 +308,17 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
             eventType: 'diplomacy',
             year: 1939 + turn,
           },
-          { type: 'storyStep', stepId: `objective-${turn}`, message: `Objective ${turn}` },
+          {
+            type: 'storyStep',
+            stepId: turn === 1 ? 'poland-invasion' : 'battle-of-france',
+            message: `Objective ${turn}`,
+          },
+          ...(turn === 1
+            ? [
+                { type: 'storyStep', stepId: 'battle-of-france', message: 'Too early' },
+                { type: 'storyStep', stepId: 'poland-invasion', message: 'Duplicate' },
+              ]
+            : []),
         ],
       },
     });
@@ -312,7 +330,12 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
       .getByRole('button', { name: /^advance$/i })
       .first()
       .click();
-    await expect(page.getByText(`Turn ${n} narrative`, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText(`Turn ${n} narrative`, { exact: true })
+    ).toBeVisible();
+    await expect(page.locator('.campaign-objective')).toContainText(`${n} / 3 milestones`);
   }
   await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
@@ -323,13 +346,22 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
   await page.reload();
   await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
+  await expect(page.locator('.campaign-objective')).toContainText('1 / 3 milestones');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.council-dispatch')).toContainText('Turn 1 narrative');
+  await expect(page.locator('.council-dispatch')).not.toContainText('Turn 2 narrative');
+  await showPanel(page, 'Orders');
   await page
     .getByRole('button', { name: /^advance$/i })
     .first()
     .click();
-  await expect(page.getByText('Turn 3 narrative', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Turn 3 narrative', { exact: true })
+  ).toBeVisible();
   expect(requests[2].storySoFar).toBe('Memory 1');
-  expect(requests[2].completedStepIds).toEqual(['objective-1']);
+  expect(requests[2].completedStepIds).toEqual(['poland-invasion']);
   expect(JSON.stringify(requests[2].events)).not.toContain('Event 2');
   expect(JSON.stringify(requests[2].history)).not.toContain('Turn 2 narrative');
   await saveCampaign(page);
@@ -358,7 +390,11 @@ test('older snapshots remain inspectable without inventing rewind memory', async
     .getByRole('button', { name: /^advance$/i })
     .first()
     .click();
-  await expect(page.getByText('Historical fixture turn', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Historical fixture turn', { exact: true })
+  ).toBeVisible();
   await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   await page.evaluate(() => {
@@ -428,7 +464,11 @@ test('rewind cannot replace state beneath an in-flight turn', async ({ page }) =
       .getByRole('button', { name: /^advance$/i })
       .first()
       .click();
-    await expect(page.getByText(`Response ${n}`, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText(`Response ${n}`, { exact: true })
+    ).toBeVisible();
   }
   await page
     .getByRole('button', { name: /^advance$/i })
@@ -441,7 +481,11 @@ test('rewind cannot replace state beneath an in-flight turn', async ({ page }) =
   await showPanel(page, 'Orders');
   await expect(page.getByText('Rewound to Year 1940.', { exact: true })).toHaveCount(0);
   release();
-  await expect(page.getByText('Response 3', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Response 3', { exact: true })
+  ).toBeVisible();
   await saveCampaign(page);
   const save = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0]
@@ -472,7 +516,11 @@ test('explicit empty summary survives a later rewind and reload', async ({ page 
       .getByRole('button', { name: /^advance$/i })
       .first()
       .click();
-    await expect(page.getByText(`Empty-check response ${n}`, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText(`Empty-check response ${n}`, { exact: true })
+    ).toBeVisible();
   }
   expect(requests[2].storySoFar).toBe('');
   await showPanel(page, 'Timeline');
@@ -487,7 +535,11 @@ test('explicit empty summary survives a later rewind and reload', async ({ page 
     .getByRole('button', { name: /^advance$/i })
     .first()
     .click();
-  await expect(page.getByText('Empty-check response 4', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Empty-check response 4', { exact: true })
+  ).toBeVisible();
   expect(requests[3].storySoFar).toBe('');
 });
 
@@ -526,7 +578,11 @@ test('rewind waits for a pending advisor response before restoring context', asy
       .getByRole('button', { name: /^advance$/i })
       .first()
       .click();
-    await expect(page.getByText(`Advisor-check turn ${n}`, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText(`Advisor-check turn ${n}`, { exact: true })
+    ).toBeVisible();
   }
   await showPanel(page, 'Advisor');
   await page.getByRole('button', { name: 'Open Strategic Advisor' }).click();

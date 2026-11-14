@@ -133,8 +133,11 @@ func draw_actor(u: Dictionary,enemy: bool,p: Vector2,alpha=1.0,impact=0.0):
  if enemy: name="boss" if u.boss else "skeleton"
  if enemy and not u.boss and u.get("trait","") in ["armored","archer","sapper"]: name=u.trait
  if name=="fen" and game.campaign.pet=="owl": name="owl"
- draw_set_transform(p+Vector2(impact*(7 if enemy else -7),0),impact*0.07,Vector2(1+impact*0.06,1-impact*0.06))
- if has_sprite(name): sprite(name,Rect2(Vector2(-64,-83),Vector2(128,144)),Color(1,1,1,alpha))
+ var acted=ACTION_ROWS.has(name) and not enemy
+ var facing=-1.0 if acted and motion.lunges.get(u.id,Vector2.LEFT).x<0 else 1.0
+ draw_set_transform(p+Vector2(impact*(7 if enemy else -7),0),impact*0.07,Vector2((1+impact*0.06)*facing,1-impact*0.06))
+ if acted: action_sprite(name,0 if reduced_motion else motion.pose(u.id),Rect2(Vector2(-88,-111),Vector2(176,176)),Color(1,1,1,alpha))
+ elif has_sprite(name): sprite(name,Rect2(Vector2(-64,-83),Vector2(128,144)),Color(1,1,1,alpha))
  else:
   glyph(name)
  draw_set_transform(Vector2.ZERO)
@@ -187,7 +190,7 @@ func render_effect(fx: Dictionary):
  if fx.kind=="vanish":
   draw_actor(fx.unit,fx.enemy,at+Vector2(12*t,8*t),1-t,t*0.7)
  elif fx.kind in ["arrow","spell","enemy"]:
-  var flight=clampf(elapsed/0.24,0,1)
+  var flight=clampf(elapsed/float(fx.get("flight",0.24)),0,1)
   if flight<1:
    var head: Vector2=fx.from.lerp(at,flight)
    var direction: Vector2=(at-fx.from).normalized()

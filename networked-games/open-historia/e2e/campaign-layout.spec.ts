@@ -95,7 +95,11 @@ for (const viewport of [
       .getByRole('dialog', { name: 'Orders' })
       .getByRole('button', { name: /^advance$/i })
       .click();
-    await expect(page.getByText('Delegation report 1.', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText('Delegation report 1.', { exact: true })
+    ).toBeVisible();
     await expect(page.getByText('No orders queued')).toBeVisible();
     await openPanel(page, 'Menu');
     await page.getByRole('button', { name: /^save$/i }).click();
@@ -103,7 +107,11 @@ for (const viewport of [
     await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
     await page.reload();
     await openPanel(page, 'Orders');
-    await expect(page.getByText('Delegation report 1.', { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText('Delegation report 1.', { exact: true })
+    ).toBeVisible();
     expect(await fit()).toBe(true);
     expect(errors.filter((message) => /TypeError|WebGL|layers\./i.test(message))).toEqual([]);
   });
@@ -156,7 +164,11 @@ test('branched timeline targets remain separate inside the modal after reload', 
       .getByRole('dialog', { name: 'Orders' })
       .getByRole('button', { name: /^advance$/i })
       .click();
-    await expect(page.getByText(`Branch report ${n}.`, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('dialog', { name: 'Orders', exact: true })
+        .getByText(`Branch report ${n}.`, { exact: true })
+    ).toBeVisible();
   }
   await openPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
@@ -166,7 +178,11 @@ test('branched timeline targets remain separate inside the modal after reload', 
     .getByRole('dialog', { name: 'Orders' })
     .getByRole('button', { name: /^advance$/i })
     .click();
-  await expect(page.getByText('Branch report 3.', { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole('dialog', { name: 'Orders', exact: true })
+      .getByText('Branch report 3.', { exact: true })
+  ).toBeVisible();
   await openPanel(page, 'Menu');
   await page.getByRole('button', { name: /^save$/i }).click();
   await page.reload();

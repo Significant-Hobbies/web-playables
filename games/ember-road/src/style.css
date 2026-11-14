@@ -1967,3 +1967,99 @@ dialog {
   color: var(--paper);
   border-color: #718368;
 }
+
+.decision .story-letter {
+  font:
+    20px / 1.6 Georgia,
+    serif;
+  max-width: 62ch;
+  color: #344b38;
+}
+.decision--camp {
+  position: relative;
+}
+.camp-portrait {
+  position: absolute;
+  right: 22px;
+  bottom: 70px;
+  width: 245px;
+  height: calc(100% - 105px);
+  object-fit: contain;
+  object-position: bottom;
+  pointer-events: none;
+}
+.at-forge .camp-portrait {
+  display: none;
+}
+@media (min-width: 740px) {
+  .camp-intro {
+    max-width: calc(100% - 250px);
+  }
+}
+@media (max-width: 739px), (max-height: 600px) {
+  .camp-portrait {
+    display: none;
+  }
+  .camp-intro {
+    max-width: 100%;
+  }
+}
+.story-goal {
+  font-size: 14px;
+  border-left: 3px solid #987b42;
+  padding-left: 12px;
+}
+.oath-story {
+  margin: 0 0 20px;
+  border-left: 2px solid #9b8451;
+  padding: 8px 16px;
+  color: #3b5140;
+  font:
+    17px / 1.5 Georgia,
+    serif;
+}
+.oath-story span {
+  display: block;
+  font: 10px var(--font-sans);
+  letter-spacing: 0.12em;
+  margin-bottom: 6px;
+  color: #687653;
+}
+.perk-description small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: #445b44;
+}
+.forge-balance {
+  font-size: 16px;
+  color: #314b35;
+}
+.masthead .wordmark {
+  color: #f6edce;
+  background: #254a3de0;
+  padding: 6px 12px;
+  border-radius: 3px;
+}
+@media (max-height: 600px) {
+  .oath-story {
+    font-size: 13px;
+    margin-bottom: 10px;
+    padding-block: 0;
+  }
+  .oath-story span {
+    display: none;
+  }
+  .decision .story-letter {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+}
+@media (max-width: 600px) {
+  .decision .story-letter {
+    font-size: 17px;
+  }
+  .oath-story {
+    font-size: 14px;
+  }
+}

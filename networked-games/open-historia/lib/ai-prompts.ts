@@ -1,3 +1,4 @@
+import { resolveStoryContext, storyPrompt } from './story-progress';
 // Open Historia -- AI Prompt Templates
 // All prompts return strict JSON for deterministic parsing.
 
@@ -137,7 +138,7 @@ Think in terms of grand strategy across military, diplomatic, economic, and dome
 export function buildGameMasterPrompt(args: {
   command: string;
   gameState: { turn: number; players: Record<string, { name: string }> };
-  config: { scenario: string; difficulty: string };
+  config: { scenario: string; difficulty: string; presetId?: string };
   history?: Array<{ type?: string; text: string }>;
   events?: Array<{ year: number; description: string; type: string }>;
   relations?: Array<{ nationA: string; nationB: string; type: string; treaties: string[] }>;
@@ -155,6 +156,7 @@ export function buildGameMasterPrompt(args: {
     relations,
     provinceSummary,
     storySoFar,
+    completedStepIds,
     promptOverrides,
   } = args;
   const playerNation = gameState.players['player']?.name ?? 'Unknown';
@@ -176,6 +178,8 @@ YEAR: ${gameState.turn} | PLAYER: ${playerNation}
 ${DIFFICULTY_PROFILES[config.difficulty] || DIFFICULTY_PROFILES['Realistic']}
 
 ${storyBlock}
+
+${storyPrompt(resolveStoryContext(config.presetId, completedStepIds))}
 
 CURRENT RELATIONS: ${formatRelations(relations)}
 TERRITORY: ${formatProvinces(provinceSummary)}

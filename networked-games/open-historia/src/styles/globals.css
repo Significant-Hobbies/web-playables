@@ -621,3 +621,149 @@ body,
     padding: 4px;
   }
 }
+
+.council-dispatch {
+  position: absolute;
+  z-index: 9;
+  left: 20px;
+  bottom: 105px;
+  width: 350px;
+  padding: 18px;
+  border: 1px solid #53616a;
+  border-radius: 8px;
+  background: #0b1424f2;
+  box-shadow: 0 16px 40px #02061750;
+}
+.council-speaker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.council-portrait {
+  width: 66px;
+  height: 80px;
+  flex: none;
+  border: 1px solid #738078;
+  border-radius: 3px;
+}
+.council-speaker span {
+  display: block;
+  color: #e0b766;
+  font: 11px var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.council-speaker strong {
+  display: block;
+  margin-top: 6px;
+  font:
+    19px Georgia,
+    serif;
+}
+.council-speaker small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  color: #9caab7;
+}
+.council-narrative {
+  font:
+    15px / 1.6 Georgia,
+    serif;
+  color: #e0e5e9;
+  margin: 14px 0;
+  max-height: 146px;
+  overflow: auto;
+  animation: council-reveal 240ms ease-out;
+}
+.council-actions {
+  display: flex;
+  gap: 8px;
+}
+.council-actions button {
+  min-height: 42px;
+  border: 1px solid #596779;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  background: #25364b;
+  color: #edf0f1;
+  cursor: pointer;
+}
+.council-actions button:first-child {
+  background: #825016;
+  border-color: #ba863b;
+}
+.council-dispatch--urgent {
+  border-left: 3px solid #c98e64;
+}
+.campaign-panel .campaign-story [class*="text-[9px]"],
+.campaign-panel .campaign-story [class*="text-[10px]"],
+.campaign-panel .campaign-story [class*="text-[11px]"] {
+  font-size: 13px;
+  line-height: 1.6;
+}
+.campaign-panel .campaign-story h3 {
+  font-size: 20px;
+  white-space: normal;
+}
+.campaign-panel .campaign-story-body {
+  padding: 20px;
+}
+@keyframes council-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 1000px) {
+  .council-dispatch {
+    width: 300px;
+    padding: 12px;
+  }
+}
+@media (max-width: 600px) {
+  .council-dispatch {
+    display: none;
+  }
+}
+@media (max-height: 750px) {
+  .council-narrative {
+    max-height: 92px;
+  }
+  .council-portrait {
+    width: 50px;
+    height: 60px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .council-narrative {
+    animation: none;
+  }
+}
+
+.council-eyes {
+  transform-origin: 50px 46px;
+  animation: council-blink 7s steps(1, end) infinite;
+}
+@keyframes council-blink {
+  0%,
+  96%,
+  99%,
+  100% {
+    transform: scaleY(1);
+  }
+  97%,
+  98% {
+    transform: scaleY(0.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .council-eyes {
+    animation: none;
+  }
+}

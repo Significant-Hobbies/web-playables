@@ -605,9 +605,8 @@ func crossing_battle_page():
  var next="Continue →" if finishing_impact else ("Let enemies act →" if game.battle.enemies.any(func(enemy):return enemy.hp>0) else clear_label)
  var end_turn=crossing_button(next,Rect2(1118,783,281,48),resolve_turn,true)
  end_turn.add_theme_font_size_override("font_size",17);end_turn.set_meta("focus_key","end_turn")
- # One contextual order surface stays beside the selected actor's crossing.
- var at=field.unit_position(h,false)
- context_rect=Rect2(clampf(at.x-290,400,1075-650),620,650,228)
+ # Orders stay in place when changing companions; the line follows the actor.
+ context_rect=Rect2(400,620,650,228)
  var link=OrderLink.new();link.battlefield=field;link.actor=selected;link.bounds=context_rect;link.size=Vector2(1440,900);link.mouse_filter=Control.MOUSE_FILTER_IGNORE;hud.add_child(link)
  crossing_panel(context_rect)
  var x=context_rect.position.x

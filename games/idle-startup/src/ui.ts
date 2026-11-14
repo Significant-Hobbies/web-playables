@@ -1,6 +1,7 @@
 import { formatNumber } from "@games/gamekit";
 import { randomSeed, renderAvatar } from "./avatar";
 import { createRevenueChart } from "./chart";
+import { companyStory } from "./company-story";
 import type { DecisionDef } from "./content";
 import {
   DEPTS,
@@ -290,7 +291,9 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   const founder = el("section", "founder");
 
   const sceneCard = el("div", "card scene-card");
-  const scene = createOfficeScene(sceneCard);
+  const scene = createOfficeScene(sceneCard, () => {
+    if (lastState && !decisionPending) showSquad(lastState);
+  });
 
   const cashCard = el("div", "card cash-card");
   const cashValue = el("div", "cash-value", "$0");
@@ -448,7 +451,30 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   const journeyTitle = el("span", "eyebrow", "CHAPTER 1 · THE GARAGE");
   const journeyNext = el("span", "journey-next");
   journey.append(journeyTitle, journeyNext);
+  const storyCard = el("aside", "company-story");
+  storyCard.setAttribute("aria-label", "The company story");
+  const storyPortrait = el("div", "company-story-portrait");
+  const storySpeaker = el("span", "company-story-speaker");
+  const storyTitle = el("h2", "company-story-title");
+  const storyLine = el("p", "company-story-line");
+  const storyGoal = el("p", "company-story-goal");
+  const storyAction = el("button", "company-story-action", "Plan the next step");
+  storyAction.addEventListener("click", () => {
+    const questId = lastState ? (currentQuest(lastState)?.id ?? "") : "";
+    const panels: Record<string, string> = {
+      "campaign-1": "Growth",
+      "office-1": "Growth",
+      "research-1": "Growth",
+      "raise-1": "Funding",
+    };
+    const label = panels[questId] ?? "Team";
+    for (const button of dock.querySelectorAll<HTMLButtonElement>("button"))
+      if (button.textContent === label) button.click();
+  });
+  storyCard.append(storyPortrait, storySpeaker, storyTitle, storyLine, storyGoal, storyAction);
+  let storyKey = "";
   frame.append(header, founder, journey, dock);
+  frame.append(storyCard);
 
   const vignette = el("div", "danger-vignette hidden");
   app.append(vignette);
@@ -526,6 +552,33 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     hireVeil.textContent = "";
     const modal = el("div", "modal decision-modal");
     modal.append(el("div", "modal-title", decision.title), el("div", "modal-sub", decision.blurb));
+    if (lastState) {
+      const voice = companyStory(lastState);
+      const context = el("div", "decision-character");
+      const face = el("div", "decision-character-face");
+      renderAvatar(face, voice.seed);
+      const copy = el("div", "decision-character-copy");
+      const lines: Record<string, string> = {
+        "growth-vs-discipline":
+          "We can win the next customers. I need to know whether we are choosing speed or a team that can still think on Monday.",
+        "acquirer-email": "They asked what we cost. I want to know what we could become.",
+        offsite:
+          "We know each other’s tickets and deadlines. I would like to know what makes us a team.",
+        "press-cycle":
+          "They will print the story we give them. Let’s make sure it is one we want to live inside.",
+      };
+      copy.append(
+        el("strong", "", voice.speaker),
+        el(
+          "p",
+          "",
+          lines[decision.id] ??
+            "This choice will change how the team works. What do we want to protect?",
+        ),
+      );
+      context.append(face, copy);
+      modal.append(context);
+    }
     const box = el("div", "decision-options");
     decision.options.forEach((option, index) => {
       const btn = el("button", "decision-option");
@@ -902,6 +955,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
 
   const setPaused = (paused: boolean) => {
     document.body.classList.toggle("paused", paused);
+    scene.setPaused(paused);
     pauseVeil.classList.toggle("hidden", !paused);
     if (paused) {
       clearTimeout(celebrationTimer);
@@ -919,6 +973,15 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   let lastState: GameState | null = null;
   const render = (state: GameState) => {
     lastState = state;
+    const story = companyStory(state);
+    if (story.key !== storyKey) {
+      storyKey = story.key;
+      renderAvatar(storyPortrait, story.seed);
+      storySpeaker.textContent = `${story.speaker} · ${story.role}`;
+      storyTitle.textContent = story.title;
+      storyLine.textContent = story.line;
+    }
+    storyGoal.textContent = currentQuest(state)?.goal ?? "Choose the next chapter of the company.";
     displayCash = reducedMotion ? state.cash : displayCash + (state.cash - displayCash) * 0.35;
     if (Math.abs(displayCash - state.cash) < 0.5) displayCash = state.cash;
     cashValue.textContent = money(Math.max(0, displayCash));

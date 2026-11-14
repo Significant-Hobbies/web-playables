@@ -32,7 +32,7 @@ function pick<T>(rand: () => number, arr: T[]): T {
 }
 
 /** SVG markup for a 64×64 cartoon face. Same seed → same face, forever. */
-function avatarSvg(seed: number): string {
+function avatarSvg(seed: number, headOnly = false): string {
   const rand = mulberry32(seed);
   const skin = pick(rand, SKIN);
   const hair = pick(rand, HAIR);
@@ -46,13 +46,13 @@ function avatarSvg(seed: number): string {
   const blush = rand() < 0.4;
 
   const parts: string[] = [];
-  parts.push(`<circle cx="32" cy="32" r="30" fill="${bg}"/>`);
+  if (!headOnly) parts.push(`<circle cx="32" cy="32" r="30" fill="${bg}"/>`);
   // long hair sits behind the head
   if (hairStyle === 3) {
     parts.push(`<path d="M17 26 q15 -18 30 0 l1 22 q-16 8 -32 0 z" fill="${hair}"/>`);
   }
   // shirt
-  parts.push(`<path d="M14 62 q18 -18 36 0 z" fill="${shirt}"/>`);
+  if (!headOnly) parts.push(`<path d="M14 62 q18 -18 36 0 z" fill="${shirt}"/>`);
   // head + ears
   parts.push(`<circle cx="18.5" cy="31" r="3.4" fill="${skin}"/>`);
   parts.push(`<circle cx="45.5" cy="31" r="3.4" fill="${skin}"/>`);
@@ -114,7 +114,7 @@ function avatarSvg(seed: number): string {
     );
   }
 
-  return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img">${parts.join("")}</svg>`;
+  return `<svg viewBox="${headOnly ? "11 7 42 42" : "0 0 64 64"}" xmlns="http://www.w3.org/2000/svg" role="img">${parts.join("")}</svg>`;
 }
 
 /** Mount an avatar into a host element. */
@@ -124,4 +124,22 @@ export function renderAvatar(host: HTMLElement, seed: number): void {
 
 export function randomSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
+}
+
+export function renderWorker(host: HTMLElement, seed: number, role: string, founder = false): void {
+  const colors = ["#5f8eaa", "#a67c9d", "#74a38a", "#c69761", "#858cc0"];
+  const shirt = colors[(seed >>> 0) % colors.length] ?? colors[0];
+  const skin = pick(mulberry32(seed), SKIN);
+  const calling = /sales|growth|cmo|recruiter/.test(role);
+  const head = avatarSvg(seed, true);
+  host.innerHTML = `<svg viewBox="0 0 120 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="worker-figure ${calling ? "worker-calling" : "worker-typing"} ${founder ? "worker-founder" : ""}">
+    <ellipse cx="62" cy="151" rx="43" ry="7" fill="#172839" opacity=".22"/>
+    ${!founder ? '<path d="M30 70q-9 0-9 11v39h51V80q0-10-10-10z" fill="#344654" stroke="#182c39" stroke-width="3"/><path d="M26 120h55v9H26z" fill="#3c5464"/><path d="M48 125v23m-18 3 18-3 20 3" stroke="#263c48" stroke-width="5"/>' : ""}
+    <g class="worker-body"><path d="M40 102v23l-5 23h14l10-29 6 28h14l-4-46z" fill="#354356"/><path d="M34 146h18v7H29q-2-5 5-7m33-1h15l8 8H65z" fill="#223341"/>
+    <path d="M38 49q21-10 39 0l9 55H31z" fill="${shirt}" stroke="#30475a" stroke-width="2"/><path d="m48 46 9 13 11-13" fill="#f0e9db"/>
+    <g class="worker-head"><svg x="34" y="2" width="51" height="51">${head}</svg></g>
+    <g class="worker-arm worker-arm-left"><path d="M40 57 26 81l15 10" fill="none" stroke="${shirt}" stroke-width="12" stroke-linecap="round"/><path d="m40 91 14 1" stroke="${skin}" stroke-width="9" stroke-linecap="round"/></g>
+    <g class="worker-arm worker-arm-right"><path d="m75 58 16 24-20 10" fill="none" stroke="${shirt}" stroke-width="12" stroke-linecap="round"/><path d="m71 93-12-1" stroke="${skin}" stroke-width="9" stroke-linecap="round"/></g></g>
+    ${founder ? '<path d="m50 76 25 3-4 28-25-3z" fill="#e5d8b9" stroke="#354657" stroke-width="2"/><path d="m54 83 14 2m-15 5 14 2m-15 5 10 1" stroke="#788276" stroke-width="2"/>' : '<path d="M12 105h96v7H12z" fill="#a97651" stroke="#563f34" stroke-width="2"/><path d="M18 112v40m81-40v40" stroke="#75523e" stroke-width="5"/><path d="m48 81 36 1 8 25H56z" fill="#3a5065" stroke="#182e41" stroke-width="2"/><path d="M54 107h40v4H44z" fill="#9eacb6"/><path d="M23 96h9v10h-9z" fill="#efe4c9"/>'}
+  </svg>`;
 }
