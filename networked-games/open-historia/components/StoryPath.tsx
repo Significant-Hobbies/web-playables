@@ -1,3 +1,4 @@
+import { storyProgress } from '@/lib/story-progress';
 import React, { useEffect, useRef, useState } from 'react';
 import type { StoryPath as StoryPathData } from '@/lib/types';
 import { PRESETS } from '@/lib/presets';
@@ -11,30 +12,28 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
   const [minimized, setMinimized] = useState(false);
   const [showAllSteps, setShowAllSteps] = useState(false);
 
-  // Determine current step: first step that isn't completed
-  const currentStep =
-    storyPath.steps.find((step) => !completedStepIds.includes(step.id)) ||
-    storyPath.steps[storyPath.steps.length - 1];
-
-  const currentStepIndex = storyPath.steps.findIndex((s) => s.id === currentStep.id);
-  const progress = (currentStepIndex / storyPath.steps.length) * 100;
+  const resolved = storyProgress(storyPath, completedStepIds);
+  const completedIds = resolved.completed;
+  const currentStep = resolved.current ?? storyPath.steps.at(-1);
+  const currentStepIndex = storyPath.steps.findIndex((step) => step.id === currentStep?.id);
+  const progress = resolved.total ? (completedIds.length / resolved.total) * 100 : 0;
   const previousStep = currentStepIndex > 0 ? storyPath.steps[currentStepIndex - 1] : null;
-  const allDone = completedStepIds.length >= storyPath.steps.length;
+  const allDone = resolved.total > 0 && completedIds.length === resolved.total;
 
   // Flash a transition animation when active step advances
   const prevStepIdRef = useRef<string | null>(null);
   const [stepJustChanged, setStepJustChanged] = useState(false);
   useEffect(() => {
-    if (prevStepIdRef.current && prevStepIdRef.current !== currentStep.id) {
+    if (prevStepIdRef.current && prevStepIdRef.current !== currentStep?.id) {
       setStepJustChanged(true);
       const t = setTimeout(() => setStepJustChanged(false), 700);
-      prevStepIdRef.current = currentStep.id;
+      prevStepIdRef.current = currentStep?.id ?? null;
       return () => clearTimeout(t);
     }
-    prevStepIdRef.current = currentStep.id;
-  }, [currentStep.id]);
+    prevStepIdRef.current = currentStep?.id ?? null;
+  }, [currentStep?.id]);
 
-  if (storyPath.steps.length === 0) {
+  if (!currentStep) {
     return null;
   }
 
@@ -76,7 +75,7 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
         <div className="flex items-baseline justify-between mb-2">
           <h3 className="text-slate-100 font-serif font-bold text-sm truncate">{storyPath.name}</h3>
           <span className="text-slate-500 text-[9px] uppercase tracking-wider shrink-0 ml-2">
-            {completedStepIds.length}/{storyPath.steps.length}
+            {completedIds.length}/{storyPath.steps.length}
           </span>
         </div>
 
@@ -89,7 +88,7 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
         </div>
 
         {/* Just-completed step context (only when a previous step exists) */}
-        {previousStep && completedStepIds.includes(previousStep.id) && (
+        {previousStep && completedIds.includes(previousStep.id) && (
           <div
             className={`mb-2 flex items-center gap-1.5 text-[9px] text-emerald-400/80 ${stepJustChanged ? 'animate-slide-down' : ''}`}
             title={previousStep.description}
@@ -102,7 +101,7 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
 
         {/* Current Step */}
         <div
-          key={currentStep.id}
+          key={currentStep?.id}
           className={`bg-slate-900/50 border rounded-lg p-2.5 transition-all duration-500 ${
             stepJustChanged
               ? 'border-amber-500/60 shadow-[0_0_18px_0_rgba(245,158,11,0.25)]'
@@ -151,8 +150,8 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
           aria-expanded={showAllSteps}
         >
           {storyPath.steps.map((step) => {
-            const isCompleted = completedStepIds.includes(step.id);
-            const isCurrent = step.id === currentStep.id;
+            const isCompleted = completedIds.includes(step.id);
+            const isCurrent = step.id === currentStep?.id;
 
             return (
               <div
@@ -173,8 +172,8 @@ export default function StoryPath({ storyPath, completedStepIds }: StoryPathProp
         {showAllSteps && (
           <ol className="mt-2 space-y-0.5 max-h-48 overflow-y-auto pr-1">
             {storyPath.steps.map((step, i) => {
-              const isCompleted = completedStepIds.includes(step.id);
-              const isCurrent = step.id === currentStep.id;
+              const isCompleted = completedIds.includes(step.id);
+              const isCurrent = step.id === currentStep?.id;
               return (
                 <li
                   key={step.id}

@@ -53,7 +53,7 @@ func build(before: Dictionary,after: Dictionary,actor="",card="",resolved=false)
  clear()
  if before.is_empty() or after.is_empty(): return
  var old={};var fresh={}
- var impact_time=0.39 if resolved else (0.24 if card in ["volley","bolt","spark","frost","gust"] else 0.0)
+ var impact_time=0.39 if resolved else 0.24
  var outcomes=[]
  for enemy in [false,true]:
   var key="enemies" if enemy else "heroes"
@@ -92,8 +92,8 @@ func build(before: Dictionary,after: Dictionary,actor="",card="",resolved=false)
   var start=old[actor].point
   for at in struck:
    var kind="slash" if card in ["strike","cleave","pin"] else ("arrow" if card in ["volley","bolt"] else "spell")
-   add(kind,at,"",Color("dbac51") if card=="spark" else Color("405947"),{"from":start})
-  if not struck.is_empty(): lunges[actor]=(struck[0]-start).normalized()*18
+   add(kind,at,"",Color("dbac51") if card=="spark" else Color("405947"),{"from":start,"delay":0.14 if kind in ["arrow","spell"] else 0.24,"flight":0.1})
+  if not struck.is_empty(): lunges[actor]=(struck[0]-start).normalized()*34
  if card=="gust":
   for fx in effects:
    if fx.kind=="stun": add("spell",fx.at,"",Color("739596"),{"from":old[actor].point});break
@@ -133,7 +133,17 @@ func position(id: String,rest: Vector2) -> Vector2:
  return tracks[id].from.lerp(tracks[id].to,t)
 
 func offset(id: String) -> Vector2:
- return lunges.get(id,Vector2.ZERO)*sin(PI*clampf(age/0.28,0,1))
+ var direction: Vector2=lunges.get(id,Vector2.ZERO)
+ if age<0.14: return -direction*0.28*smoothstep(0,0.14,age)
+ if age<0.29: return direction*lerpf(-0.28,1.0,smoothstep(0.14,0.29,age))
+ return direction*(1-smoothstep(0.29,0.60,age))
+
+func pose(id: String) -> int:
+ if not lunges.has(id): return 0
+ if age<0.06: return 0
+ if age<0.18: return 1
+ if age<0.40: return 2
+ return 3
 
 func impact(id: String) -> float:
  for fx in effects:

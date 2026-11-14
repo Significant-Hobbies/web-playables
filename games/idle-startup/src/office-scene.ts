@@ -3,7 +3,7 @@
 // floats coins up from desks while revenue flows. Everything is procedural
 // and driven from the render tick, so pausing freezes the whole room.
 
-import { renderAvatar } from "./avatar";
+import { renderWorker } from "./avatar";
 import { OFFICES } from "./content";
 import { pic } from "./img";
 import office0 from "./scenes/office-0.jpg";
@@ -20,26 +20,22 @@ const BACKDROPS = [office0, office1, office2, office3, office4, office5];
 export interface OfficeScene {
   /** Cheap per-render update; rebuilds only when team/office change. */
   update(state: GameState): void;
+  setPaused(paused: boolean): void;
 }
 
 /** Desk slots as [left%, top%] — founder gets the first. */
 const SLOTS: Array<[number, number]> = [
-  [8, 56],
-  [24, 62],
-  [40, 58],
-  [56, 63],
-  [72, 57],
-  [86, 62],
-  [14, 76],
-  [30, 80],
-  [47, 77],
-  [63, 81],
-  [79, 77],
-  [91, 80],
+  [13, 89],
+  [31, 91],
+  [49, 89],
+  [67, 92],
+  [84, 89],
 ];
 
-export function createOfficeScene(host: HTMLElement): OfficeScene {
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+export function createOfficeScene(host: HTMLElement, onInspect: () => void): OfficeScene {
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const animations = new Set<Animation>();
+  let paused = false;
   const backdrop = document.createElement("img");
   backdrop.className = "scene-backdrop";
   backdrop.alt = "";
@@ -53,30 +49,44 @@ export function createOfficeScene(host: HTMLElement): OfficeScene {
   host.append(backdrop, crew, coins, sign);
 
   const COIN_POOL: HTMLSpanElement[] = [];
-  let lastTeamLen = -1;
-  let lastFounder: number | null = null;
+  let lastCrewKey = "";
   let lastOffice = -1;
   let coinClock = 0;
 
   const rebuildCrew = (state: GameState) => {
     crew.textContent = "";
-    const seated: Array<{ seed: number; title: string; boss: boolean }> = [];
+    const seated: Array<{ seed: number; title: string; boss: boolean; role: string }> = [];
     if (state.founder !== null) {
-      seated.push({ seed: state.founder, title: state.founderName || "Founder", boss: true });
+      seated.push({
+        seed: state.founder,
+        title: state.founderName || "Founder",
+        boss: true,
+        role: "founder",
+      });
     }
     for (const mate of state.team.slice(-(SLOTS.length - 1))) {
-      seated.push({ seed: mate.s, title: mate.n, boss: false });
+      seated.push({ seed: mate.s, title: mate.n, boss: false, role: mate.r });
     }
     seated.forEach((person, i) => {
       const slot = SLOTS[i];
       if (!slot) return;
-      const chip = document.createElement("span");
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.addEventListener("click", onInspect);
       chip.className = `scene-person${person.boss ? " boss" : ""}`;
       chip.style.left = `${slot[0]}%`;
       chip.style.top = `${slot[1]}%`;
       chip.style.setProperty("--bob-delay", `${(i * 0.37) % 2.2}s`);
       chip.title = person.title;
-      renderAvatar(chip, person.seed);
+      chip.setAttribute(
+        "aria-label",
+        `${person.title} · ${person.boss ? "Founder" : person.role} · inspect team`,
+      );
+      renderWorker(chip, person.seed, person.role, person.boss);
+      const name = document.createElement("span");
+      name.className = "worker-name";
+      name.textContent = person.title;
+      chip.append(name);
       if (i === seated.length - 1 && seated.length > 1) chip.classList.add("enter");
       crew.append(chip);
     });
@@ -84,7 +94,7 @@ export function createOfficeScene(host: HTMLElement): OfficeScene {
     if (extra > 0) {
       const more = document.createElement("span");
       more.className = "scene-more";
-      more.textContent = `+${extra}`;
+      more.textContent = `+${extra} teammate${extra === 1 ? "" : "s"}`;
       crew.append(more);
     }
   };
@@ -108,13 +118,20 @@ export function createOfficeScene(host: HTMLElement): OfficeScene {
       ],
       { duration: 1300 + Math.random() * 500, easing: "ease-out" },
     );
+    animations.add(anim);
+    if (paused) anim.pause();
     anim.onfinish = () => {
+      animations.delete(anim);
       coin.remove();
       if (COIN_POOL.length < 12) COIN_POOL.push(coin);
     };
   };
 
   return {
+    setPaused(value: boolean) {
+      paused = value;
+      for (const animation of animations) value ? animation.pause() : animation.play();
+    },
     update(state: GameState) {
       const officeIdx = Math.min(state.officeIndex, OFFICES.length - 1);
       if (officeIdx !== lastOffice) {
@@ -124,14 +141,21 @@ export function createOfficeScene(host: HTMLElement): OfficeScene {
         sign.textContent = "";
         sign.append(pic(office.emoji, "sign-img"), document.createTextNode(office.name));
       }
-      if (state.team.length !== lastTeamLen || state.founder !== lastFounder) {
-        lastTeamLen = state.team.length;
-        lastFounder = state.founder;
+      const crewKey = `${state.officeIndex}:${state.founder}:${state.founderName}:${state.team.length}:${state.team
+        .slice(-5)
+        .map((mate) => `${mate.s}:${mate.r}:${mate.n}`)
+        .join("|")}`;
+      if (crewKey !== lastCrewKey) {
+        lastCrewKey = crewKey;
         rebuildCrew(state);
       }
+      host.classList.toggle(
+        "office-worried",
+        state.cash < 0 || state.boosts.decisionBurn > state.boosts.decisionRev,
+      );
       // coins flow while money does — called at ~10 Hz from the render tick,
       // so hiding the tab freezes the fountain along with the sim
-      if (!reducedMotion && grossPerSec(state) > 0) {
+      if (!paused && !motionPreference.matches && grossPerSec(state) > 0) {
         coinClock += 1;
         const cadence = grossPerSec(state) > 50_000 ? 3 : grossPerSec(state) > 5_000 ? 5 : 9;
         if (coinClock % cadence === 0) spawnCoin();

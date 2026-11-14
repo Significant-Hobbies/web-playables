@@ -14,6 +14,7 @@ import { LLMTimeoutError, withTimeout } from '../../../lib/llm-timeout';
 import { callLocalAI } from '../../../lib/local-ai';
 import { getClientIp, rateLimit } from '../../../lib/rate-limit';
 import { parseAiTurnResponse } from '../../../lib/turn-parser';
+import { resolveStoryContext, validateStoryUpdates } from '../../../lib/story-progress';
 import { reserveWorkersAiCall, SharedAiBudgetError } from '../shared-ai-budget';
 import type { WorkerEnv } from '../../../lib/worker-env';
 import { resolveWorkersAiModel } from '../../../lib/workers-ai-model';
@@ -592,7 +593,10 @@ llm.post('/turn', async (c) => {
     return c.json(
       {
         message: parsedTurn.message,
-        updates: parsedTurn.updates,
+        updates: validateStoryUpdates(
+          parsedTurn.updates,
+          resolveStoryContext(config.presetId, completedStepIds)
+        ),
         storySoFar: parsedTurn.storySoFar,
       },
       parsedTurn.parseError ? 502 : 200

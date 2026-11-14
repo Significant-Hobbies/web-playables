@@ -321,12 +321,14 @@ function ThreadListItem({
   // For bilateral threads, show the other participant's name
   const displayName =
     thread.type === 'bilateral'
-      ? thread.participants.find((p) => p !== playerNationName) || thread.name
+      ? thread.participants.find((p) => p !== 'player' && p !== playerNationName) || thread.name
       : thread.name;
 
   // Find a color for the thread icon
   const otherParticipant =
-    thread.type === 'bilateral' ? thread.participants.find((p) => p !== playerNationName) : null;
+    thread.type === 'bilateral'
+      ? thread.participants.find((p) => p !== 'player' && p !== playerNationName)
+      : null;
 
   // Try to find the player color by matching name
   let dotColor = '#6b7280'; // default slate-500
@@ -588,7 +590,7 @@ export default function DiplomacyChat({
     if (activeThread.type === 'group') {
       return `Address ${activeThread.name || 'the alliance'}...`;
     }
-    const other = activeThread.participants.find((p) => p !== playerNationName);
+    const other = activeThread.participants.find((p) => p !== 'player' && p !== playerNationName);
     return `Propose terms to ${other || 'this nation'}...`;
   }, [activeThread, playerNationName]);
 
@@ -753,8 +755,9 @@ export default function DiplomacyChat({
                 <div className="flex-1 min-w-0">
                   <h3 className="text-xs font-bold text-amber-400 uppercase tracking-wider truncate">
                     {activeThread.type === 'bilateral'
-                      ? activeThread.participants.find((p) => p !== playerNationName) ||
-                        activeThread.name
+                      ? activeThread.participants.find(
+                          (p) => p !== 'player' && p !== playerNationName
+                        ) || activeThread.name
                       : activeThread.name}
                   </h3>
                   <span className="text-[10px] text-slate-500">
@@ -819,7 +822,7 @@ export default function DiplomacyChat({
                   <MessageBubble
                     key={msg.id}
                     message={msg}
-                    isOwn={msg.senderName === playerNationName}
+                    isOwn={msg.senderId === 'player' || msg.senderName === playerNationName}
                     isGroup={activeThread.type === 'group'}
                   />
                 ))}

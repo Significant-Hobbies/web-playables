@@ -56,6 +56,28 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
     await page.goto(`${origin}/play/idle-startup/`);
     await page.locator(".founder-grid .candidate").first().click();
     await page.getByRole("button", { name: "Start building" }).click();
+    await page.getByRole("button", { name: /Founder · inspect team/ }).click();
+    assert(await page.getByRole("button", { name: "Back to work", exact: true }).isVisible());
+    await page.getByRole("button", { name: "Back to work", exact: true }).click();
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", {
+        configurable: true,
+        get: () => "hidden",
+      });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(60);
+    const worker = page.locator(".worker-figure").first();
+    const restingWorker = await worker.screenshot();
+    await page.waitForTimeout(250);
+    assert(
+      restingWorker.equals(await worker.screenshot()),
+      "Background pause freezes character acting",
+    );
+    await page.evaluate(() => {
+      delete document.visibilityState;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
     for (const viewport of viewports) {
       await page.setViewportSize(viewport);
       await fits(page);

@@ -132,7 +132,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       "Full reload retains earned gold",
     );
     await page.getByRole("button", { name: "Return to the forge", exact: true }).click();
-    await page.locator("#visit-forge").click();
+    assert(await page.locator(".forge").isVisible(), "Victory returns directly to the forge");
     await page.locator('[data-upgrade="blade"]').click();
     assert.equal(
       Number(await page.locator("#gold").innerText()),

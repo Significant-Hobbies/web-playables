@@ -1,3 +1,4 @@
+import { resolveStoryContext } from '@/lib/story-progress';
 import { useCallback, useRef, useState } from 'react';
 
 import { loadPromptOverrides } from '@/components/PromptSettings';
@@ -89,12 +90,13 @@ export function useTurnProcessing(deps: {
       setProcessingTurn(true);
       const turnYear = turnOverride ?? gameState.turn;
       const nextLogs = [...logs];
-      const recordLog = (text: string, type: LogEntry['type'] = 'info') => {
-        const entry = { id: uid(), type, text };
+      const recordLog = (text: string, type: LogEntry['type'] = 'info', narrative = false) => {
+        const entry = { id: uid(), type, text, ...(narrative ? { narrative: true } : {}) };
         nextLogs.push(entry);
         setLogs((prev) => [...prev, entry].slice(-MAX_LOGS));
       };
       const nextCompletedStepIds = [...completedStepIds];
+      const storyContext = resolveStoryContext(gameConfig.presetId, completedStepIds);
       let nextEvents = [...events];
       let nextRelations = [...relations];
 
@@ -159,7 +161,7 @@ export function useTurnProcessing(deps: {
         setPendingOrders((prev) => prev.slice(submittedOrders));
 
         if (data.message) {
-          recordLog(data.message, 'info');
+          recordLog(data.message, 'info', true);
         }
 
         if (typeof data.storySoFar === 'string') {
@@ -275,7 +277,9 @@ export function useTurnProcessing(deps: {
             if (update.type === 'storyStep') {
               const stepId = (update as any).stepId as string;
               const msg = (update as any).message as string;
-              if (!nextCompletedStepIds.includes(stepId)) nextCompletedStepIds.push(stepId);
+              if (stepId !== storyContext?.currentStep?.id || nextCompletedStepIds.includes(stepId))
+                return;
+              nextCompletedStepIds.push(stepId);
               setCompletedStepIds(nextCompletedStepIds);
               recordLog(`STORY ACHIEVED: ${msg}`, 'success');
               hasSignificantEvent = true;

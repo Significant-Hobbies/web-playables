@@ -63,6 +63,36 @@ describe('turn route through the real Workers AI adapter', () => {
     });
   });
 
+  it('passes canonical objectives through the real adapter and rejects invented completions', async () => {
+    const run = vi.fn().mockResolvedValue({
+      response: {
+        message: 'Blockade patrols depart. Britain has responded to the invasion.',
+        updates: ['invented', 'battle-of-france', 'poland-invasion', 'poland-invasion'].map(
+          (stepId) => ({ type: 'storyStep', stepId, message: 'Response underway.' })
+        ),
+      },
+    });
+    const input = JSON.parse(request.body);
+    input.config.presetId = 'ww2-1939';
+    input.completedStepIds = ['invalid'];
+    const response = await app.request(
+      '/turn',
+      {
+        ...request,
+        headers: { ...request.headers, 'cf-connecting-ip': '198.51.100.41' },
+        body: JSON.stringify(input),
+      },
+      budgetEnv({ run })
+    );
+    expect(response.status).toBe(200);
+    expect(JSON.stringify(run.mock.calls[0][1].messages)).toContain(
+      'CURRENT STEP ID: poland-invasion'
+    );
+    expect((await response.json()).updates).toEqual([
+      { type: 'storyStep', stepId: 'poland-invasion', message: 'Response underway.' },
+    ]);
+  });
+
   it('accepts structured binding output and retains campaign memory', async () => {
     const run = vi.fn().mockResolvedValue({
       response: {

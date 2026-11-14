@@ -15,6 +15,8 @@ export interface LogEntry {
     | 'crisis'
     | 'event-summary';
   text: string;
+  /** A resolved turn report, preserved with its historical log on rewind. */
+  narrative?: boolean;
 }
 
 type ProvinceOwnerSnapshot = {

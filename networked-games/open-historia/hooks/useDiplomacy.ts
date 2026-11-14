@@ -106,8 +106,10 @@ export function useDiplomacy(deps: {
             relations:
               relations.find(
                 (r) =>
-                  (r.nationA === 'player' && r.nationB === targetNation) ||
-                  (r.nationB === 'player' && r.nationA === targetNation)
+                  ((r.nationA === 'player' || r.nationA === gameState.players['player'].name) &&
+                    r.nationB === targetNation) ||
+                  ((r.nationB === 'player' || r.nationB === gameState.players['player'].name) &&
+                    r.nationA === targetNation)
               ) || null,
             recentEvents: events
               .slice(-10)

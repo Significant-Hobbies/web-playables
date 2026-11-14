@@ -1,6 +1,8 @@
 extends Control
 ## Native command symbols plus an opt-in illustrated battle company.
 const COMPANY=preload("res://assets/banner-steel/company-atlas.png")
+const ACTIONS=preload("res://assets/banner-steel/company-action-atlas.png")
+const ACTION_ROWS={"rowan":0,"lysa":1,"fen":2}
 const SPRITES={"rowan":Rect2(0,0,362,397),"lysa":Rect2(362,0,362,397),"fen":Rect2(724,0,362,397),"merrin":Rect2(1086,0,362,397),"owl":Rect2(0,397,362,320),"ballista":Rect2(362,397,372,320),"skeleton":Rect2(734,397,352,320),"armored":Rect2(1086,397,362,320),"archer":Rect2(0,717,362,369),"sapper":Rect2(362,717,362,369),"boss":Rect2(724,717,390,369),"standard":Rect2(1114,717,334,369)}
 const PAPER=Color("f4ebd8")
 const NAVY=Color("203340")
@@ -30,6 +32,10 @@ func sprite(id: String,rect: Rect2,color=Color.WHITE):
  var factor=minf(rect.size.x/source.size.x,rect.size.y/source.size.y)
  var extent=source.size*factor
  draw_texture_rect_region(COMPANY,Rect2(rect.position+Vector2((rect.size.x-extent.x)/2,rect.size.y-extent.y),extent),source,color)
+
+func action_sprite(id: String,frame: int,rect: Rect2,color=Color.WHITE):
+ var source=Rect2(clampi(frame,0,3)*362,int(ACTION_ROWS[id])*362,362,362)
+ draw_texture_rect_region(ACTIONS,rect,source,color)
 
 func pill(rect: Rect2,color: Color,radius=9):
  var style=StyleBoxFlat.new();style.bg_color=color;style.set_corner_radius_all(mini(radius,4))

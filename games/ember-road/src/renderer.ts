@@ -13,6 +13,10 @@ export interface Scene {
   enemyHealth: number;
   enemyMaxHealth: number;
   chapter: number;
+  beacons?: number;
+  upgrades?: { blade: number; mail: number; charm: number };
+  storm?: number;
+  thorns?: number;
   reducedMotion: boolean;
   direction?: ArtDirection;
 }
@@ -38,7 +42,15 @@ export class WorldRenderer {
   private ctx: CanvasRenderingContext2D;
   private heroImage = new Image();
   private enemyImage = new Image();
-  private backdropImage = new Image();
+  private backdrops = new Map<number, HTMLImageElement>();
+  private lightningAge = 1;
+  private readonly places = [
+    [new URL("../assets/cinder-march.png", import.meta.url).href, 0.77],
+    [new URL("../assets/lantern-ruins.png", import.meta.url).href, 0.71],
+    [new URL("../assets/hollow-marsh.png", import.meta.url).href, 0.61],
+    [new URL("../assets/frostbound-keep.png", import.meta.url).href, 0.69],
+    [new URL("../assets/last-threshold.png", import.meta.url).href, 0.67],
+  ] as const;
   private width = 1000;
   private height = 520;
   private actorScale = 1;
@@ -52,7 +64,7 @@ export class WorldRenderer {
     this.ctx = ctx;
     this.heroImage.src = new URL("../assets/hero-knight.png", import.meta.url).href;
     this.enemyImage.src = new URL("../assets/enemies.png", import.meta.url).href;
-    this.backdropImage.src = new URL("../assets/cinder-march.png", import.meta.url).href;
+    this.backdrop(1);
   }
 
   resize() {
@@ -66,7 +78,14 @@ export class WorldRenderer {
     this.actorScale = pixels / (200 * Math.max(0.1, rect.width / this.width));
   }
 
-  impact(side: "hero" | "enemy", value: number, critical: boolean, heal = false) {
+  impact(
+    side: "hero" | "enemy",
+    value: number,
+    critical: boolean,
+    heal = false,
+    lightning = false,
+  ) {
+    if (lightning) this.lightningAge = 0;
     const x = side === "hero" ? 295 : 480;
     const y = this.height * 0.73 - 160 * this.actorScale;
     this.sparks.push({
@@ -94,6 +113,7 @@ export class WorldRenderer {
   }
 
   advance(dt: number) {
+    this.lightningAge += dt;
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const p = this.sparks[i];
       if (!p) continue;
@@ -115,6 +135,7 @@ export class WorldRenderer {
     if (direction === "moon") this.moonWorld(s);
     else if (direction === "tabletop") this.tableWorld(s);
     else this.emberWorld(s);
+    this.roadLights(s);
     const ground = h * 0.73;
     const scale = this.actorScale;
     const moving = s.walking && !s.reducedMotion;
@@ -158,7 +179,11 @@ export class WorldRenderer {
       this.character(915, ground - 15, scale * 0.6, "sentinel", 0, 0, 0, 0, s, true);
       c.restore();
     }
-    if (!s.reducedMotion) this.particles(s);
+    this.equipment(s, heroX, ground, scale);
+    if (!s.reducedMotion) {
+      this.particles(s);
+      this.weather(s);
+    }
     this.foreground(s);
     c.save();
     for (const p of this.sparks) {
@@ -242,13 +267,20 @@ export class WorldRenderer {
     const c = this.ctx;
     const h = this.height;
     const ground = h * 0.73;
-    if (this.backdropImage.complete && this.backdropImage.naturalWidth) {
-      const img = this.backdropImage;
+    const image = this.backdrop(s.chapter);
+    if (image.complete && image.naturalWidth) {
+      const img = image;
       const scale = Math.max(1000 / img.width, (h * 1.2) / img.height);
       const w = img.width * scale;
       const hh = img.height * scale;
       const drift = Math.sin(s.distance * 0.15) * Math.min(25, Math.max(0, (w - 1000) / 2));
-      c.drawImage(img, (1000 - w) / 2 + drift, h * 0.73 - hh * 0.77, w, hh);
+      c.drawImage(
+        img,
+        (1000 - w) / 2 + drift,
+        h * 0.73 - hh * (this.places[s.chapter - 1]?.[1] ?? 0.77),
+        w,
+        hh,
+      );
       return;
     }
     const sky = c.createLinearGradient(0, 0, 0, h);
@@ -1286,6 +1318,125 @@ export class WorldRenderer {
     if (t < 0.32) return -0.25 - Math.sin(((t / 0.32) * Math.PI) / 2) * 1.8;
     if (t < 0.58) return -2.05 + (1 - (1 - (t - 0.32) / 0.26) ** 3) * 3.7;
     return 1.65 - ((t - 0.58) / 0.42) * 1.9;
+  }
+
+  private backdrop(chapter: number) {
+    let image = this.backdrops.get(chapter);
+    if (!image) {
+      image = new Image();
+      image.src = (this.places[chapter - 1] ?? this.places[0])[0];
+      this.backdrops.set(chapter, image);
+    }
+    return image;
+  }
+
+  private roadLights(s: Scene) {
+    const c = this.ctx;
+    const ground = this.height * 0.73;
+    c.save();
+    for (let i = 0; i < 4; i++) {
+      const x = 80 + i * 265 - ((s.distance * 9) % 70);
+      const lit = i <= Math.floor((s.beacons ?? 0) / 3);
+      this.line(x, ground, x, ground - 60, s.chapter === 4 ? "#687f91" : "#534b38", 4);
+      if (lit) {
+        const glow = c.createRadialGradient(x, ground - 52, 1, x, ground - 52, 38);
+        glow.addColorStop(0, "#ffcd8877");
+        glow.addColorStop(1, "#ffb95f00");
+        c.fillStyle = glow;
+        c.fillRect(x - 40, ground - 92, 80, 80);
+      }
+      c.fillStyle = lit ? "#ffda8b" : "#485854";
+      c.fillRect(x - 5, ground - 59, 10, 15);
+      c.strokeStyle = "#3d4039";
+      c.lineWidth = 2;
+      c.strokeRect(x - 7, ground - 61, 14, 19);
+    }
+    c.restore();
+  }
+
+  private equipment(s: Scene, x: number, ground: number, scale: number) {
+    const c = this.ctx;
+    const gear = s.upgrades;
+    c.save();
+    c.translate(x, ground);
+    if ((gear?.blade ?? 0) > 0) {
+      c.strokeStyle = "#edb25b";
+      c.lineWidth = 1.5 + Math.min(3, gear?.blade ?? 0);
+      c.globalAlpha = 0.65;
+      c.beginPath();
+      c.ellipse(0, 0, 38 * scale, 8 * scale, 0, 0, Math.PI * 2);
+      c.stroke();
+    }
+    if ((gear?.mail ?? 0) > 0) {
+      c.globalAlpha = 0.38;
+      c.strokeStyle = "#a8cfdd";
+      c.lineWidth = 2;
+      c.beginPath();
+      c.ellipse(9 * scale, -78 * scale, 48 * scale, 83 * scale, -0.1, -0.9, 1.1);
+      c.stroke();
+    }
+    if ((gear?.charm ?? 0) > 0) {
+      const phase = s.reducedMotion ? 0 : s.time * 1.6;
+      this.ellipse(
+        Math.cos(phase) * 47 * scale,
+        -115 * scale + Math.sin(phase) * 8,
+        4,
+        4,
+        "#ffd58b",
+      );
+    }
+    if ((s.thorns ?? 0) > 0) {
+      c.strokeStyle = "#a9bc79";
+      c.lineWidth = 2;
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * Math.PI;
+        this.line(
+          Math.cos(a) * 36 * scale,
+          Math.sin(a) * 6,
+          Math.cos(a) * 44 * scale,
+          Math.sin(a) * 12,
+          "#a9bc79",
+          2,
+        );
+      }
+    }
+    c.restore();
+    if (this.lightningAge < 0.35 && !s.reducedMotion) {
+      c.save();
+      c.globalAlpha = 1 - this.lightningAge / 0.35;
+      c.strokeStyle = "#d6f0ff";
+      c.lineWidth = 4;
+      c.beginPath();
+      c.moveTo(480, ground - 280 * scale);
+      c.lineTo(462, ground - 200 * scale);
+      c.lineTo(488, ground - 204 * scale);
+      c.lineTo(473, ground - 108 * scale);
+      c.stroke();
+      c.strokeStyle = "#7ac5df88";
+      c.lineWidth = 12;
+      c.stroke();
+      c.restore();
+    }
+  }
+
+  private weather(s: Scene) {
+    if (s.chapter === 1) return;
+    const c = this.ctx;
+    const h = this.height;
+    c.save();
+    for (let i = 0; i < (s.chapter === 4 ? 30 : 13); i++) {
+      const x = ((i * 137 + s.time * (s.chapter === 4 ? 15 : 5)) % 1100) - 50;
+      const y = (i * 71 + s.time * (s.chapter === 4 ? 20 : s.chapter === 5 ? -12 : 2) + h * 10) % h;
+      c.globalAlpha = s.chapter === 4 ? 0.55 : 0.25 + Math.sin(i + s.time) * 0.15;
+      this.ellipse(
+        x,
+        y,
+        s.chapter === 4 ? 2 : 2.8,
+        s.chapter === 4 ? 2 : 1.8,
+        s.chapter === 3 ? "#b7d38b" : s.chapter === 5 ? "#ffb168" : "#d8e7f5",
+      );
+    }
+    c.restore();
   }
 
   private healthBar(x: number, y: number, width: number, health: number, max: number) {

@@ -111,6 +111,7 @@ export function useGameState(initialGameId?: string) {
             setInitialRestoreUnavailable(false);
             const restoredState = restoreSavedGameState(saved, data);
             setGameConfig(saved.gameConfig);
+            setSelectedPreset(null);
             if (saved.gameConfig.presetId) {
               setSelectedPreset(getPresetById(saved.gameConfig.presetId) || null);
             }
@@ -267,6 +268,7 @@ export function useGameState(initialGameId?: string) {
 
       const restoredState = restoreSavedGameState(saved, provincesCache);
       setGameConfig(saved.gameConfig);
+      setSelectedPreset(null);
       if (saved.gameConfig.presetId) {
         setSelectedPreset(getPresetById(saved.gameConfig.presetId) || null);
       }
