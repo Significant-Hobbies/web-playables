@@ -293,6 +293,8 @@ test('save failure keeps the active campaign open', async ({ page }) => {
 });
 
 test('rewind restores prompt memory across save and reload', async ({ page }) => {
+  // Three turns, two saves and a reload also run in WebKit on shared CI runners.
+  test.setTimeout(90_000);
   const requests: Record<string, unknown>[] = [];
   await page.route('**/api/turn', async (route) => {
     requests.push(route.request().postDataJSON());
