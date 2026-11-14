@@ -258,7 +258,7 @@ func setup_web():
   if is_instance_valid(hud): hud.process_mode=Node.PROCESS_MODE_PAUSABLE)
  web_storage_callback=JavaScriptBridge.create_callback(func(_args):
   web_storage_failed=true
-  game.save_error="Browser storage could not be synchronized. Keep this tab open and export your save before reloading."
+  game.save_error="Browser storage could not be synchronized. Keep this tab open to preserve playable progress. Export save keeps a JSON copy for inspection; this build has no import control."
   show_page())
  var browser=JavaScriptBridge.get_interface("window")
  browser.warChestPause=web_pause_callback

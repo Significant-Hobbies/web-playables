@@ -45,4 +45,4 @@ Copied license notices are retained in assets/licenses. No paid packs or game-ri
 ## Browser font substitutes (2026-11-14)
 
 The browser has no access to the native Avenir Next/Georgia files. Bundled Public Sans and Lora preserve the original sans/serif roles without external font requests. Both are SIL Open Font License 1.1; the license files accompany the fonts under assets/fonts/. Original sources: https://github.com/google/fonts/tree/main/ofl/publicsans and https://github.com/google/fonts/tree/main/ofl/lora. Native builds retain their system fonts.
-Noto Sans Symbols 2 supplies arrow glyphs in the browser, also under SIL OFL 1.1, from https://github.com/google/fonts/tree/main/ofl/notosanssymbols2.
+DejaVu Sans Mono supplies arrow glyphs while preserving the body font’s line metrics. The WOFF2 is from the installed Blender 5.2 font bundle (`datafiles/fonts/DejaVuSansMono.woff2`); the original project is https://dejavu-fonts.github.io/. The accompanying Bitstream Vera/DejaVu license is retained in assets/fonts/DejaVuSansMono-LICENSE.txt. Only missing glyphs use this fallback.

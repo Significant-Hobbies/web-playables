@@ -15,7 +15,7 @@ const evidence = process.env.WAR_CHEST_EVIDENCE_DIR || join(tmpdir(), "war-chest
 await mkdir(evidence, { recursive: true });
 const server = createSiteServer(dist);
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
-const origin = `http://127.0.0.1:${server.address().port}`;
+const origin = process.env.WAR_CHEST_BASE_URL || `http://127.0.0.1:${server.address().port}`;
 const executablePath =
   process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
   (existsSync("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
@@ -123,7 +123,42 @@ try {
   await page.waitForTimeout(200);
   const afterTurn = await snapshot();
   assert(afterTurn.battle.round > initial.battle.round, "Ending a turn resolves the enemy phase");
-  await page.waitForTimeout(2000);
+  await page.waitForFunction(
+    async (expected) => {
+      for (const entry of await indexedDB.databases()) {
+        if (!entry.name) continue;
+        const db = await new Promise((done, fail) => {
+          const request = indexedDB.open(entry.name);
+          request.onsuccess = () => done(request.result);
+          request.onerror = () => fail(request.error);
+        });
+        try {
+          for (const name of db.objectStoreNames) {
+            const values = await new Promise((done, fail) => {
+              const request = db.transaction(name, "readonly").objectStore(name).getAll();
+              request.onsuccess = () => done(request.result);
+              request.onerror = () => fail(request.error);
+            });
+            for (const value of values) {
+              if (!value.contents) continue;
+              try {
+                if (
+                  JSON.stringify(JSON.parse(new TextDecoder().decode(value.contents))) ===
+                  JSON.stringify(expected)
+                )
+                  return true;
+              } catch {}
+            }
+          }
+        } finally {
+          db.close();
+        }
+      }
+      return false;
+    },
+    afterTurn,
+    { timeout: 20000 },
+  );
   await launch();
   assert.deepEqual(await snapshot(), afterTurn, "Browser save survives a full page reload");
   for (const viewport of [
@@ -140,8 +175,42 @@ try {
   }
   assert.deepEqual(external, [], "The game makes no external network requests");
   assert.deepEqual(errors, [], "No engine or JavaScript errors");
+  const failedStorage = await browser.newContext();
+  await failedStorage.addInitScript(() => {
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (...args) {
+      if (window.failWarChestWrites)
+        throw new DOMException("Storage is full", "QuotaExceededError");
+      return put.apply(this, args);
+    };
+  });
+  const failedPage = await failedStorage.newPage();
+  await failedPage.goto(`${origin}/play/war-chest/`);
+  await failedPage.locator("#play").click();
+  await failedPage.waitForFunction(() => document.getElementById("start-cover").hidden, null, {
+    timeout: 45000,
+  });
+  await failedPage.evaluate(() => {
+    window.failWarChestWrites = true;
+  });
+  const failedBox = await failedPage.locator("#canvas").boundingBox();
+  await failedPage.mouse.click(
+    failedBox.x + (1200 / 1440) * failedBox.width,
+    failedBox.y + (792 / 900) * failedBox.height,
+  );
+  await failedPage.waitForFunction(
+    () => document.getElementById("save-status").classList.contains("error"),
+    null,
+    { timeout: 20000 },
+  );
+  assert.match(await failedPage.locator("#save-status").innerText(), /Storage unavailable/);
+  assert(
+    await failedPage.locator("#export").isEnabled(),
+    "A failed durable write still allows a JSON copy",
+  );
+  await failedStorage.close();
   console.log(
-    `WAR CHEST WEB: launch, story, pointer chest packing, animated attack, pause, undo, enemy turn, save reload and four viewports passed. Evidence: ${evidence}`,
+    `WAR CHEST WEB: launch, story, pointer chest packing, animated attack, pause, undo, enemy turn, durable save reload, failed IDB write warning and four viewports passed. Evidence: ${evidence}`,
   );
 } finally {
   await browser.close();

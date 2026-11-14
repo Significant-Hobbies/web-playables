@@ -8,4 +8,4 @@
 /play/war-chest/index.wasm
   Content-Type: application/wasm
   Content-Encoding: br
-  Cache-Control: public, max-age=3600
+  Cache-Control: public, max-age=0, must-revalidate

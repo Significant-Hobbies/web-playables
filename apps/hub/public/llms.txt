@@ -1,13 +1,14 @@
 # Idle — Web Playables
 
-> Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+> Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
 
 
 <!-- Keep in sync with robots.txt and ai.txt. -->
 
 ## Public pages
 
-- [idle.](https://idle.aliveville.com/index.md): Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+- [idle.](https://idle.aliveville.com/index.md): Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
+- [Ember Road](https://idle.aliveville.com/play/ember-road.md): Forge your knight. Choose your oaths. Walk one road further.
 - [War Chest](https://idle.aliveville.com/play/war-chest.md): Defend the crossing. Pack your gear. Bring the company home.
 - [Idle Startup](https://idle.aliveville.com/play/idle-startup.md): Ship features. Hire the team. Raise the round.
 

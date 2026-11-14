@@ -2,7 +2,7 @@
 [identity]
 name: Idle — Web Playables
 url: https://idle.aliveville.com
-description: Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+description: Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
 contact: https://github.com/Significant-Hobbies/web-playables
 
 [permissions]
@@ -19,7 +19,7 @@ cite: Idle — Web Playables and the canonical HTML URL
 
 [scope]
 included: public routes listed at https://idle.aliveville.com/api/md/_catalog
-public-route-count: 3
+public-route-count: 4
 excluded: /api, /auth, /admin, /dashboard
 public-machine-endpoints: /api/ai, /api/md/*
 

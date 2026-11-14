@@ -27,7 +27,7 @@ jobs:
       - run: pnpm war-chest:check
       - run: pnpm run check
       - run: pnpm --filter open-historia exec playwright install --with-deps chromium
-      - run: pnpm war-chest:e2e
+      - run: pnpm games:e2e
       - name: Run Idle Startup test suite
         working-directory: games/idle-startup
         run: pnpm test

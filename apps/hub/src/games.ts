@@ -5,9 +5,18 @@ export interface GameMeta {
   emoji: string;
   status: "live" | "soon";
   engine?: "godot";
+  entry?: string;
 }
 
 export const GAMES: GameMeta[] = [
+  {
+    id: "ember-road",
+    title: "Ember Road",
+    tagline: "Forge your knight. Choose your oaths. Walk one road further.",
+    emoji: "🔥",
+    status: "live",
+    entry: "games/ember-road/entry.md",
+  },
   {
     id: "war-chest",
     title: "War Chest",

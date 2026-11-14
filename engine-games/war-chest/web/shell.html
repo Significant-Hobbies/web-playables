@@ -23,14 +23,14 @@ $GODOT_HEAD_INCLUDE
 <div class="cover" id="pause-cover" hidden><div><span class="eyebrow">Take your time</span><h1>Company at rest.</h1><p>Your orders and the battlefield will wait.</p><button id="resume">Resume</button></div></div>
 </div>
 <div class="below"><p>Select a companion. Choose an order, then its target. <kbd>Space</kbd> ends the turn; <kbd>Z</kbd> undoes your last order. The in-game Menu has the manual, sound and reduced-motion settings.</p><div class="save-tools"><span id="save-status" role="status">Saves stay in this browser</span><button id="export" disabled>Export save</button></div></div>
-<details><summary>About this browser build</summary><p>The original Godot game now runs in your browser. Its twelve-encounter story, battles, companions, chest and short combat animations are preserved. It is a prototype, best on a larger screen in landscape. Browser saves are separate from native saves. Private browsing, storage restrictions or clearing site data can remove progress. Export a backup before clearing storage. This game is outside the YouTube Playables lane.</p></details>
+<details><summary>About this browser build</summary><p>The original Godot game now runs in your browser. Its twelve-encounter story, battles, companions, chest and short combat animations are preserved. It is a prototype, best on a larger screen in landscape. Browser saves are separate from native saves. Private browsing, storage restrictions or clearing site data can remove progress. Export save downloads a JSON copy for inspection. This build has no import control; clearing browser storage removes playable progress. This game is outside the YouTube Playables lane.</p></details>
 </main>
 <noscript>JavaScript is needed to run this game.</noscript>
 <script src="$GODOT_URL"></script>
 <script>
 'use strict';
 const config = $GODOT_CONFIG;
-const engine = new Engine({...config, canvasResizePolicy:0, focusCanvas:true, onProgress(current,total){document.getElementById('loading').textContent=total?`Loading the company… ${Math.round(current/total*100)}%`:'Loading the company…';},onPrintError(...args){console.error(...args);if(args.join(" ").match(/indexeddb|idbfs|sync.*failed|quota/i))storageError();}});
+const engine = new Engine({...config, canvasResizePolicy:0, focusCanvas:true, onProgress(current,total){document.getElementById('loading').textContent=total?`Loading the company… ${Math.round(current/total*100)}%`:'Loading the company…';},onPrintError(...args){console.error(...args);if(args.join(" ").match(/indexeddb|idbfs|idb file system|sync.*failed|quota/i))storageError();}});
 const canvas=document.getElementById('canvas');
 const pauseButton=document.getElementById('pause');
 const pauseCover=document.getElementById('pause-cover');
@@ -41,7 +41,7 @@ let manualPause=false;
 function setPaused(value){if(!started)return;paused=value;window.warChestPause?.(value);pauseCover.hidden=!value;pauseButton.textContent=value?'Resume':'Pause';if(!value)canvas.focus();}
 function storageError(){saveStatus.textContent='Storage unavailable · export your save';saveStatus.classList.add('error');window.warChestStorageError?.();}
 window.warChestReady=(persistent)=>{started=true;document.getElementById('start-cover').hidden=true;pauseButton.disabled=false;document.getElementById('fullscreen').disabled=false;document.getElementById('export').disabled=false;if(persistent===false)storageError();canvas.focus();};
-window.warChestSaveChanged=()=>{if(!saveStatus.classList.contains('error'))saveStatus.textContent='Saving in this browser…';};
+window.warChestSaveChanged=()=>{if(!saveStatus.classList.contains('error'))saveStatus.textContent='Saves use this browser’s storage';};
 window.warChestSaveSnapshot=(snapshot)=>{const blob=new Blob([snapshot],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='war-chest-company.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 document.getElementById('play').addEventListener('click',async()=>{const play=document.getElementById('play');play.disabled=true;try{const missing=Engine.getMissingFeatures({threads:false});if(missing.length)throw new Error(`This browser is missing ${missing.join(', ')}.`);await engine.startGame();}catch(error){document.getElementById('loading').textContent=error.message||String(error);play.disabled=false;play.textContent='Try again';}});
 pauseButton.addEventListener('click',()=>{manualPause=!paused;setPaused(manualPause);});
@@ -51,7 +51,7 @@ document.getElementById('fullscreen').addEventListener('click',async()=>{try{con
 document.addEventListener('visibilitychange',()=>{setPaused(document.hidden||manualPause);});
 window.addEventListener('blur',()=>setPaused(true));
 window.addEventListener('focus',()=>{if(!document.hidden&&!manualPause)setPaused(false);});
-window.addEventListener('unhandledrejection',event=>{if(String(event.reason).match(/indexeddb|idbfs|quota/i))storageError();});
+window.addEventListener('unhandledrejection',event=>{if(String(event.reason).match(/indexeddb|idbfs|idb file system|quota/i))storageError();});
 </script>
 </body>
 </html>

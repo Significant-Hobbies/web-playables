@@ -34,6 +34,22 @@ importers:
         specifier: ^7.3.4
         version: 7.3.6(jiti@2.7.0)(yaml@2.9.0)
 
+  games/ember-road:
+    dependencies:
+      '@games/gamekit':
+        specifier: workspace:*
+        version: link:../../packages/gamekit
+    devDependencies:
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.4
+        version: 7.3.6(jiti@2.7.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(jiti@2.7.0)(yaml@2.9.0)
+
   games/idle-startup:
     dependencies:
       '@fontsource-variable/jetbrains-mono':

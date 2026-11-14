@@ -239,6 +239,7 @@ function sitemapXml(origin: string): string {
   <url><loc>${origin}/</loc></url>
   <url><loc>${origin}/play/idle-startup/</loc></url>
   <url><loc>${origin}/play/war-chest/</loc></url>
+  <url><loc>${origin}/play/ember-road/</loc></url>
 </urlset>
 `;
 }
@@ -319,6 +320,8 @@ export async function onRequest(context: {
       "/play/idle-startup/",
       "/play/war-chest",
       "/play/war-chest/",
+      "/play/ember-road",
+      "/play/ember-road/",
     ].includes(pathname)
   )
     response = advertiseMarkdown(
@@ -338,6 +341,21 @@ export async function onRequest(context: {
       statusText: response.statusText,
       headers,
     });
+  }
+
+  if (pathname === "/play/war-chest/index.wasm" && response.ok) {
+    const headers = withRateLimit(new Headers(response.headers));
+    headers.set("Content-Type", "application/wasm");
+    headers.set("Content-Encoding", "br");
+    headers.set("Cache-Control", "public, max-age=0, must-revalidate, no-transform");
+    headers.delete("Content-Length");
+    const init: ResponseInit & { encodeBody: "manual" } = {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+      encodeBody: "manual",
+    };
+    return new Response(request.method === "HEAD" ? null : response.body, init);
   }
 
   // Add rate-limit headers to all other responses.

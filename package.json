@@ -10,7 +10,7 @@
     "typecheck": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r typecheck",
     "test": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r test",
     "build": "pnpm generate:readability && pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r build && pnpm war-chest:build && node scripts/assemble-site.mjs",
-    "build:yt": "pnpm --filter @games/idle-startup build:yt",
+    "build:yt": "pnpm --filter \"./games/**\" -r build:yt",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "deploy": "pnpm build && wrangler pages deploy apps/hub/dist --project-name=web-playables --branch=main",
     "preview": "pnpm --filter @games/idle-startup preview",
@@ -25,7 +25,11 @@
     "war-chest:check": "sh engine-games/war-chest/scripts/check.sh",
     "war-chest:serve": "node scripts/serve-site.mjs",
     "war-chest:setup": "node scripts/setup-war-chest-godot.mjs",
-    "war-chest:e2e": "node scripts/test-war-chest-browser.mjs"
+    "war-chest:e2e": "node scripts/test-war-chest-browser.mjs",
+    "dev:ember-road": "pnpm --filter @games/ember-road dev",
+    "ember-road:e2e": "node scripts/test-ember-road-browser.mjs",
+    "war-chest:pages-test": "node scripts/test-war-chest-pages.mjs",
+    "games:e2e": "node scripts/test-web-games-browser.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",

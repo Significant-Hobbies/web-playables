@@ -6,7 +6,7 @@ Also read and follow the shared fleet-level agent standard at `../AGENTS.md`. Tr
 
 - **Stack**: pnpm monorepo — `packages/gamekit` (TS game framework, no build step), `games/*` (Vite vanilla-TS games), `apps/hub` (arcade site listing all games), `networked-games/*` (games that need a backend; see below)
 - **Local dev**: `pnpm install`, then `pnpm dev` (first game) or `pnpm dev:hub`
-- **Checks**: `pnpm check` = biome + typecheck + vitest + build for the certified lane (`packages/`, `games/`, `apps/`); `pnpm historia:check` and `pnpm historia:e2e` for Open Historia. CI runs both as separate jobs.
+- **Checks**: `pnpm check` runs biome, typecheck and vitest for the certified lane (`packages/`, `games/`, `apps/`), then builds both certified games and the Godot web export; `pnpm historia:check` and `pnpm historia:e2e` for Open Historia. CI runs both as separate jobs.
 - **Deploy**: manual Cloudflare Pages; `pnpm build` assembles hub + games under `apps/hub/dist/` (games served at `/play/<id>/`). Networked games deploy separately (see below).
 
 ## Game lanes

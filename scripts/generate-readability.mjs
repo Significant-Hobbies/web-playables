@@ -31,6 +31,10 @@ const pages = {
   "/": `# ${PUBLIC_COPY.wordmark}\n\n${PUBLIC_COPY.status}\n\n${PUBLIC_COPY.intro}\n\n${GAMES.map((game) => `## ${game.title}\n\n${game.tagline}\n\n[Play →](${origin}/play/${game.id}/)`).join("\n\n")}\n\n## ${PUBLIC_COPY.proofTitle}\n\n${PUBLIC_COPY.proofEyebrow}\n\n${PUBLIC_COPY.proofBody}\n`,
 };
 for (const game of GAMES.filter((game) => game.status === "live")) {
+  if (game.entry) {
+    pages[`/play/${game.id}/`] = await readFile(resolve(game.entry), "utf8");
+    continue;
+  }
   if (game.engine === "godot") {
     pages[`/play/${game.id}/`] = await readFile(
       resolve("engine-games", game.id, "web/entry.md"),

@@ -1,6 +1,6 @@
 # Idle — Web Playables - full content
 
-> Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+> Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
 
 Generated: 2026-11-14
 
@@ -12,7 +12,13 @@ Canonical: https://idle.aliveville.com/
 
 Browser games · in development
 
-Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
+
+## Ember Road
+
+Forge your knight. Choose your oaths. Walk one road further.
+
+[Play →](https://idle.aliveville.com/play/ember-road/)
 
 ## War Chest
 
@@ -30,7 +36,22 @@ Ship features. Hire the team. Raise the round.
 
 Inside the arcade
 
-Idle Startup is an incremental company simulator built on gamekit, with a separate YouTube Playables build. War Chest is a Godot tactical story prototype with a twelve-encounter campaign, animated companions and a spatial equipment chest. War Chest saves in this browser and is best played in landscape on a larger screen. Neither game includes analytics; visits to the hub are measured separately.
+Ember Road is an original idle battle game with animated characters, earned upgrades and a fresh perk build each journey. Idle Startup is an incremental company simulator built on gamekit, with a separate YouTube Playables build. War Chest is a Godot tactical story prototype with a twelve-encounter campaign, animated companions and a spatial equipment chest. War Chest saves in this browser and is best played in landscape on a larger screen. The games include no analytics; visits to the hub are measured separately.
+
+
+---
+<!-- source: https://idle.aliveville.com/play/ember-road/ -->
+# Ember Road
+
+Canonical: https://idle.aliveville.com/play/ember-road/
+
+An original single-player idle battle game. Begin a chapter and your knight walks and fights automatically. At each level-up, choose one of three oaths to shape this journey.
+
+Gold and forged gear survive defeat. Return to the forge to improve your blade, mail or charm, then retry or enter the next unlocked chapter. Five chapters each end with a boss. Oaths reset between journeys.
+
+Use pointer or touch controls. Space pauses during a journey when a button is not focused. Keys 1–3 choose an oath. Settings offers reduced motion. Progress stays in this browser; no account or network is needed.
+
+[Play Ember Road](https://idle.aliveville.com/play/ember-road/) · [Game directory](https://idle.aliveville.com/)
 
 
 ---
@@ -51,7 +72,7 @@ Press Play to load the game. Read the opening conversation, prepare your company
 - In camp, pack equipment into the chest. R rotates; WASD moves the cursor; F places.
 - Menu contains the manual, sound and reduced-motion settings.
 
-Browser prototype. Best in landscape on a larger screen. Saves remain in this browser; private browsing or clearing site data may remove them. Native saves are separate. Export a backup from the browser toolbar before clearing storage. This Godot game is outside the YouTube Playables lane.
+Browser prototype. Best in landscape on a larger screen. Saves remain in this browser; private browsing or clearing site data may remove them. Native saves are separate. The browser toolbar exports a JSON copy for inspection. This build has no import control; clearing browser storage removes playable progress. This Godot game is outside the YouTube Playables lane.
 
 [Play War Chest](https://idle.aliveville.com/play/war-chest/) · [Game directory](https://idle.aliveville.com/)
 
@@ -95,6 +116,6 @@ The playable page keeps player names, company names, saves, balances, progress a
 [Play Idle Startup](https://idle.aliveville.com/play/idle-startup/) · [Game directory](https://idle.aliveville.com/)
 
 
-Included 3 of 3 registered public pages (limit 50 pages / 500000 characters).
+Included 4 of 4 registered public pages (limit 50 pages / 500000 characters).
 
 Full catalog: https://idle.aliveville.com/api/md/_catalog

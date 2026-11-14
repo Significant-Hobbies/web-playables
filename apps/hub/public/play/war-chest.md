@@ -14,6 +14,6 @@ Press Play to load the game. Read the opening conversation, prepare your company
 - In camp, pack equipment into the chest. R rotates; WASD moves the cursor; F places.
 - Menu contains the manual, sound and reduced-motion settings.
 
-Browser prototype. Best in landscape on a larger screen. Saves remain in this browser; private browsing or clearing site data may remove them. Native saves are separate. Export a backup from the browser toolbar before clearing storage. This Godot game is outside the YouTube Playables lane.
+Browser prototype. Best in landscape on a larger screen. Saves remain in this browser; private browsing or clearing site data may remove them. Native saves are separate. The browser toolbar exports a JSON copy for inspection. This build has no import control; clearing browser storage removes playable progress. This Godot game is outside the YouTube Playables lane.
 
 [Play War Chest](https://idle.aliveville.com/play/war-chest/) · [Game directory](https://idle.aliveville.com/)
