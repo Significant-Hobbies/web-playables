@@ -119,6 +119,42 @@ describe('gateway route errors', () => {
     );
   });
 
+  it('shares the 55-second deadline between simulation and objective evaluation', async () => {
+    const fetch = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((resolve) =>
+            setTimeout(() => resolve(gatewayOutput(JSON.stringify(routes[0].output))), 50_000)
+          )
+      )
+      .mockImplementationOnce(() => new Promise<Response>(() => {}));
+    const pending = app.request(
+      '/turn',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-real-ip': 'synthetic-shared-judge-deadline',
+        },
+        body: JSON.stringify({
+          ...routes[0].input,
+          config: { provider: 'free-ai', model: 'auto', presetId: 'ww2-1939' },
+        }),
+      },
+      { FREE_AI: { fetch } as unknown as Fetcher, NODE_ENV: 'production' } as never
+    );
+    let settled = false;
+    void pending.then(() => {
+      settled = true;
+    });
+    await vi.advanceTimersByTimeAsync(LLM_TIMEOUT_MS - 1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    expect((await pending).status).toBe(504);
+  });
+
   it.each(routes)('keeps the shared deadline across the gateway retry for $path', async (route) => {
     let finishRetry!: (response: Response) => void;
     const fetch = vi

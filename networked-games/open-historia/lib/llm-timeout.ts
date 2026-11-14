@@ -10,9 +10,13 @@ export class LLMTimeoutError extends Error {
   }
 }
 
-export function withTimeout<T>(promise: Promise<T>, provider: string): Promise<T> {
+export function withTimeout<T>(
+  promise: Promise<T>,
+  provider: string,
+  timeoutMs = LLM_TIMEOUT_MS
+): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const handle = setTimeout(() => reject(new LLMTimeoutError(provider)), LLM_TIMEOUT_MS);
+    const handle = setTimeout(() => reject(new LLMTimeoutError(provider)), timeoutMs);
     promise.then(
       (value) => {
         clearTimeout(handle);
