@@ -27,41 +27,6 @@ const context = await browser.newContext({
   acceptDownloads: true,
 });
 const page = await context.newPage();
-if (process.env.CI) {
-  page.on("console", (message) => {
-    if (message.text().startsWith("SAVE TRACE ")) console.log(message.text());
-  });
-  await context.addInitScript(() => {
-    const trace = (operation, key, value) => {
-      if (!String(key).includes("winter-wages-story-v1.json") || !value?.contents) return;
-      try {
-        const state = JSON.parse(new TextDecoder().decode(value.contents));
-        console.log(
-          "SAVE TRACE " +
-            JSON.stringify({
-              operation,
-              key,
-              round: state.battle?.round,
-              lessons: state.campaign?.lessons,
-              timestamp: value.timestamp,
-              page: performance.timeOrigin,
-            }),
-        );
-      } catch {}
-    };
-    const put = IDBObjectStore.prototype.put;
-    IDBObjectStore.prototype.put = function (value, key) {
-      trace("put", key, value);
-      return put.call(this, value, key);
-    };
-    const get = IDBObjectStore.prototype.get;
-    IDBObjectStore.prototype.get = function (key) {
-      const request = get.call(this, key);
-      request.addEventListener("success", () => trace("get", key, request.result));
-      return request;
-    };
-  });
-}
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("console", (message) => {
@@ -175,8 +140,10 @@ try {
   await page.waitForTimeout(200);
   const afterTurn = await snapshot();
   assert(afterTurn.battle.round > initial.battle.round, "Ending a turn resolves the enemy phase");
-  await page.waitForFunction(
-    async (expected) => {
+  let stored = false;
+  const saveDeadline = Date.now() + 20000;
+  while (!stored && Date.now() < saveDeadline) {
+    stored = await page.evaluate(async (expected) => {
       for (const entry of await indexedDB.databases()) {
         if (!entry.name) continue;
         const db = await new Promise((done, fail) => {
@@ -210,10 +177,10 @@ try {
         }
       }
       return false;
-    },
-    afterTurn,
-    { timeout: 20000 },
-  );
+    }, afterTurn);
+    if (!stored) await page.waitForTimeout(100);
+  }
+  assert(stored, "The exact committed story save reaches IndexedDB before reload");
   await launch();
   assert.deepEqual(await snapshot(), afterTurn, "Browser save survives a full page reload");
   for (const viewport of [
