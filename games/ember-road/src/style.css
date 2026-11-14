@@ -1902,6 +1902,7 @@ dialog {
 
 @media (max-height: 500px) and (min-width: 650px) {
   .forge-items {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .forge-item {
