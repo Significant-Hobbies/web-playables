@@ -57,7 +57,9 @@ try {
     await new Promise((done) => setTimeout(done, 250));
   }
   assert(ready, `Pages did not start; see ${evidence}/pages.log`);
-  const wasm = await fetch(`${origin}/play/war-chest/index.wasm`);
+  const wasm = await fetch(`${origin}/play/war-chest/index.wasm`, {
+    headers: { "Accept-Encoding": "br" },
+  });
   assert.equal(wasm.status, 200);
   assert.equal(wasm.headers.get("content-encoding"), "br");
   assert.match(wasm.headers.get("cache-control"), /max-age=0/);
@@ -69,7 +71,7 @@ try {
     "Pages plus middleware must deliver a correctly decoded WASM module",
   );
   const ranged = await fetch(`${origin}/play/war-chest/index.wasm`, {
-    headers: { Range: "bytes=0-31" },
+    headers: { Range: "bytes=0-31", "Accept-Encoding": "br" },
   });
   assert.equal(ranged.status, 200, "Compressed WASM serves a complete body for Range requests");
   assert.equal(ranged.headers.get("content-encoding"), "br");
