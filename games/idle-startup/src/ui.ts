@@ -363,7 +363,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   fundBtn.addEventListener("click", () => hooks.onRaise());
   fundCard.append(el("div", "eyebrow", "Funding"), fundStatus, fundBar, fundBtn);
 
-  founder.append(sceneCard, cashCard, questCard, actionsCard, fundCard);
+  founder.append(sceneCard, cashCard, questCard);
 
   // ops column: org chart by department + upgrades
   const ops = el("section", "ops");
@@ -406,8 +406,47 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   const upgCardsBox = el("div", "upg-cards");
   upgPanel.append(upgEmpty, upgCardsBox);
 
-  ops.append(teamPanel, upgPanel);
-  frame.append(header, founder, ops);
+  const management = el("dialog", "management-dialog");
+  management.setAttribute("aria-labelledby", "management-title");
+  const managementHead = el("div", "management-head");
+  const managementTitle = el("h2", "panel-title");
+  managementTitle.id = "management-title";
+  const closeManagement = el("button", "modal-cancel", "Back to the office");
+  closeManagement.addEventListener("click", () => management.close());
+  managementHead.append(managementTitle, closeManagement);
+  management.append(managementHead, ops);
+  app.append(management);
+  const dock = el("nav", "office-dock");
+  dock.setAttribute("aria-label", "Run your company");
+  const panels = [
+    ["Team", teamPanel],
+    ["Upgrades", upgPanel],
+    ["Growth", actionsCard],
+    ["Funding", fundCard],
+  ] as const;
+  for (const [label, panel] of panels) {
+    ops.append(panel);
+    const button = el("button", "dock-button", label);
+    button.addEventListener("click", () => {
+      managementTitle.textContent = label;
+      for (const [, item] of panels) item.hidden = item !== panel;
+      management.showModal();
+    });
+    dock.append(button);
+  }
+  management.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest(".gen-row, .faces-strip, .details-btn")) management.close();
+    },
+    { capture: true },
+  );
+  const journey = el("div", "office-journey");
+  const journeyTitle = el("span", "eyebrow", "CHAPTER 1 · THE GARAGE");
+  const journeyNext = el("span", "journey-next");
+  journey.append(journeyTitle, journeyNext);
+  frame.append(header, founder, journey, dock);
 
   const vignette = el("div", "danger-vignette hidden");
   app.append(vignette);
@@ -1059,6 +1098,11 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
 
     // office
     const office = currentOffice(state);
+    journeyTitle.textContent = `CHAPTER ${state.officeIndex + 1} · ${office.name.toUpperCase()}`;
+    const destination = nextOffice(state);
+    journeyNext.textContent = destination
+      ? `Next: ${destination.name} · ${money(destination.cost)} · build your team to get there.`
+      : "The skyline is yours. Grow your team and finish the research.";
     const nextHq = nextOffice(state);
     officeLabel.textContent = office.name;
     if (officeIcon.dataset.tier !== String(state.officeIndex)) {

@@ -41,6 +41,7 @@ export class WorldRenderer {
   private backdropImage = new Image();
   private width = 1000;
   private height = 520;
+  private actorScale = 1;
   readonly sparks: Spark[] = [];
   private canvas: HTMLCanvasElement;
 
@@ -61,11 +62,13 @@ export class WorldRenderer {
     this.canvas.height = Math.round(rect.height * ratio);
     this.width = 1000;
     this.height = (rect.height / Math.max(1, rect.width)) * this.width;
+    const pixels = Math.min(300, Math.max(120, Math.min(rect.width * 0.35, rect.height * 0.36)));
+    this.actorScale = pixels / (200 * Math.max(0.1, rect.width / this.width));
   }
 
   impact(side: "hero" | "enemy", value: number, critical: boolean, heal = false) {
     const x = side === "hero" ? 295 : 480;
-    const y = this.height * 0.69 - 115;
+    const y = this.height * 0.73 - 160 * this.actorScale;
     this.sparks.push({
       x,
       y,
@@ -113,7 +116,7 @@ export class WorldRenderer {
     else if (direction === "tabletop") this.tableWorld(s);
     else this.emberWorld(s);
     const ground = h * 0.73;
-    const scale = Math.min(1.45, h / 420);
+    const scale = this.actorScale;
     const moving = s.walking && !s.reducedMotion;
     const gait = moving ? Math.sin(s.time * 10) : 0;
     const heroX = 292 + (s.heroAttack > 0 ? Math.sin(s.heroAttack * Math.PI) * 18 : 0);

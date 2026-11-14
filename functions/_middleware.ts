@@ -362,6 +362,17 @@ export async function onRequest(context: {
     return new Response(request.method === "HEAD" ? null : response.body, init);
   }
 
+  // Godot exports use stable filenames; revalidate the matching runtime and pack together.
+  if (pathname.startsWith("/play/war-chest/")) {
+    const headers = withRateLimit(new Headers(response.headers));
+    headers.set("Cache-Control", "public, max-age=0, must-revalidate, no-transform");
+    return new Response(request.method === "HEAD" ? null : response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
   // Add rate-limit headers to all other responses.
   const headers = withRateLimit(new Headers(response.headers));
   return new Response(request.method === "HEAD" ? null : response.body, {

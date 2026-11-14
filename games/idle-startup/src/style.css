@@ -1806,3 +1806,240 @@ img.quest-emoji {
     transform: translate(-50%, -50%) scale(1);
   }
 }
+
+/* The office is the playfield; management opens over it. */
+.frame {
+  align-items: stretch;
+}
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.frame {
+  max-width: none;
+  height: 100dvh;
+  min-height: 0;
+  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 12px;
+}
+.top {
+  grid-column: auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.founder {
+  position: relative;
+  top: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+.scene-card {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+  border-radius: 14px;
+}
+.scene-backdrop {
+  object-fit: cover;
+}
+.cash-card {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: min(300px, 45%);
+  background: #0b0e1ae8;
+  padding: 16px;
+}
+.cash-card .revenue-chart {
+  height: 36px;
+}
+.quest-card {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  right: 18px;
+  width: fit-content;
+  max-width: calc(100% - 36px);
+  background: #0b0e1aeb;
+}
+.office-journey {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+.office-journey .eyebrow {
+  margin: 0;
+  color: var(--violet);
+  font-size: 11px;
+}
+.journey-next {
+  color: var(--text-dim);
+}
+.office-dock {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.dock-button {
+  min-height: 52px;
+  border: 1px solid var(--line-bright);
+  border-radius: 10px;
+  background: var(--ink-800);
+  font-weight: 600;
+}
+.dock-button:first-child {
+  background: var(--cash);
+  color: var(--ink-950);
+  border-color: var(--cash);
+}
+.management-dialog {
+  margin: auto;
+  width: min(820px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 22px;
+  color: var(--text);
+  background: var(--ink-900);
+  border: 1px solid var(--line-bright);
+  border-radius: 16px;
+  overflow-y: auto;
+}
+.management-dialog::backdrop {
+  background: #070912c9;
+  backdrop-filter: blur(6px);
+}
+.management-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.management-head .panel-title {
+  margin: 0;
+  color: var(--text);
+}
+.management-head button {
+  margin: 0;
+  min-height: 44px;
+}
+.management-dialog .ops {
+  display: block;
+}
+.management-dialog [hidden] {
+  display: none !important;
+}
+.management-dialog .card,
+.management-dialog .panel {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+@media (max-width: 600px) {
+  .frame {
+    padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+    gap: 10px;
+  }
+  .brand {
+    gap: 5px;
+    min-width: 0;
+  }
+  .brand-name {
+    font-size: 10px;
+    letter-spacing: 0.09em;
+  }
+  .top {
+    gap: 6px;
+  }
+  .age-chip,
+  .round-badge,
+  .investors-chip {
+    font-size: 9px;
+    padding: 5px;
+  }
+  .cash-card {
+    left: 10px;
+    top: 10px;
+    width: auto;
+    max-width: calc(100% - 20px);
+    padding: 12px;
+  }
+  .cash-value {
+    font-size: 30px;
+  }
+  .cash-card .revenue-chart,
+  .cash-card .founder-line,
+  .cash-card .details-btn,
+  .cash-card .eyebrow {
+    display: none;
+  }
+  .quest-card {
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    max-width: calc(100% - 20px);
+    padding: 12px;
+    font-size: 12px;
+  }
+  .office-journey {
+    display: block;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  .office-journey .eyebrow {
+    display: block;
+    font-size: 10px;
+    margin-bottom: 2px;
+  }
+  .office-dock {
+    gap: 6px;
+  }
+  .dock-button {
+    font-size: 12px;
+    min-height: 48px;
+  }
+  .management-dialog {
+    padding: 16px;
+  }
+}
+@media (max-height: 500px) {
+  .frame {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 6px;
+    padding-block: 6px;
+  }
+  .office-journey {
+    display: none;
+  }
+  .cash-card {
+    padding: 8px;
+  }
+  .cash-card .revenue-chart,
+  .cash-card .founder-line,
+  .cash-card .details-btn,
+  .cash-card .eyebrow {
+    display: none;
+  }
+  .cash-value {
+    font-size: 26px;
+  }
+  .quest-card {
+    padding: 8px;
+    bottom: 8px;
+    left: auto;
+  }
+  .dock-button {
+    min-height: 44px;
+  }
+}

@@ -1,12 +1,14 @@
 import { isTimelineMemory } from '@/lib/timeline-memory';
 import { createPortal } from 'react-dom';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { GameEvent, TimelineSnapshot } from '@/lib/types';
 import { diffTimelineSnapshots } from '@/lib/state-diff';
 
 interface TimelineProps {
+  embedded?: boolean;
   snapshots: TimelineSnapshot[];
   currentYear: number;
   activeSnapshotId?: string | null;
@@ -169,6 +171,7 @@ const BRANCH_VERTICAL_GAP = 80;
 const TRACK_Y = 24;
 
 export default function Timeline({
+  embedded = false,
   snapshots,
   currentYear,
   activeSnapshotId,
@@ -703,7 +706,7 @@ export default function Timeline({
                 Cancel
               </button>
             </div>,
-            document.body
+            (embedded && document.getElementById('campaign-panel-timeline')) || document.body
           );
         }
 
@@ -746,7 +749,7 @@ export default function Timeline({
                 {formatTimestamp(snap.timestamp)}
               </div>
             </div>,
-            document.body
+            (embedded && document.getElementById('campaign-panel-timeline')) || document.body
           );
         }
 

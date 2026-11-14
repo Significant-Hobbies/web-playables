@@ -13,11 +13,33 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+async function showPanel(page: import('@playwright/test').Page, name: string) {
+  const active = page.locator('dialog[open]');
+  if (await active.count()) {
+    if ((await active.getAttribute('aria-label')) === name) return;
+    await active.getByRole('button', { name: 'Back to the map', exact: true }).click();
+  }
+  await page
+    .getByRole('button', { name: name === 'Orders' ? /^Orders(?: \(\d+\))?$/ : name, exact: true })
+    .click();
+}
+async function saveCampaign(page: import('@playwright/test').Page) {
+  await showPanel(page, 'Menu');
+  await page.getByRole('button', { name: /^save$/i }).click();
+  await showPanel(page, 'Orders');
+}
+async function selectTimeStep(page: import('@playwright/test').Page) {
+  await showPanel(page, 'Menu');
+  await page.getByRole('combobox').selectOption('1y');
+  await showPanel(page, 'Orders');
+}
+
 async function startCampaign(page: import('@playwright/test').Page) {
   await page.goto('/play');
   await page.getByRole('button', { name: /^war World War II/ }).click();
   await page.getByRole('button', { name: 'United Kingdom', exact: true }).click();
   await page.getByRole('button', { name: 'Initialize Simulation' }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
 }
 
@@ -25,7 +47,7 @@ test('unavailable URL save explains recovery and preserves existing saves', asyn
   page,
 }, testInfo) => {
   await startCampaign(page);
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   const saved = await page.evaluate(() => localStorage.getItem('open_historia_saves'));
   await page.goto('/play/synthetic-unavailable-save');
@@ -50,7 +72,7 @@ test('unavailable URL save explains recovery and preserves existing saves', asyn
 
 test('retry restores a URL save that becomes available', async ({ page }) => {
   await startCampaign(page);
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   const save = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves')!)[0]
@@ -64,6 +86,7 @@ test('retry restores a URL save that becomes available', async ({ page }) => {
     save
   );
   await page.getByRole('button', { name: 'Retry', exact: true }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toHaveCount(0);
   expect(page.url()).toBe(url);
@@ -186,7 +209,7 @@ test('failed turn retains orders and year; retry commits once and save reloads',
   const input = page.getByRole('textbox', { name: /Enter orders/ });
   await input.fill('Negotiate humanitarian shipping access.');
   await input.press('Enter');
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   await page
     .getByRole('button', { name: /^advance$/i })
     .first()
@@ -204,7 +227,7 @@ test('failed turn retains orders and year; retry commits once and save reloads',
   expect(requests).toBe(2);
   await input.fill('Prepare a follow-up shipment.');
   await input.press('Enter');
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   const savedState = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0].gameState
@@ -221,15 +244,18 @@ test('failed turn retains orders and year; retry commits once and save reloads',
   );
   const savedUrl = page.url();
   await page.reload();
+  await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
   await expect(page.getByText('Humanitarian agreement accepted.')).toBeVisible();
   await expect(page.getByText('1940', { exact: true }).first()).toBeVisible();
   expect(page.url()).toBe(savedUrl);
+  await showPanel(page, 'Relations');
   await expect(page.getByRole('button', { name: /Relations.*1/i })).toBeVisible();
+  await showPanel(page, 'Orders');
   await expect(page.getByText('No timeline snapshots yet.', { exact: false })).toHaveCount(0);
   await expect(page.getByText('1 order queued')).toBeVisible();
   // Saving again proves that restored UI state, not just the old JSON, survives.
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   const restoredState = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0].gameState
   );
@@ -249,8 +275,11 @@ test('save failure keeps the active campaign open', async ({ page }) => {
       return original.call(this, key, value);
     };
   });
+  await showPanel(page, 'Menu');
   await page.getByRole('button', { name: /^save & exit$/i }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByText(/Save failed: Storage quota exceeded/)).toBeVisible();
+  await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
   expect(page.url()).toBe(url);
 });
@@ -277,7 +306,7 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
     });
   });
   await startCampaign(page);
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   for (let n = 1; n <= 2; n++) {
     await page
       .getByRole('button', { name: /^advance$/i })
@@ -285,11 +314,14 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
       .click();
     await expect(page.getByText(`Turn ${n} narrative`, { exact: true })).toBeVisible();
   }
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
   await page.getByRole('button', { name: 'Rewind', exact: true }).click();
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await showPanel(page, 'Orders');
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   await page.reload();
+  await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
   await page
     .getByRole('button', { name: /^advance$/i })
@@ -300,7 +332,7 @@ test('rewind restores prompt memory across save and reload', async ({ page }) =>
   expect(requests[2].completedStepIds).toEqual(['objective-1']);
   expect(JSON.stringify(requests[2].events)).not.toContain('Event 2');
   expect(JSON.stringify(requests[2].history)).not.toContain('Turn 2 narrative');
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   const state = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0].gameState
   );
@@ -321,13 +353,13 @@ test('older snapshots remain inspectable without inventing rewind memory', async
     })
   );
   await startCampaign(page);
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   await page
     .getByRole('button', { name: /^advance$/i })
     .first()
     .click();
   await expect(page.getByText('Historical fixture turn', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   await page.evaluate(() => {
     const saves = JSON.parse(localStorage.getItem('open_historia_saves') || '[]');
@@ -336,6 +368,7 @@ test('older snapshots remain inspectable without inventing rewind memory', async
     localStorage.setItem('open_historia_saves', JSON.stringify(saves));
   });
   await page.reload();
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
   await expect(
     page.getByText('Older snapshot: historical memory was not saved. Replay inspection only.')
@@ -389,7 +422,7 @@ test('rewind cannot replace state beneath an in-flight turn', async ({ page }) =
     });
   });
   await startCampaign(page);
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   for (let n = 1; n <= 2; n++) {
     await page
       .getByRole('button', { name: /^advance$/i })
@@ -402,12 +435,14 @@ test('rewind cannot replace state beneath an in-flight turn', async ({ page }) =
     .first()
     .click();
   await expect.poll(() => count).toBe(3);
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
   await page.getByRole('button', { name: 'Rewind', exact: true }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByText('Rewound to Year 1940.', { exact: true })).toHaveCount(0);
   release();
   await expect(page.getByText('Response 3', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   const save = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0]
   );
@@ -431,7 +466,7 @@ test('explicit empty summary survives a later rewind and reload', async ({ page 
     });
   });
   await startCampaign(page);
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   for (let n = 1; n <= 3; n++) {
     await page
       .getByRole('button', { name: /^advance$/i })
@@ -440,11 +475,14 @@ test('explicit empty summary survives a later rewind and reload', async ({ page 
     await expect(page.getByText(`Empty-check response ${n}`, { exact: true })).toBeVisible();
   }
   expect(requests[2].storySoFar).toBe('');
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1941:/ }).click();
   await page.getByRole('button', { name: 'Rewind', exact: true }).click();
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await showPanel(page, 'Orders');
+  await saveCampaign(page);
   await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
   await page.reload();
+  await showPanel(page, 'Orders');
   await page
     .getByRole('button', { name: /^advance$/i })
     .first()
@@ -482,7 +520,7 @@ test('rewind waits for a pending advisor response before restoring context', asy
     await route.fulfill({ json: { advice: 'Future advice response' } });
   });
   await startCampaign(page);
-  await page.getByRole('combobox').selectOption('1y');
+  await selectTimeStep(page);
   for (let n = 1; n <= 2; n++) {
     await page
       .getByRole('button', { name: /^advance$/i })
@@ -490,22 +528,30 @@ test('rewind waits for a pending advisor response before restoring context', asy
       .click();
     await expect(page.getByText(`Advisor-check turn ${n}`, { exact: true })).toBeVisible();
   }
+  await showPanel(page, 'Advisor');
   await page.getByRole('button', { name: 'Open Strategic Advisor' }).click();
   await page.getByPlaceholder('Ask your advisor...').fill('What follows this future event?');
   await page.getByRole('button', { name: 'Send message', exact: true }).click();
   await expect.poll(() => started).toBe(true);
   await page.getByRole('button', { name: 'Close advisor' }).click();
+  await showPanel(page, 'Orders');
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
   await page.getByRole('button', { name: 'Rewind', exact: true }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByText('Rewound to Year 1940.', { exact: true })).toHaveCount(0);
   release();
+  await showPanel(page, 'Advisor');
   await page.getByRole('button', { name: 'Open Strategic Advisor' }).click();
   await expect(page.getByText('Future advice response', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Close advisor' }).click();
+  await showPanel(page, 'Orders');
+  await showPanel(page, 'Timeline');
   await page.getByRole('button', { name: /^Turn 1940:/ }).click();
   await page.getByRole('button', { name: 'Rewind', exact: true }).click();
+  await showPanel(page, 'Orders');
   await expect(page.getByText('Rewound to Year 1940.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: /^save$/i }).click();
+  await saveCampaign(page);
   const state = await page.evaluate(
     () => JSON.parse(localStorage.getItem('open_historia_saves') || '[]')[0].gameState
   );

@@ -51,20 +51,31 @@ async function clickGame(x, y) {
   await page.waitForTimeout(100);
 }
 async function snapshot() {
-  const downloaded = page.waitForEvent("download");
+  await page.locator("#menu").click();
+  const downloaded = page.waitForEvent("download", { timeout: 10000 });
   await page.locator("#export").click();
   const download = await downloaded;
+  await Promise.all([
+    page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          document.getElementById("game-menu").addEventListener("close", resolve, { once: true }),
+        ),
+    ),
+    page.getByRole("button", { name: "Back to the company", exact: true }).click(),
+  ]);
   return JSON.parse(await readFile(await download.path(), "utf8"));
 }
 try {
   await launch();
   assert.equal((await snapshot()).campaign.story.phase, "intro");
-  await page.screenshot({ path: join(evidence, "story-1440.png"), fullPage: true });
+  await page.screenshot({ path: join(evidence, "story-1440.png") });
   for (let line = 0; line < 3; line++) await clickGame(1200, 792);
   assert.equal((await snapshot()).campaign.story.phase, "prepare");
   await clickGame(990, 193);
   const packed = (await snapshot()).campaign.placements.blade;
   assert(packed, "Starter sword is packed");
+  await page.screenshot({ path: join(evidence, "chest-before-store.png") });
   await clickGame(435, 809);
   assert.equal(
     (await snapshot()).campaign.placements.blade,
@@ -77,13 +88,13 @@ try {
     packed,
     "Pointer packing restores the sword footprint",
   );
-  await page.screenshot({ path: join(evidence, "chest-1440.png"), fullPage: true });
+  await page.screenshot({ path: join(evidence, "chest-1440.png") });
   await clickGame(180, 226);
   await clickGame(400, 620);
   const initial = await snapshot();
   assert.equal(initial.battle.phase, "playing");
   assert.equal(initial.battle.commands, 6);
-  await page.screenshot({ path: join(evidence, "battle-1440.png"), fullPage: true });
+  await page.screenshot({ path: join(evidence, "battle-1440.png") });
   await clickGame(870, 755);
   await page.locator("#canvas").focus();
   await page.keyboard.press("t");
@@ -190,10 +201,14 @@ try {
   ]) {
     await page.setViewportSize(viewport);
     assert(
-      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <= innerWidth &&
+          document.documentElement.scrollHeight <= innerHeight,
+      ),
       `No horizontal overflow at ${viewport.width}`,
     );
-    await page.screenshot({ path: join(evidence, `battle-${viewport.width}.png`), fullPage: true });
+    await page.screenshot({ path: join(evidence, `battle-${viewport.width}.png`) });
   }
   assert.deepEqual(external, [], "The game makes no external network requests");
   assert.deepEqual(errors, [], "No engine or JavaScript errors");
