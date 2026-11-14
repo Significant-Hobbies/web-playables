@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-CHECK_TEST_ROOT=$(mktemp -d /private/tmp/war-chest-check-runner.XXXXXX)
+CHECK_TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/war-chest-check-runner.XXXXXX")
 if GODOT_BIN="$CHECK_TEST_ROOT/Missing Godot" sh scripts/check.sh > "$CHECK_TEST_ROOT/missing.log" 2>&1; then exit 1; fi
 grep -Fq 'Godot runtime is unavailable:' "$CHECK_TEST_ROOT/missing.log"
 grep -Fq 'Set GODOT_BIN' "$CHECK_TEST_ROOT/missing.log"

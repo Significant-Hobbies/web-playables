@@ -51,5 +51,9 @@ run_check command_preview '^COMMAND PREVIEW TESTS: [0-9]+ checks, 0 failures$' -
 run_check crossing_story '^CROSSING STORY TESTS: [0-9]+ checks, 0 failures$' --script tests/test_crossing_story.gd -- --story-demo
 sh tests/test_check_runner.sh
 sh tests/test_local_launcher.sh
-sh tests/test_app_launcher.sh
+if [ "$(uname -s)" = Darwin ]; then
+  sh tests/test_app_launcher.sh
+else
+  echo "Mac app-bundle launcher checks skipped on $(uname -s); source and portable launcher checks ran."
+fi
 echo "CHECKS PASSED: source import, 19 game suites and isolated runner/launcher checks. Logs: $CHECK_LOG_DIR"
