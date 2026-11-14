@@ -99,7 +99,7 @@ func _ready():
    muted=bool(settings.get_value("play","muted",false))
    reduced_motion=bool(settings.get_value("play","reduced_motion",false))
    coaching=bool(settings.get_value("play","coaching",true))
- if OS.has_feature("web"):
+ if OS.has_feature("web") or OS.get_name()=="Linux":
   font=load("res://assets/fonts/body.tres")
   display_font=load("res://assets/fonts/display.tres")
  else:
