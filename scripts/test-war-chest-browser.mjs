@@ -151,13 +151,16 @@ try {
         });
         try {
           for (const name of db.objectStoreNames) {
-            const values = await new Promise((done, fail) => {
-              const request = db.transaction(name, "readonly").objectStore(name).getAll();
-              request.onsuccess = () => done(request.result);
-              request.onerror = () => fail(request.error);
+            const entries = await new Promise((done, fail) => {
+              const store = db.transaction(name, "readonly").objectStore(name);
+              const keys = store.getAllKeys();
+              const values = store.getAll();
+              values.onsuccess = () =>
+                done(values.result.map((value, index) => ({ key: keys.result[index], value })));
+              values.onerror = () => fail(values.error);
             });
-            for (const value of values) {
-              if (!value.contents) continue;
+            for (const { key, value } of entries) {
+              if (!String(key).endsWith("/winter-wages-story-v1.json") || !value.contents) continue;
               try {
                 if (
                   JSON.stringify(JSON.parse(new TextDecoder().decode(value.contents))) ===
