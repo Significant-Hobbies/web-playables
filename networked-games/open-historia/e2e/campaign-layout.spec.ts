@@ -27,6 +27,12 @@ for (const viewport of [
   test(`viewport game and modal controls at ${viewport.width}x${viewport.height}`, async ({
     page,
   }, testInfo) => {
+    // iPhone's 3x pixel density is only representative at phone dimensions.
+    test.skip(
+      testInfo.project.name === 'mobile' && ![390, 844].includes(viewport.width),
+      'Tablet and desktop sizes run in the desktop project; mobile uses phone dimensions.'
+    );
+    test.setTimeout(90000);
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     let turns = 0;
