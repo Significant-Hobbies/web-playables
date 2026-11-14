@@ -37,6 +37,7 @@ export interface SanitizedTurn {
   message: string;
   updates: ParsedUpdate[];
   storySoFar?: string;
+  storyDecision?: { stepId: string; achieved: boolean; evidence: string } | null;
 }
 
 export interface ParsedTurnResult extends SanitizedTurn {
@@ -88,6 +89,7 @@ export function sanitizeAiPayload(payload: unknown, fallbackYear: number): Sanit
     message?: unknown;
     updates?: unknown;
     storySoFar?: unknown;
+    storyDecision?: unknown;
   };
 
   const message =
@@ -168,7 +170,29 @@ export function sanitizeAiPayload(payload: unknown, fallbackYear: number): Sanit
       ? safePayload.storySoFar.trim()
       : undefined;
 
-  return { message, updates, storySoFar };
+  const decision = safePayload.storyDecision;
+  const candidate =
+    decision && typeof decision === 'object' && !Array.isArray(decision)
+      ? (decision as Record<string, unknown>)
+      : null;
+  const storyDecision =
+    candidate &&
+    typeof candidate.stepId === 'string' &&
+    typeof candidate.achieved === 'boolean' &&
+    typeof candidate.evidence === 'string' &&
+    candidate.evidence.trim()
+      ? {
+          stepId: candidate.stepId.trim(),
+          achieved: candidate.achieved,
+          evidence: candidate.evidence.trim(),
+        }
+      : null;
+  return {
+    message,
+    updates,
+    storySoFar,
+    ...('storyDecision' in safePayload ? { storyDecision } : {}),
+  };
 }
 
 /**

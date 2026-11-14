@@ -131,6 +131,7 @@ export function useTurnProcessing(deps: {
           updates?: unknown[];
           storySoFar?: string;
           error?: string;
+          storyDecision?: { achieved: boolean; evidence: string };
         };
         try {
           data = await res.json();
@@ -162,6 +163,10 @@ export function useTurnProcessing(deps: {
 
         if (data.message) {
           recordLog(data.message, 'info', true);
+        }
+
+        if (data.storyDecision?.achieved === false && data.storyDecision.evidence) {
+          recordLog(`Objective pending: ${data.storyDecision.evidence}`);
         }
 
         if (typeof data.storySoFar === 'string') {

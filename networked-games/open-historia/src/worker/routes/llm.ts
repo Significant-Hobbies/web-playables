@@ -10,11 +10,20 @@ import {
   buildDiplomacyPrompt,
   buildGameMasterPrompt,
 } from '../../../lib/ai-prompts';
-import { LLMTimeoutError, withTimeout } from '../../../lib/llm-timeout';
+import { LLM_TIMEOUT_MS, LLMTimeoutError, withTimeout } from '../../../lib/llm-timeout';
 import { callLocalAI } from '../../../lib/local-ai';
 import { getClientIp, rateLimit } from '../../../lib/rate-limit';
-import { parseAiTurnResponse } from '../../../lib/turn-parser';
-import { resolveStoryContext, validateStoryUpdates } from '../../../lib/story-progress';
+import {
+  extractJsonCandidate,
+  parseAiTurnResponse,
+  sanitizeAiPayload,
+} from '../../../lib/turn-parser';
+import {
+  adjudicateStoryUpdates,
+  storyDecisionPrompt,
+  resolveStoryContext,
+  type StoryTurnContext,
+} from '../../../lib/story-progress';
 import { reserveWorkersAiCall, SharedAiBudgetError } from '../shared-ai-budget';
 import type { WorkerEnv } from '../../../lib/worker-env';
 import { resolveWorkersAiModel } from '../../../lib/workers-ai-model';
@@ -110,23 +119,24 @@ const setGatewayReceiptHeaders = (headers: Headers, receipt: GatewayReceipt | nu
   headers.set('x-open-historia-gateway-attempts', String(receipt.attempts));
 };
 
-function createFreeAiGatewayModel(binding: Fetcher) {
+function createFreeAiGatewayModel(binding: Fetcher, structured = false) {
   const provider = createOpenAICompatible({
     name: 'free-ai',
     baseURL: 'https://fleet-gateway.internal/v1',
     apiKey: 'service-binding',
     headers: { 'x-gateway-project-id': 'open-historia' },
     fetch: (input, init) => binding.fetch(new Request(input, init)),
-    supportsStructuredOutputs: false,
+    supportsStructuredOutputs: structured,
   });
   return provider.chatModel('auto');
 }
 
 export function selectFreeAiGatewayModel(
   binding: Fetcher | undefined,
-  nodeEnv: string | undefined
+  nodeEnv: string | undefined,
+  structured = false
 ) {
-  if (binding) return createFreeAiGatewayModel(binding);
+  if (binding) return createFreeAiGatewayModel(binding, structured);
   if ((nodeEnv ?? process.env.NODE_ENV) === 'production') {
     throw new Error('Free AI gateway service binding is required in production');
   }
@@ -311,7 +321,27 @@ const AI_RESPONSE_SCHEMAS = {
     },
     required: ['advice', 'category', 'suggestedActions'],
   },
+  storyDecision: {
+    type: 'object',
+    properties: {
+      stepId: { type: 'string' },
+      achieved: { type: 'boolean' },
+      evidence: { type: 'string', minLength: 1 },
+    },
+    required: ['stepId', 'achieved', 'evidence'],
+    additionalProperties: false,
+  },
 } satisfies Record<string, Parameters<typeof jsonSchema>[0]>;
+
+function storyResponseSchema(context: StoryTurnContext): Parameters<typeof jsonSchema>[0] {
+  return {
+    ...AI_RESPONSE_SCHEMAS.storyDecision,
+    properties: {
+      ...AI_RESPONSE_SCHEMAS.storyDecision.properties,
+      stepId: { type: 'string', enum: [context.currentStep!.id] },
+    },
+  };
+}
 
 async function callProvider(
   prompt: string,
@@ -319,8 +349,11 @@ async function callProvider(
   systemPrompt: string,
   env: WorkerEnv,
   responseKind: keyof typeof AI_RESPONSE_SCHEMAS = 'turn',
-  onGatewayReceipt?: (receipt: GatewayReceipt | null) => void
+  onGatewayReceipt?: (receipt: GatewayReceipt | null) => void,
+  responseSchema?: Parameters<typeof jsonSchema>[0]
 ): Promise<string> {
+  const schema = responseSchema ?? AI_RESPONSE_SCHEMAS[responseKind];
+  const maxOutputTokens = responseKind === 'storyDecision' ? 512 : 2048;
   switch (config.provider) {
     case 'local': {
       return callLocalAI({
@@ -358,13 +391,17 @@ async function callProvider(
       return '{}';
     }
     case 'free-ai': {
-      const gatewayModel = selectFreeAiGatewayModel(env.FREE_AI, env.NODE_ENV);
+      const gatewayModel = selectFreeAiGatewayModel(
+        env.FREE_AI,
+        env.NODE_ENV,
+        responseKind === 'storyDecision'
+      );
       if (gatewayModel) {
         try {
           const result = await generateText({
             model: gatewayModel,
-            maxOutputTokens: 2048,
-            output: Output.object({ schema: jsonSchema(AI_RESPONSE_SCHEMAS[responseKind]) }),
+            maxOutputTokens,
+            output: Output.object({ schema: jsonSchema(schema) }),
             system: systemPrompt,
             prompt,
             // Recover once from transient gateway failures within the route's shared deadline.
@@ -382,17 +419,17 @@ async function callProvider(
         const budgetInput = {
           system: systemPrompt,
           prompt,
-          outputSchema: AI_RESPONSE_SCHEMAS[responseKind],
-          maxOutputTokens: 2048,
+          outputSchema: schema,
+          maxOutputTokens,
         };
-        await reserveWorkersAiCall(env, model, budgetInput, 2048);
+        await reserveWorkersAiCall(env, model, budgetInput, maxOutputTokens);
         const workersAi = createWorkersAI({ binding: env.AI });
         try {
           const result = await generateText({
             model: workersAi(model),
             // Turn narratives and compressed memory need more than the provider default.
-            maxOutputTokens: 2048,
-            output: Output.object({ schema: jsonSchema(AI_RESPONSE_SCHEMAS[responseKind]) }),
+            maxOutputTokens,
+            output: Output.object({ schema: jsonSchema(schema) }),
             system: systemPrompt,
             prompt,
             maxRetries: 0,
@@ -499,6 +536,7 @@ llm.post('/turn', async (c) => {
       return c.json({ error: 'API Key missing' }, 400);
     }
 
+    const storyContext = resolveStoryContext(config.presetId, completedStepIds);
     const systemPrompt = buildGameMasterPrompt({
       command,
       gameState,
@@ -512,6 +550,7 @@ llm.post('/turn', async (c) => {
       promptOverrides,
     });
 
+    const turnDeadline = Date.now() + LLM_TIMEOUT_MS;
     let responseText = '';
     let gatewayReceipt: GatewayReceipt | null = null;
 
@@ -582,7 +621,36 @@ llm.post('/turn', async (c) => {
     }
 
     const fallbackYear = gameState && typeof gameState.turn === 'number' ? gameState.turn : 0;
-    const parsedTurn = parseAiTurnResponse(responseText, fallbackYear);
+    let parsedTurn = parseAiTurnResponse(responseText, fallbackYear);
+    if (!parsedTurn.parseError && storyContext?.currentStep) {
+      const remaining = turnDeadline - Date.now();
+      if (remaining <= 0) throw new LLMTimeoutError(config.provider);
+      const assessment = await withTimeout(
+        callProvider(
+          storyDecisionPrompt(storyContext, parsedTurn, command),
+          config,
+          'Judge the supplied resolved outcome. Return only the requested JSON decision.',
+          c.env,
+          'storyDecision',
+          undefined,
+          storyResponseSchema(storyContext)
+        ),
+        config.provider,
+        remaining
+      );
+      let rawDecision: unknown = null;
+      try {
+        rawDecision = JSON.parse(extractJsonCandidate(assessment) ?? 'null');
+      } catch {
+        // An invalid assessment never becomes a fabricated completion.
+      }
+      parsedTurn = {
+        ...parsedTurn,
+        storyDecision: sanitizeAiPayload({ storyDecision: rawDecision }, fallbackYear)
+          .storyDecision,
+      };
+    }
+    const updates = adjudicateStoryUpdates(parsedTurn, storyContext);
     if (!parsedTurn.parseError) {
       const headers = new Headers();
       setGatewayReceiptHeaders(headers, gatewayReceipt);
@@ -590,14 +658,27 @@ llm.post('/turn', async (c) => {
         c.header(name, value);
       });
     }
+    if (
+      !parsedTurn.parseError &&
+      storyContext?.currentStep &&
+      parsedTurn.storyDecision?.stepId !== storyContext.currentStep.id &&
+      !updates.some((update) => update.type === 'storyStep')
+    ) {
+      return c.json(
+        {
+          message:
+            'The Game Master did not judge the current objective. No changes were applied — try the turn again.',
+          updates: [],
+        },
+        502
+      );
+    }
     return c.json(
       {
         message: parsedTurn.message,
-        updates: validateStoryUpdates(
-          parsedTurn.updates,
-          resolveStoryContext(config.presetId, completedStepIds)
-        ),
+        updates,
         storySoFar: parsedTurn.storySoFar,
+        ...(storyContext?.currentStep ? { storyDecision: parsedTurn.storyDecision } : {}),
       },
       parsedTurn.parseError ? 502 : 200
     );

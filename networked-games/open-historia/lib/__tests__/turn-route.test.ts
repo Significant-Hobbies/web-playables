@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import llm from '../../src/worker/routes/llm';
+
+afterEach(() => vi.unstubAllGlobals());
 
 const app = new Hono().route('/', llm);
 const request = {
@@ -38,6 +40,72 @@ const budgetEnv = (AI: { run: ReturnType<typeof vi.fn> }) => ({
 });
 
 describe('turn route through the real Workers AI adapter', () => {
+  it('adjudicates a production service-binding response using auto and the project identity', async () => {
+    let outgoing: Record<string, unknown> = {};
+    let project = '';
+    const requests: Record<string, unknown>[] = [];
+    const fetch = vi.fn(async (request: Request) => {
+      outgoing = await request.json();
+      requests.push(outgoing);
+      project = request.headers.get('x-gateway-project-id') ?? '';
+      return Response.json({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: JSON.stringify(
+                requests.length === 2
+                  ? {
+                      stepId: 'poland-invasion',
+                      achieved: true,
+                      evidence: 'RAF raids were executed in response to the invasion.',
+                    }
+                  : {
+                      message: 'RAF raids begin in response to the invasion.',
+                      updates: [],
+                      storySoFar: 'Britain has responded.',
+                      storyDecision: {
+                        stepId: 'poland-invasion',
+                        achieved: true,
+                        evidence: 'RAF raids were executed in response to the invasion.',
+                      },
+                    }
+              ),
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      });
+    });
+    const input = JSON.parse(request.body);
+    input.config = { ...input.config, provider: 'free-ai', model: 'auto', presetId: 'ww2-1939' };
+    const response = await app.request(
+      '/turn',
+      {
+        ...request,
+        headers: { ...request.headers, 'cf-connecting-ip': '198.51.100.64' },
+        body: JSON.stringify(input),
+      },
+      { FREE_AI: { fetch } as unknown as Fetcher, NODE_ENV: 'production' } as never
+    );
+    expect(response.status).toBe(200);
+    expect(outgoing.model).toBe('auto');
+    expect(project).toBe('open-historia');
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(JSON.stringify(outgoing.messages)).toContain('ALREADY RESOLVED');
+    expect(outgoing.response_format).toMatchObject({
+      type: 'json_schema',
+      json_schema: { strict: true },
+    });
+    expect(requests[0].response_format).toMatchObject({ type: 'json_object' });
+    expect((await response.json()).updates).toEqual([
+      {
+        type: 'storyStep',
+        stepId: 'poland-invasion',
+        message: 'RAF raids were executed in response to the invasion.',
+      },
+    ]);
+  });
   it('reserves shared neurons before returning parsed turn consequences', async () => {
     const run = vi.fn().mockResolvedValue({
       response: JSON.stringify({
@@ -64,7 +132,7 @@ describe('turn route through the real Workers AI adapter', () => {
   });
 
   it('passes canonical objectives through the real adapter and rejects invented completions', async () => {
-    const run = vi.fn().mockResolvedValue({
+    const run = vi.fn().mockResolvedValueOnce({
       response: {
         message: 'Blockade patrols depart. Britain has responded to the invasion.',
         updates: ['invented', 'battle-of-france', 'poland-invasion', 'poland-invasion'].map(
@@ -75,6 +143,13 @@ describe('turn route through the real Workers AI adapter', () => {
     const input = JSON.parse(request.body);
     input.config.presetId = 'ww2-1939';
     input.completedStepIds = ['invalid'];
+    run.mockResolvedValueOnce({
+      response: {
+        stepId: 'poland-invasion',
+        achieved: true,
+        evidence: 'Blockade patrols departed.',
+      },
+    });
     const response = await app.request(
       '/turn',
       {
@@ -89,7 +164,7 @@ describe('turn route through the real Workers AI adapter', () => {
       'CURRENT STEP ID: poland-invasion'
     );
     expect((await response.json()).updates).toEqual([
-      { type: 'storyStep', stepId: 'poland-invasion', message: 'Response underway.' },
+      { type: 'storyStep', stepId: 'poland-invasion', message: 'Blockade patrols departed.' },
     ]);
   });
 
@@ -104,6 +179,138 @@ describe('turn route through the real Workers AI adapter', () => {
     const response = await app.request('/turn', request, budgetEnv({ run }));
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ storySoFar: 'Shipping access agreed.' });
+  });
+
+  it.each([
+    true,
+    false,
+  ])('requires an explicit current-objective decision: achieved=%s', async (achieved) => {
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({
+        response: {
+          message: 'RAF raids begin in response to the invasion.',
+          updates: [
+            { type: 'event', description: 'The RAF begins raids.', eventType: 'war', year: 1939 },
+            {
+              type: 'storyStep',
+              stepId: 'poland-invasion',
+              message: 'Untrusted main-model award.',
+            },
+          ],
+          storySoFar: 'Britain has responded.',
+        },
+      })
+      .mockResolvedValueOnce({
+        response: {
+          stepId: 'poland-invasion',
+          achieved,
+          evidence: achieved ? 'The RAF executed raids.' : 'The raids are only planned.',
+        },
+      });
+    const input = JSON.parse(request.body);
+    input.config.presetId = 'ww2-1939';
+    const response = await app.request(
+      '/turn',
+      {
+        ...request,
+        headers: {
+          ...request.headers,
+          'cf-connecting-ip': achieved ? '198.51.100.61' : '198.51.100.62',
+        },
+        body: JSON.stringify(input),
+      },
+      budgetEnv({ run })
+    );
+    expect(response.status).toBe(200);
+    expect(run).toHaveBeenCalledTimes(2);
+    const schema = run.mock.calls[1][1].response_format.json_schema;
+    expect(schema.required).toEqual(['stepId', 'achieved', 'evidence']);
+    expect(schema.properties.stepId.enum).toEqual(['poland-invasion']);
+    expect(run.mock.calls[1][1].max_tokens).toBe(512);
+    const data = await response.json();
+    expect(data.updates.filter((update: { type: string }) => update.type === 'event')).toHaveLength(
+      1
+    );
+    expect(
+      data.updates.filter((update: { type: string }) => update.type === 'storyStep')
+    ).toHaveLength(achieved ? 1 : 0);
+  });
+
+  it('keeps an unadjudicated narrated action on the retry path instead of silently committing', async () => {
+    const run = vi.fn().mockResolvedValue({
+      response: {
+        message: 'RAF raids begin in response to the invasion.',
+        updates: [
+          { type: 'event', description: 'The RAF begins raids.', eventType: 'war', year: 1939 },
+        ],
+        storySoFar: 'Britain has responded.',
+      },
+    });
+    run
+      .mockResolvedValueOnce({ response: { message: 'RAF raids begin.', updates: [] } })
+      .mockResolvedValueOnce({
+        response: { stepId: 'invented', achieved: true, evidence: 'Invalid ID' },
+      });
+    const input = JSON.parse(request.body);
+    input.config.presetId = 'ww2-1939';
+    const response = await app.request(
+      '/turn',
+      {
+        ...request,
+        headers: { ...request.headers, 'cf-connecting-ip': '198.51.100.63' },
+        body: JSON.stringify(input),
+      },
+      budgetEnv({ run })
+    );
+    expect(response.status).toBe(502);
+    expect(await response.json()).toMatchObject({
+      updates: [],
+      message: expect.stringContaining('No changes were applied'),
+    });
+  });
+
+  it('judges BYO-provider turns without requiring a decision in the world response', async () => {
+    const fetch = vi.fn().mockImplementation(async () =>
+      Response.json({
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: JSON.stringify(
+                fetch.mock.calls.length === 1
+                  ? {
+                      message: 'RAF raids were executed.',
+                      updates: [],
+                      storySoFar: 'Britain responded.',
+                    }
+                  : { stepId: 'poland-invasion', achieved: true, evidence: 'RAF raids executed.' }
+              ),
+            },
+            finish_reason: 'stop',
+          },
+        ],
+      })
+    );
+    vi.stubGlobal('fetch', fetch);
+    const input = JSON.parse(request.body);
+    input.config = {
+      ...input.config,
+      provider: 'openai',
+      model: 'synthetic-model',
+      apiKey: 'synthetic-test-key',
+      presetId: 'ww2-1939',
+    };
+    const response = await app.request('/turn', {
+      ...request,
+      headers: { ...request.headers, 'x-real-ip': 'synthetic-byo-judge' },
+      body: JSON.stringify(input),
+    });
+    expect(response.status).toBe(200);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect((await response.json()).updates).toEqual([
+      { type: 'storyStep', stepId: 'poland-invasion', message: 'RAF raids executed.' },
+    ]);
   });
 
   it.each([

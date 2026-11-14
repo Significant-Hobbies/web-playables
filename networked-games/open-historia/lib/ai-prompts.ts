@@ -160,6 +160,7 @@ export function buildGameMasterPrompt(args: {
     promptOverrides,
   } = args;
   const playerNation = gameState.players['player']?.name ?? 'Unknown';
+  const guidedStory = resolveStoryContext(config.presetId, completedStepIds);
 
   const overrides = {
     gameMasterPreamble: promptOverrides?.gameMasterPreamble ?? GM_DEFAULT_PREAMBLE,
@@ -179,7 +180,7 @@ ${DIFFICULTY_PROFILES[config.difficulty] || DIFFICULTY_PROFILES['Realistic']}
 
 ${storyBlock}
 
-${storyPrompt(resolveStoryContext(config.presetId, completedStepIds))}
+${storyPrompt(guidedStory)}
 
 CURRENT RELATIONS: ${formatRelations(relations)}
 TERRITORY: ${formatProvinces(provinceSummary)}
@@ -200,12 +201,11 @@ OUTPUT: Return EXACTLY one raw JSON object. No markdown fences. No text outside 
   "updates": [
     { "type": "owner", "provinceName": "EXACT province name from territory list", "newOwnerId": "player or ai_id" },
     { "type": "event", "description": "Concise event for the log", "eventType": "war|diplomacy|discovery|flavor|economy|crisis", "year": ${gameState.turn} },
-    { "type": "relation", "nationA": "Nation Name", "nationB": "Nation Name", "relationType": "neutral|friendly|allied|hostile|war|vassal", "reason": "Brief reason" },
-    { "type": "storyStep", "stepId": "id_of_completed_step", "message": "Achievement message" }
+    { "type": "relation", "nationA": "Nation Name", "nationB": "Nation Name", "relationType": "neutral|friendly|allied|hostile|war|vassal", "reason": "Brief reason" }
   ],
   "storySoFar": "Updated compressed narrative of the ENTIRE game so far (max 500 words). Include: all wars and their outcomes, all alliances/treaties, territory changes, major diplomatic shifts, ongoing conflicts, economic developments, and the player's strategic arc. This is your memory — anything not included here will be forgotten. Append new developments to the existing story, don't rewrite from scratch."
 }
-Only include updates that actually occur. Empty updates = []. Include an "event" for anything noteworthy. provinceName MUST match exactly. ALWAYS include "storySoFar" — this is critical for continuity. If a guided story step is completed, include a "storyStep" update with its ID.`;
+Only include updates that actually occur. Empty updates = []. Include an "event" for anything noteworthy. provinceName MUST match exactly. ALWAYS include "storySoFar" — this is critical for continuity. A separate objective evaluator handles milestone awards; do not include storyStep updates.`;
 }
 
 // 2. DIPLOMACY CHAT PROMPT
