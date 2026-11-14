@@ -84,6 +84,22 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
     );
     assert(await page.getByText("Who gets the offer?", { exact: true }).isVisible());
     await page.getByRole("button", { name: "Not now", exact: true }).click();
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.getByRole("button", { name: "additions & multipliers" }).click();
+    await page.getByRole("button", { name: "Got it", exact: true }).click();
+    assert(
+      !(await page.locator(".frame").evaluate((element) => element.inert)),
+      "Closing the ledger restores company controls",
+    );
+    await page.getByRole("button", { name: "Team", exact: true }).click();
+    await page.getByRole("button", { name: "See your squad", exact: true }).click();
+    await page.getByRole("button", { name: "Back to work", exact: true }).click();
+    assert(
+      !(await page.locator(".frame").evaluate((element) => element.inert)),
+      "Closing the squad restores company controls",
+    );
+    await page.getByRole("button", { name: "Team", exact: true }).click();
+    await page.keyboard.press("Escape");
     await page.addInitScript(() => {
       if (window.name.startsWith("idle-fixture:")) {
         localStorage.setItem("save:idle-startup", window.name.slice("idle-fixture:".length));

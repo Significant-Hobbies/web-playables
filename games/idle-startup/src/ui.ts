@@ -569,7 +569,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     section("Multipliers", data.multipliers);
     section("Payroll", data.payroll);
     const close = el("button", "modal-cancel", "Got it");
-    close.addEventListener("click", () => hireVeil.classList.add("hidden"));
+    close.addEventListener("click", closeHireModal);
     modal.append(close);
     hireVeil.append(modal);
     showHireModal();
@@ -634,7 +634,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     }
     modal.append(grid);
     const close = el("button", "modal-cancel", "Back to work");
-    close.addEventListener("click", () => hireVeil.classList.add("hidden"));
+    close.addEventListener("click", closeHireModal);
     modal.append(close);
     hireVeil.append(modal);
     showHireModal();
