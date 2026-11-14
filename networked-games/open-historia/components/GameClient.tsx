@@ -1,4 +1,5 @@
-import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import type React from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   captureMeasurementTraffic,
@@ -44,7 +45,48 @@ function uid(): string {
 // Main
 // ---------------------------------------------------------------------------
 
+function CampaignPanel({
+  name,
+  open,
+  onClose,
+  children,
+}: {
+  name: string;
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    if (open && !dialog.open) dialog.showModal();
+    if (!open && dialog.open) dialog.close();
+  }, [open]);
+  return (
+    <dialog
+      ref={ref}
+      id={`campaign-panel-${name.toLowerCase()}`}
+      className="campaign-panel"
+      aria-label={name}
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <header className="campaign-panel-heading">
+        <h2>{name}</h2>
+        <button type="button" onClick={onClose}>
+          Back to the map
+        </button>
+      </header>
+      <div className="campaign-panel-content">{children}</div>
+    </dialog>
+  );
+}
+
 function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
+  const [panel, setPanel] = useState<string | null>(null);
   captureMeasurementTraffic();
   // ── Core game state + initialization ──
   const game = useGameState(initialGameId);
@@ -230,6 +272,7 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   // ── Save & Exit (reset all subsystems) ──
   const handleSaveAndExit = useCallback(async () => {
     if (turn.processingTurn || !(await save.handleSaveAndExit())) return;
+    setPanel(null);
     game.setGameConfig(null);
     game.setGameState(null);
     game.setShowPresets(true);
@@ -323,97 +366,166 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
 
   // Phase 3: Main game
   const { gameState } = game;
+  const storyPath = game.selectedPreset?.storyPath;
+  const nextStep = storyPath?.steps.find((step) => !turn.completedStepIds.includes(step.id));
+  const closePanel = () => setPanel(null);
 
   return (
     <main className="campaign-shell relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-100">
-      {/* Top Bar */}
       {gameState && (
-        <div className="campaign-toolbar absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-slate-950/90 to-transparent pointer-events-none flex justify-center items-center gap-8 text-slate-200 font-mono text-lg z-10">
-          {/* On narrow screens the control pill exceeds the viewport — let it
-              scroll inside itself (max-w-full + overflow-x-auto) so it never
-              forces horizontal scroll on the whole page. */}
-          <div className="max-w-full overflow-x-auto bg-slate-900/80 px-3 py-2 sm:px-4 rounded-full border border-slate-700 backdrop-blur pointer-events-auto flex items-center gap-3 sm:gap-4">
-            <div className={yearFlash ? 'animate-flash-border rounded px-1 -mx-1' : ''}>
-              <span className="text-slate-500 text-sm uppercase mr-2">Year</span>
-              <span className="font-bold">{gameState.turn}</span>
-            </div>
-            <div className="w-px h-6 bg-slate-700" />
-            <div>
-              <span className="text-blue-400 text-sm uppercase mr-2">Nation</span>
-              <span className="font-bold">{gameState.players['player'].name}</span>
-            </div>
-            <div className="w-px h-6 bg-slate-700" />
+        <>
+          <header className="campaign-hud">
+            <a href="/" aria-label="Open Historia home">
+              Open Historia
+            </a>
+            <span>
+              {gameState.players['player'].name} · <b>{gameState.turn}</b>
+            </span>
             <button
               type="button"
-              onClick={save.handleSaveGame}
-              className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
-              title={
-                save.lastSaveTime ? `Last: ${new Date(save.lastSaveTime).toLocaleString()}` : 'Save'
-              }
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveAndExit}
-              className="bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
-              title="Save game and return to main menu"
-            >
-              Save & Exit
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                game.refreshSavedGames();
-                save.setShowSavesPanel(true);
+              onClick={(event) => {
+                event.currentTarget.focus();
+                setPanel('Menu');
               }}
-              className="bg-sky-700 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
             >
-              Saves ({game.savedGames.length})
+              Menu
             </button>
-            <button
-              type="button"
-              onClick={() => save.setShowPromptSettings(true)}
-              className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-2 py-1 rounded transition-colors"
-              title="Prompt Settings"
-            >
-              Settings
-            </button>
-            <div className="w-px h-6 bg-slate-700" />
-            <div className="flex items-center gap-2 pointer-events-auto">
-              <select
-                aria-label="Time per turn"
-                value={turn.timeStep}
-                onChange={(e) => turn.setTimeStep(e.target.value)}
-                className="bg-slate-800 text-white text-xs border border-slate-700 rounded px-2 py-1 outline-none"
-              >
-                <option value="5d">5 Days</option>
-                <option value="1m">1 Month</option>
-                <option value="6m">6 Months</option>
-                <option value="1y">1 Year</option>
-                <option value="custom">Custom...</option>
-              </select>
-              {turn.timeStep === 'custom' && (
-                <input
-                  type="text"
-                  value={turn.customTime}
-                  onChange={(e) => turn.setCustomTime(e.target.value)}
-                  aria-label="Custom time per turn"
-                  placeholder="e.g. 2 years"
-                  className="bg-slate-800 text-white text-xs border border-slate-700 rounded px-2 py-1 w-20 outline-none"
-                />
-              )}
+          </header>
+          <button
+            type="button"
+            className="campaign-objective"
+            onClick={(event) => {
+              event.currentTarget.focus();
+              setPanel('Journey');
+            }}
+          >
+            <span>
+              {storyPath
+                ? `${turn.completedStepIds.length} / ${storyPath.steps.length} milestones`
+                : 'Your next chapter'}
+            </span>
+            <strong>
+              {nextStep?.objective ||
+                (storyPath
+                  ? 'The story is yours to continue.'
+                  : 'Choose a province. Give an order. Shape what happens next.')}
+            </strong>
+          </button>
+          <nav className="campaign-dock" aria-label="Campaign controls">
+            {['Orders', 'Journey', 'Diplomacy', 'Relations', 'Advisor', 'Timeline'].map((name) => (
               <button
                 type="button"
-                onClick={turn.handleNextTurn}
-                disabled={turn.processingTurn}
-                className={`bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase ${turn.processingTurn ? 'animate-pulse-glow' : ''}`}
+                key={name}
+                onClick={(event) => {
+                  event.currentTarget.focus();
+                  setPanel(name);
+                }}
               >
-                {turn.processingTurn ? 'Processing...' : 'Advance'}
+                {name}
+                {name === 'Orders' && turn.pendingOrders.length > 0
+                  ? ` (${turn.pendingOrders.length})`
+                  : ''}
               </button>
+            ))}
+          </nav>
+        </>
+      )}
+      {/* Top Bar */}
+      {gameState && (
+        <CampaignPanel name="Menu" open={panel === 'Menu'} onClose={closePanel}>
+          <div className="campaign-toolbar absolute top-0 left-0 w-full p-2 bg-gradient-to-b from-slate-950/90 to-transparent pointer-events-none flex justify-center items-center gap-8 text-slate-200 font-mono text-lg z-10">
+            {/* On narrow screens the control pill exceeds the viewport — let it
+              scroll inside itself (max-w-full + overflow-x-auto) so it never
+              forces horizontal scroll on the whole page. */}
+            <div className="max-w-full overflow-x-auto bg-slate-900/80 px-3 py-2 sm:px-4 rounded-full border border-slate-700 backdrop-blur pointer-events-auto flex items-center gap-3 sm:gap-4">
+              <div className={yearFlash ? 'animate-flash-border rounded px-1 -mx-1' : ''}>
+                <span className="text-slate-500 text-sm uppercase mr-2">Year</span>
+                <span className="font-bold">{gameState.turn}</span>
+              </div>
+              <div className="w-px h-6 bg-slate-700" />
+              <div>
+                <span className="text-blue-400 text-sm uppercase mr-2">Nation</span>
+                <span className="font-bold">{gameState.players['player'].name}</span>
+              </div>
+              <div className="w-px h-6 bg-slate-700" />
+              <button
+                type="button"
+                onClick={save.handleSaveGame}
+                className="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
+                title={
+                  save.lastSaveTime
+                    ? `Last: ${new Date(save.lastSaveTime).toLocaleString()}`
+                    : 'Save'
+                }
+              >
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAndExit}
+                className="bg-rose-800 hover:bg-rose-700 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
+                title="Save game and return to main menu"
+              >
+                Save & Exit
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  game.refreshSavedGames();
+                  closePanel();
+                  save.setShowSavesPanel(true);
+                }}
+                className="bg-sky-700 hover:bg-sky-600 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase"
+              >
+                Saves ({game.savedGames.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closePanel();
+                  save.setShowPromptSettings(true);
+                }}
+                className="bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold px-2 py-1 rounded transition-colors"
+                title="Prompt Settings"
+              >
+                Settings
+              </button>
+              <div className="w-px h-6 bg-slate-700" />
+              <div className="flex items-center gap-2 pointer-events-auto">
+                <select
+                  aria-label="Time per turn"
+                  value={turn.timeStep}
+                  onChange={(e) => turn.setTimeStep(e.target.value)}
+                  className="bg-slate-800 text-white text-xs border border-slate-700 rounded px-2 py-1 outline-none"
+                >
+                  <option value="5d">5 Days</option>
+                  <option value="1m">1 Month</option>
+                  <option value="6m">6 Months</option>
+                  <option value="1y">1 Year</option>
+                  <option value="custom">Custom...</option>
+                </select>
+                {turn.timeStep === 'custom' && (
+                  <input
+                    type="text"
+                    value={turn.customTime}
+                    onChange={(e) => turn.setCustomTime(e.target.value)}
+                    aria-label="Custom time per turn"
+                    placeholder="e.g. 2 years"
+                    className="bg-slate-800 text-white text-xs border border-slate-700 rounded px-2 py-1 w-20 outline-none"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={turn.handleNextTurn}
+                  disabled={turn.processingTurn}
+                  className={`bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold px-3 py-1 rounded transition-colors uppercase ${turn.processingTurn ? 'animate-pulse-glow' : ''}`}
+                >
+                  {turn.processingTurn ? 'Processing...' : 'Advance'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </CampaignPanel>
       )}
 
       {/* Map */}
@@ -431,95 +543,124 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
       )}
 
       {/* Command Terminal + Advance Button (bottom-left) */}
-      <div className="campaign-commands absolute bottom-[140px] left-4 z-20">
-        <CommandTerminal
-          logs={turn.logs}
-          onCommand={turn.queueOrder}
-          processing={turn.processingTurn}
-        />
-        {/* Inline advance bar below terminal */}
-        <div className="mt-1 flex items-center gap-2 bg-slate-900/90 border border-slate-700 rounded px-2 py-1.5 backdrop-blur font-mono">
-          {turn.pendingOrders.length > 0 && (
-            <span className="text-amber-400 text-xs">
-              {turn.pendingOrders.length} order{turn.pendingOrders.length > 1 ? 's' : ''} queued
-            </span>
-          )}
-          {turn.pendingOrders.length === 0 && (
-            <span className="text-slate-500 text-xs">No orders queued</span>
-          )}
-          <button
-            type="button"
-            onClick={() => turn.setPendingOrders([])}
-            disabled={turn.pendingOrders.length === 0 || turn.processingTurn}
-            className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-30 px-1"
-            title="Clear queued orders"
-          >
-            Clear
-          </button>
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={turn.handleNextTurn}
-            disabled={turn.processingTurn}
-            className={`bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold px-4 py-1 rounded transition-colors uppercase ${turn.processingTurn ? 'animate-pulse-glow' : ''}`}
-          >
-            {turn.processingTurn ? 'Processing...' : 'Advance'}
-          </button>
+      <CampaignPanel name="Orders" open={panel === 'Orders'} onClose={closePanel}>
+        <div className="campaign-commands absolute bottom-[140px] left-4 z-20">
+          <CommandTerminal
+            logs={turn.logs}
+            onCommand={turn.queueOrder}
+            processing={turn.processingTurn}
+          />
+          {/* Inline advance bar below terminal */}
+          <div className="mt-1 flex items-center gap-2 bg-slate-900/90 border border-slate-700 rounded px-2 py-1.5 backdrop-blur font-mono">
+            {turn.pendingOrders.length > 0 && (
+              <span className="text-amber-400 text-xs">
+                {turn.pendingOrders.length} order{turn.pendingOrders.length > 1 ? 's' : ''} queued
+              </span>
+            )}
+            {turn.pendingOrders.length === 0 && (
+              <span className="text-slate-500 text-xs">No orders queued</span>
+            )}
+            <button
+              type="button"
+              onClick={() => turn.setPendingOrders([])}
+              disabled={turn.pendingOrders.length === 0 || turn.processingTurn}
+              className="text-xs text-slate-400 hover:text-slate-200 disabled:opacity-30 px-1"
+              title="Clear queued orders"
+            >
+              Clear
+            </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={turn.handleNextTurn}
+              disabled={turn.processingTurn}
+              className={`bg-amber-700 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-bold px-4 py-1 rounded transition-colors uppercase ${turn.processingTurn ? 'animate-pulse-glow' : ''}`}
+            >
+              {turn.processingTurn ? 'Processing...' : 'Advance'}
+            </button>
+          </div>
         </div>
-      </div>
+      </CampaignPanel>
 
       {/* Story Path (top-left) */}
-      {gameState && game.selectedPreset?.storyPath && (
-        <StoryPath
-          storyPath={game.selectedPreset.storyPath}
-          completedStepIds={turn.completedStepIds}
-        />
-      )}
+      <CampaignPanel name="Journey" open={panel === 'Journey'} onClose={closePanel}>
+        {gameState && storyPath ? (
+          <StoryPath storyPath={storyPath} completedStepIds={turn.completedStepIds} />
+        ) : (
+          <div className="campaign-briefing">
+            <p>{game.gameConfig?.scenario}</p>
+            <p>
+              Start with a promise to your nation. Queue an order, advance time, then read the
+              consequences. Diplomacy can open another path. Your timeline keeps each turning point
+              so you can return and try a different future.
+            </p>
+            <button type="button" onClick={() => setPanel('Orders')}>
+              Give your first order
+            </button>
+          </div>
+        )}
+      </CampaignPanel>
 
       {/* Diplomacy Chat (top-right) */}
       {gameState && (
-        <DiplomacyChat
-          chatThreads={diplomacy.chatThreads}
-          provinces={gameState.provinces}
-          players={gameState.players}
-          playerNationName={gameState.players['player'].name}
-          currentYear={gameState.turn}
-          onSendMessage={diplomacy.handleSendChatMessage}
-          onCreateThread={diplomacy.handleCreateThread}
-          selectedProvinceId={gameState.selectedProvinceId}
-          processing={diplomacy.processingChat}
-        />
+        <CampaignPanel name="Diplomacy" open={panel === 'Diplomacy'} onClose={closePanel}>
+          <DiplomacyChat
+            chatThreads={diplomacy.chatThreads}
+            provinces={gameState.provinces}
+            players={gameState.players}
+            playerNationName={gameState.players['player'].name}
+            currentYear={gameState.turn}
+            onSendMessage={diplomacy.handleSendChatMessage}
+            onCreateThread={diplomacy.handleCreateThread}
+            selectedProvinceId={gameState.selectedProvinceId}
+            processing={diplomacy.processingChat}
+          />
+        </CampaignPanel>
       )}
 
       {/* Relations Panel (bottom-right) */}
-      {gameState && relations.length > 0 && (
-        <div className="campaign-relations absolute bottom-[140px] right-4 z-20">
-          <RelationsPanel
-            relations={relations}
-            playerNationName={gameState.players['player'].name}
-          />
-        </div>
+      {gameState && (
+        <CampaignPanel name="Relations" open={panel === 'Relations'} onClose={closePanel}>
+          {relations.length > 0 ? (
+            <div className="campaign-relations absolute bottom-[140px] right-4 z-20">
+              <RelationsPanel
+                relations={relations}
+                playerNationName={gameState.players['player'].name}
+              />
+            </div>
+          ) : (
+            <p>
+              No diplomatic relations have been established yet. Open Diplomacy to begin a
+              conversation.
+            </p>
+          )}
+        </CampaignPanel>
       )}
 
-      {/* Advisor (floating) */}
+      {/* Advisor */}
       {gameState && (
-        <Advisor
-          messages={advisor.advisorMessages}
-          onAskAdvisor={advisor.handleAskAdvisor}
-          processing={advisor.processingAdvisor}
-          playerNation={gameState.players['player'].name}
-          currentYear={gameState.turn}
-        />
+        <CampaignPanel name="Advisor" open={panel === 'Advisor'} onClose={closePanel}>
+          <Advisor
+            messages={advisor.advisorMessages}
+            onAskAdvisor={advisor.handleAskAdvisor}
+            processing={advisor.processingAdvisor}
+            playerNation={gameState.players['player'].name}
+            currentYear={gameState.turn}
+          />
+        </CampaignPanel>
       )}
 
       {/* Timeline (bottom) — always visible during gameplay for empty-state guidance */}
-      <Timeline
-        snapshots={timeline.timelineSnapshots}
-        activeSnapshotId={gameState?.currentTimelineSnapshotId}
-        currentYear={gameState?.turn || 0}
-        onRewind={timeline.handleTimelineRewind}
-        onBranch={timeline.handleTimelineBranch}
-      />
+      <CampaignPanel name="Timeline" open={panel === 'Timeline'} onClose={closePanel}>
+        <Timeline
+          embedded
+          snapshots={timeline.timelineSnapshots}
+          activeSnapshotId={gameState?.currentTimelineSnapshotId}
+          currentYear={gameState?.turn || 0}
+          onRewind={timeline.handleTimelineRewind}
+          onBranch={timeline.handleTimelineBranch}
+        />
+      </CampaignPanel>
 
       {/* Processing overlay */}
       {turn.processingTurn && (

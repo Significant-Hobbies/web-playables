@@ -48,14 +48,25 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       { width: 1440, height: 1000 },
       { width: 768, height: 1024 },
       { width: 390, height: 844 },
+      { width: 844, height: 390 },
     ]) {
       await page.setViewportSize(viewport);
       assert(
-        await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+        await page.evaluate(
+          () =>
+            document.documentElement.scrollWidth <= innerWidth &&
+            document.documentElement.scrollHeight <= innerHeight,
+        ),
         `No overflow at ${viewport.width}`,
       );
-      await page.screenshot({ path: join(evidence, `camp-${viewport.width}.png`), fullPage: true });
+      await page.screenshot({ path: join(evidence, `camp-${viewport.width}.png`) });
+      await page.locator("#visit-forge").click();
+      await page.screenshot({ path: join(evidence, `forge-${viewport.width}.png`) });
+      await page.locator("#back-camp").click();
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator("#camp-settings").click();
+    await page.getByRole("button", { name: "Return to the road", exact: true }).click();
     await page.getByRole("button", { name: "Begin chapter 1", exact: true }).click();
     await page.locator("#pause").click();
     const paused = await page.locator("#world").screenshot();
@@ -75,7 +86,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       choiceHealth,
       "Choosing a perk cannot cost health",
     );
-    await page.screenshot({ path: join(evidence, "choice-390.png"), fullPage: true });
+    await page.screenshot({ path: join(evidence, "choice-390.png") });
     result.choices = [];
     for (let decision = 0; decision < 6; decision++) {
       const ids = await page
@@ -109,7 +120,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     );
     result.gold = await page.locator("#gold").innerText();
     assert(Number(result.gold) > 0, "Victories earn spendable gold");
-    await page.screenshot({ path: join(evidence, "victory-390.png"), fullPage: true });
+    await page.screenshot({ path: join(evidence, "victory-390.png") });
     await ready();
     assert(
       await page.locator(".decision--victory").count(),
@@ -121,6 +132,7 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
       "Full reload retains earned gold",
     );
     await page.getByRole("button", { name: "Return to the forge", exact: true }).click();
+    await page.locator("#visit-forge").click();
     await page.locator('[data-upgrade="blade"]').click();
     assert.equal(
       Number(await page.locator("#gold").innerText()),
@@ -197,7 +209,15 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     const protectedPage = await protectedContext.newPage();
     await ready(protectedPage);
     assert.match(await protectedPage.locator("#save-status").innerText(), /untouched/);
+    assert(
+      await protectedPage.locator("#journey [data-save-warning]").isVisible(),
+      "Protected-save warning is visible before starting",
+    );
     await protectedPage.locator("#start").click();
+    assert(
+      await protectedPage.locator("#save-alert").isVisible(),
+      "Protected-save warning remains visible on the road",
+    );
     await protectedPage.locator("#pause").click();
     assert.equal(
       await protectedPage.evaluate(() => localStorage.getItem("save:ember-road:v1")),
@@ -217,7 +237,15 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     await unavailable.waitForFunction(() =>
       document.getElementById("save-status").textContent.includes("unavailable"),
     );
+    assert(
+      await unavailable.locator("#journey [data-save-warning]").isVisible(),
+      "Failed-save warning is visible in camp",
+    );
     await unavailable.locator("#start").click();
+    assert(
+      await unavailable.locator("#save-alert").isVisible(),
+      "Failed-save warning remains visible while playing",
+    );
     await unavailable.waitForFunction(() =>
       document.getElementById("enemy-label").textContent.includes("ENCOUNTER"),
     );

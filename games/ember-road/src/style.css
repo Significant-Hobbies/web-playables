@@ -1604,3 +1604,365 @@ dialog p {
     min-width: 100%;
   }
 }
+
+/* The road fills the window. Decisions open over the journey. */
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+.game-shell {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  padding: 0;
+}
+.game {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  box-shadow: none;
+}
+.world {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.masthead {
+  position: absolute;
+  z-index: 2;
+  top: max(12px, env(safe-area-inset-top));
+  left: 20px;
+  right: 20px;
+  height: 44px;
+  pointer-events: none;
+}
+.masthead > * {
+  pointer-events: auto;
+}
+.wordmark {
+  font-size: 23px;
+  text-shadow: 0 2px 10px #10251b;
+}
+.back-link {
+  color: var(--paper);
+}
+.world-top {
+  top: max(74px, calc(env(safe-area-inset-top) + 62px));
+}
+.status-rail {
+  position: absolute;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 20px;
+  right: 170px;
+  background: #183127ed;
+  border: 1px solid #718368;
+  padding: 16px 20px;
+}
+.road-progress {
+  bottom: 108px;
+}
+.oaths-toggle {
+  position: absolute;
+  right: 20px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  min-height: 76px;
+  width: 135px;
+}
+.scene-caption {
+  top: 230px;
+}
+.battle-note {
+  top: 184px;
+}
+dialog {
+  margin: auto;
+  max-height: calc(100dvh - 28px);
+  overflow-y: auto;
+}
+#journey {
+  width: min(900px, calc(100vw - 28px));
+  padding: 0;
+}
+#journey .decision {
+  margin: 0;
+  border: 0;
+}
+.decision--camp {
+  display: block;
+  padding: 32px;
+}
+.camp-intro {
+  max-width: 630px;
+}
+.camp-intro h2 {
+  margin-block: 12px;
+}
+.camp-start {
+  margin-bottom: 16px;
+}
+.forge[hidden],
+.at-forge .camp-intro,
+.at-forge .camp-tools,
+.at-forge .chapter-road {
+  display: none;
+}
+.at-forge .forge {
+  display: block;
+}
+.forge-title {
+  margin-top: 24px;
+}
+.chapter-road {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #a8ad84;
+  font-size: 12px;
+}
+.chapter-road .locked {
+  opacity: 0.5;
+}
+.chapter-road .current {
+  font-weight: 700;
+}
+#oaths {
+  width: min(650px, calc(100vw - 28px));
+}
+#oaths .build-rail {
+  background: transparent;
+  padding: 0;
+  flex-wrap: wrap;
+  border: 0;
+  color: var(--ink);
+}
+#oaths .build-perks {
+  flex-wrap: wrap;
+}
+#oaths .build-tip {
+  display: block;
+}
+#journey .decision--choice {
+  padding: 28px;
+}
+#journey .choice-heading {
+  gap: 16px;
+}
+#journey .perk-choice {
+  min-height: 240px;
+}
+@media (max-width: 600px) {
+  .masthead {
+    left: 12px;
+    right: 12px;
+    top: max(10px, env(safe-area-inset-top));
+    height: 44px;
+  }
+  .wordmark {
+    font-size: 21px;
+  }
+  .world-top {
+    top: max(70px, calc(env(safe-area-inset-top) + 60px));
+    left: 12px;
+    right: 12px;
+  }
+  .scene-caption {
+    top: 185px;
+    left: 12px;
+  }
+  .battle-note {
+    display: none;
+  }
+  .status-rail {
+    left: 12px;
+    right: 12px;
+    bottom: max(72px, calc(env(safe-area-inset-bottom) + 62px));
+    padding: 12px;
+    gap: 10px;
+  }
+  .road-progress {
+    bottom: 180px;
+  }
+  .oaths-toggle {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    right: 12px;
+    width: 140px;
+    min-height: 46px;
+  }
+  #journey .decision--camp,
+  #journey .decision--choice {
+    padding: 22px;
+  }
+  .chapter-road {
+    font-size: 11px;
+    gap: 8px 14px;
+  }
+  #journey .choice-heading {
+    margin-bottom: 16px;
+  }
+  #journey .choice-heading h2 {
+    font-size: 26px;
+  }
+  #journey .perk-choice {
+    min-height: 0;
+    padding: 13px;
+    gap: 0 12px;
+  }
+  #journey .perk-caption,
+  #journey .perk-rank {
+    display: none;
+  }
+  #journey .perk-choice > strong {
+    margin: 0 0 5px;
+    font-size: 21px;
+  }
+  #journey .perk-description {
+    font-size: 13px;
+  }
+  #journey .perk-choices {
+    gap: 10px;
+  }
+}
+@media (max-height: 500px) {
+  .masthead {
+    top: 8px;
+  }
+  .wordmark {
+    font-size: 20px;
+  }
+  .world-top {
+    top: 60px;
+  }
+  .chapter h1 {
+    font-size: 21px;
+    margin-block: 2px;
+  }
+  .scene-caption,
+  .battle-note {
+    display: none;
+  }
+  .status-rail {
+    bottom: 10px;
+    padding: 10px 16px;
+    right: 150px;
+    left: 12px;
+  }
+  .oaths-toggle {
+    bottom: 10px;
+    min-height: 61px;
+    width: 125px;
+    right: 12px;
+  }
+  .road-progress {
+    bottom: 90px;
+  }
+  #journey .decision {
+    padding: 20px;
+  }
+  .decision h2 {
+    font-size: 27px;
+    margin-block: 6px;
+  }
+  .decision p {
+    margin-block: 8px;
+  }
+  .chapter-road {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+  #journey .perk-choice {
+    min-height: 0;
+    padding: 12px;
+  }
+  .perk-caption,
+  .perk-rank {
+    display: none;
+  }
+  .perk-choice > strong {
+    font-size: 21px;
+    margin-block: 5px;
+  }
+  .perk-description {
+    font-size: 13px;
+  }
+  .choice-heading {
+    margin-bottom: 12px;
+  }
+}
+
+.camp-tools {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-height: 500px) and (min-width: 650px) {
+  .forge-items {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .forge-item {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 150px;
+  }
+  .gear-copy strong {
+    font-size: 17px;
+  }
+  .gear-copy small {
+    font-size: 12px;
+  }
+  .gear-cost {
+    margin-top: auto;
+  }
+  .forge-title {
+    margin-top: 12px;
+    margin-bottom: 10px;
+  }
+}
+
+.save-warning {
+  padding: 10px 14px;
+  background: #f1d4ad;
+  color: #692f23;
+  border: 1px solid #af7651;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.save-warning[hidden] {
+  display: none;
+}
+#journey > .save-warning {
+  margin: 20px 20px 0;
+}
+.world-save-warning {
+  position: absolute;
+  right: 20px;
+  top: 200px;
+  max-width: min(360px, calc(100% - 40px));
+  z-index: 1;
+}
+@media (max-width: 600px) {
+  .world-save-warning {
+    top: 250px;
+    left: 12px;
+    right: 12px;
+    max-width: none;
+  }
+}
+@media (max-height: 500px) {
+  .world-save-warning {
+    top: 160px;
+    max-width: 280px;
+    font-size: 12px;
+  }
+}
+
+.oaths-toggle {
+  background: #183127ed;
+  color: var(--paper);
+  border-color: #718368;
+}

@@ -55,16 +55,17 @@ app.innerHTML = `
         <div class="world-top"><div class="chapter"><span class="eyebrow" id="chapter-number">CHAPTER I</span><h1 id="chapter-title">The Cinder March</h1><span class="place" id="place">Ashen Verge</span></div><div class="top-actions"><span class="gold" title="Gold kept between journeys">${icon("coin")}<b id="gold">0</b></span><button class="pause-button" id="pause" aria-label="Pause game" disabled>${icon("pause")}</button></div></div>
         <div class="road-progress"><span id="progress-title">A new journey</span><div class="road-dots" id="road-dots" aria-label="Chapter progress"></div><span id="encounter">0 / 12</span></div>
         <div class="scene-caption"><span class="eyebrow" id="enemy-label">THE ROAD IS WAITING</span><strong id="enemy-name">A small light against the dark.</strong></div>
-        <div class="battle-note" id="battle-note">Your knight walks and fights automatically. You shape the build.</div>
+        <p class="save-warning world-save-warning" id="save-alert" data-save-warning role="status" hidden></p><div class="battle-note" id="battle-note">Your knight walks and fights automatically. You shape the build.</div>
         <div class="pause-veil" id="pause-veil" hidden><span class="eyebrow">TAKE A BREATH</span><strong>The road can wait.</strong><button class="primary" id="resume">${icon("play", 16)} Resume journey</button></div>
       </section>
       <section class="status-rail" aria-label="Knight condition"><div class="health-stat"><div><span>${icon("heart", 16)} Health</span><b id="hp-text">180 / 180</b></div><div class="meter health"><span id="hp-fill"></span></div></div><div class="xp-stat"><div><span>Level <b id="level">1</b></span><span id="xp-text">0 / 4 XP</span></div><div class="meter xp"><span id="xp-fill"></span></div></div><div class="combat-stats"><span title="Sword damage">${icon("sword", 18)}<b id="damage">23</b></span><span title="Attacks per second">${icon("wind", 18)}<b id="speed">1.05/s</b></span><span title="Flat damage blocked per hit">${icon("shield", 18)}<b id="armor">0</b></span></div></section>
-      <section id="decision" class="decision" aria-live="polite"></section>
-      <section class="build-rail" aria-label="Current journey perks"><span class="build-label">YOUR OATHS</span><div class="build-perks" id="build-perks"><span class="empty-perks">Defeat enemies to earn your first choice.</span></div><span class="build-tip" id="build-tip">Every journey is a different build.</span></section>
+
+      <button class="oaths-toggle secondary" id="oaths-toggle">Your oaths</button><dialog id="oaths" aria-label="Your oaths"><form method="dialog"><button class="close" aria-label="Close oaths">×</button><h2>What carries you.</h2></form><section class="build-rail" aria-label="Current journey perks"><span class="build-label">YOUR OATHS</span><div class="build-perks" id="build-perks"><span class="empty-perks">Defeat enemies to earn your first choice.</span></div><span class="build-tip" id="build-tip">Every journey is a different build.</span></section></dialog>
     </main>
-    <footer class="game-footer"><span>One road further.</span><span id="save-status" role="status">Loading your journey…</span><span class="keyboard-tip">Space to pause · 1–3 to choose</span></footer>
+
   </div>
-  <dialog id="settings"><form method="dialog"><button class="close" aria-label="Close settings">×</button><span class="eyebrow">AT YOUR PACE</span><h2>A quieter road.</h2><label><input type="checkbox" id="reduce-motion"> Reduced motion</label><p>Gentler character movement and no flying particles. Combat timing stays the same.</p><p class="settings-note">Progress stays in this browser. Gold and forged gear survive defeat; oaths belong to the current journey.</p><button class="primary">Return to the road</button></form></dialog>
+  <dialog id="journey" aria-label="The next step"><p class="save-warning" data-save-warning role="status" hidden></p><section id="decision" class="decision" aria-live="polite"></section></dialog>
+  <dialog id="settings"><form method="dialog"><button class="close" aria-label="Close settings">×</button><span class="eyebrow">AT YOUR PACE</span><h2>A quieter road.</h2><label><input type="checkbox" id="reduce-motion"> Reduced motion</label><p>Gentler character movement and no flying particles. Combat timing stays the same.</p><p id="save-status" role="status">Loading your journey…</p><p>Space to pause · 1–3 to choose an oath.</p><p class="settings-note">Progress stays in this browser. Gold and forged gear survive defeat; oaths belong to the current journey.</p><button class="primary">Return to the road</button></form></dialog>
 `;
 
 const get = <T extends HTMLElement = HTMLElement>(id: string) => {
@@ -153,10 +154,19 @@ function setNote(text: string, seconds = 4) {
   noteUntil = sceneTime + seconds;
 }
 
+function updateSaveStatus(message: string, warning = false) {
+  get("save-status").textContent = message;
+  document.querySelectorAll<HTMLElement>("[data-save-warning]").forEach((element) => {
+    element.textContent = message;
+    element.hidden = !warning;
+  });
+  get("battle-note").hidden = warning;
+}
+
 async function persist() {
   if (!bootLoaded) return;
   if (saveLocked) {
-    get("save-status").textContent = loadMessage;
+    updateSaveStatus(loadMessage, true);
     return;
   }
   if (saveBusy) {
@@ -166,9 +176,9 @@ async function persist() {
   saveBusy = true;
   try {
     await saves.save(structuredClone(state));
-    get("save-status").textContent = "Journey saved in this browser";
+    updateSaveStatus("Journey saved in this browser");
   } catch {
-    get("save-status").textContent = "Saving unavailable · keep this tab open";
+    updateSaveStatus("Saving unavailable · keep this tab open", true);
   } finally {
     saveBusy = false;
     if (saveAgain) {
@@ -219,6 +229,16 @@ function perkIcon(id: PerkId) {
   }[id];
 }
 
+function syncDecisionDialog() {
+  const journey = get<HTMLDialogElement>("journey");
+  const needsDecision =
+    bootLoaded &&
+    !settingsOpen &&
+    ["camp", "choice", "victory", "defeat"].includes(state.phase.kind);
+  if (needsDecision && !journey.open) journey.showModal();
+  if (!needsDecision && journey.open) journey.close();
+}
+
 function renderDecision() {
   const key = `${state.phase.kind}:${state.run.chapter}:${state.meta.gold}:${JSON.stringify(state.meta.upgrades)}:${state.phase.kind === "choice" ? state.phase.options.join() : ""}`;
   if (key === currentDecision) return;
@@ -227,6 +247,7 @@ function renderDecision() {
   currentDecision = key;
   const box = get("decision");
   const phase = state.phase;
+  syncDecisionDialog();
   box.className = `decision decision--${phase.kind}`;
   if (phase.kind === "camp") {
     const chapter = CHAPTERS[state.run.chapter - 1] ?? CHAPTERS[0];
@@ -242,7 +263,7 @@ function renderDecision() {
             )
             .join("")}</select></label>`
         : ""
-    }</div></div><div class="forge"><div class="forge-title"><span class="eyebrow">THE FORGE</span><span>Gear stays with you.</span></div><div class="forge-items">${(
+    }</div></div><div class="camp-tools"><button class="secondary" id="visit-forge">Visit the forge</button><button class="secondary" id="camp-settings">Settings</button></div><div class="chapter-road">${CHAPTERS.map((ch, i) => `<span class="${i + 1 === state.run.chapter ? "current" : i + 1 <= state.meta.unlockedChapter ? "unlocked" : "locked"}">${i + 1}. ${ch.place}</span>`).join("")}</div><div class="forge" hidden><button class="secondary" id="back-camp">← Back to camp</button><div class="forge-title"><span class="eyebrow">THE FORGE</span><span>Gear stays with you.</span></div><div class="forge-items">${(
       ["blade", "mail", "charm"] as UpgradeId[]
     )
       .map((id) => {
@@ -252,6 +273,19 @@ function renderDecision() {
         return `<button class="forge-item" data-upgrade="${id}" ${cap || state.meta.gold < cost ? "disabled" : ""}><span class="gear-icon">${icon(id === "blade" ? "sword" : id === "mail" ? "shield" : "flame", 24)}</span><span class="gear-copy"><strong>${{ blade: "Wayfarer’s blade", mail: "Weathered mail", charm: "Ember charm" }[id]}</strong><small>${{ blade: "+4 damage", mail: "+25 health · +1 armor", charm: "+2.5% critical chance" }[id]} <span>· Rank ${level}</span></small></span><span class="gear-cost">${cap ? "MAX" : `${icon("coin", 14)} ${cost}`}</span></button>`;
       })
       .join("")}</div></div>`;
+    get("camp-settings").addEventListener("click", () => get("settings-toggle").click());
+    get("visit-forge").addEventListener("click", () => {
+      box.classList.add("at-forge");
+      const forge = box.querySelector<HTMLElement>(".forge");
+      if (forge) forge.hidden = false;
+      get("back-camp").focus();
+    });
+    get("back-camp").addEventListener("click", () => {
+      box.classList.remove("at-forge");
+      const forge = box.querySelector<HTMLElement>(".forge");
+      if (forge) forge.hidden = true;
+      get("visit-forge").focus();
+    });
     get("start").addEventListener("click", () => launch(state.run.chapter));
     box.querySelector<HTMLSelectElement>("#chapter-select")?.addEventListener("change", (event) => {
       const value = Number((event.target as HTMLSelectElement).value);
@@ -268,6 +302,7 @@ function renderDecision() {
           setNote("The forge remembers. This upgrade stays after every journey.");
           currentDecision = "";
           renderUi();
+          get("visit-forge").click();
           void persist();
         }
       });
@@ -484,6 +519,7 @@ const loop = createLoop(
 );
 
 function syncPause() {
+  syncDecisionDialog();
   const paused = userPaused || platformPaused || settingsOpen;
   if (paused) loop.pause();
   else loop.resume();
@@ -556,6 +592,17 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
+get<HTMLDialogElement>("journey").addEventListener("cancel", (event) => event.preventDefault());
+get("oaths-toggle").addEventListener("click", () => {
+  settingsOpen = true;
+  get<HTMLDialogElement>("oaths").showModal();
+  syncPause();
+});
+get<HTMLDialogElement>("oaths").addEventListener("close", () => {
+  settingsOpen = false;
+  syncPause();
+});
+
 try {
   const loaded = await saves.load();
   state = loaded.state;
@@ -566,7 +613,7 @@ try {
   state = initialState();
 }
 bootLoaded = true;
-get("save-status").textContent = loadMessage || "Progress stays in this browser";
+updateSaveStatus(loadMessage || "Progress stays in this browser", Boolean(loadMessage));
 heroDeath = state.phase.kind === "defeat" ? 1 : 0;
 renderUi();
 drawWorld();

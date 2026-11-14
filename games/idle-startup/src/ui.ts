@@ -272,6 +272,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     backdrop.append(float);
   }
   app.append(backdrop);
+  let decisionPending = false;
   const frame = el("div", "frame");
   app.append(frame);
 
@@ -363,7 +364,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   fundBtn.addEventListener("click", () => hooks.onRaise());
   fundCard.append(el("div", "eyebrow", "Funding"), fundStatus, fundBar, fundBtn);
 
-  founder.append(sceneCard, cashCard, questCard, actionsCard, fundCard);
+  founder.append(sceneCard, cashCard, questCard);
 
   // ops column: org chart by department + upgrades
   const ops = el("section", "ops");
@@ -406,8 +407,48 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   const upgCardsBox = el("div", "upg-cards");
   upgPanel.append(upgEmpty, upgCardsBox);
 
-  ops.append(teamPanel, upgPanel);
-  frame.append(header, founder, ops);
+  const management = el("dialog", "management-dialog");
+  management.setAttribute("aria-labelledby", "management-title");
+  const managementHead = el("div", "management-head");
+  const managementTitle = el("h2", "panel-title");
+  managementTitle.id = "management-title";
+  const closeManagement = el("button", "modal-cancel", "Back to the office");
+  closeManagement.addEventListener("click", () => management.close());
+  managementHead.append(managementTitle, closeManagement);
+  management.append(managementHead, ops);
+  app.append(management);
+  const dock = el("nav", "office-dock");
+  dock.setAttribute("aria-label", "Run your company");
+  const panels = [
+    ["Team", teamPanel],
+    ["Upgrades", upgPanel],
+    ["Growth", actionsCard],
+    ["Funding", fundCard],
+  ] as const;
+  for (const [label, panel] of panels) {
+    ops.append(panel);
+    const button = el("button", "dock-button", label);
+    button.addEventListener("click", () => {
+      if (decisionPending || !crashVeil.classList.contains("hidden")) return;
+      managementTitle.textContent = label;
+      for (const [, item] of panels) item.hidden = item !== panel;
+      management.showModal();
+    });
+    dock.append(button);
+  }
+  management.addEventListener(
+    "click",
+    (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest(".gen-row, .faces-strip, .details-btn")) management.close();
+    },
+    { capture: true },
+  );
+  const journey = el("div", "office-journey");
+  const journeyTitle = el("span", "eyebrow", "CHAPTER 1 · THE GARAGE");
+  const journeyNext = el("span", "journey-next");
+  journey.append(journeyTitle, journeyNext);
+  frame.append(header, founder, journey, dock);
 
   const vignette = el("div", "danger-vignette hidden");
   app.append(vignette);
@@ -421,11 +462,26 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   app.append(fxLayer, toastBox, celebration, hireVeil, crashVeil, pauseVeil);
 
   // ---- hire modal: choose WHO you hire -----------------------------------
-  const closeHireModal = () => hireVeil.classList.add("hidden");
+  const closeHireModal = () => {
+    if (decisionPending) return;
+    hireVeil.classList.add("hidden");
+    frame.inert = false;
+    dock.querySelector<HTMLButtonElement>("button")?.focus();
+  };
+  const showHireModal = () => {
+    management.close();
+    frame.inert = true;
+    hireVeil.classList.remove("hidden");
+    hireVeil.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
+  };
+  hireVeil.setAttribute("role", "dialog");
+  hireVeil.setAttribute("aria-modal", "true");
+  hireVeil.setAttribute("aria-label", "Company decision");
   hireVeil.addEventListener("click", (e) => {
     if (e.target === hireVeil) closeHireModal();
   });
   const openHireModal = (def: GeneratorDef, cost: number) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal hire-modal");
     modal.style.setProperty("--medal-h", String(deptHue(def.id)));
@@ -461,11 +517,12 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     cancel.addEventListener("click", closeHireModal);
     modal.append(cancel);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- quarterly board decision --------------------------------------------
   const showDecision = (decision: DecisionDef) => {
+    decisionPending = true;
     hireVeil.textContent = "";
     const modal = el("div", "modal decision-modal");
     modal.append(el("div", "modal-title", decision.title), el("div", "modal-sub", decision.blurb));
@@ -478,18 +535,20 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
         el("span", "decision-desc", option.desc),
       );
       btn.addEventListener("click", () => {
-        hireVeil.classList.add("hidden");
+        decisionPending = false;
+        closeHireModal();
         hooks.onDecision(decision, index);
       });
       box.append(btn);
     });
     modal.append(box);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- the ledger: every addition and multiplier, itemized ----------------
   const showBreakdown = (state: GameState) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal ledger-modal");
     modal.append(
@@ -510,14 +569,15 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     section("Multipliers", data.multipliers);
     section("Payroll", data.payroll);
     const close = el("button", "modal-cancel", "Got it");
-    close.addEventListener("click", () => hireVeil.classList.add("hidden"));
+    close.addEventListener("click", closeHireModal);
     modal.append(close);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- squad view: the whole company, face by face ------------------------
   const showSquad = (state: GameState) => {
+    if (decisionPending) return;
     hireVeil.textContent = "";
     const modal = el("div", "modal squad-modal");
     modal.append(
@@ -561,7 +621,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
       const fire = el("button", "fire-btn", `Fire · $${formatNumber(severanceCost(state, index))}`);
       fire.type = "button";
       fire.addEventListener("click", () => {
-        hireVeil.classList.add("hidden");
+        closeHireModal();
         hooks.onFire(index);
       });
       card.append(fire);
@@ -574,10 +634,10 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     }
     modal.append(grid);
     const close = el("button", "modal-cancel", "Back to work");
-    close.addEventListener("click", () => hireVeil.classList.add("hidden"));
+    close.addEventListener("click", closeHireModal);
     modal.append(close);
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- founder picker ------------------------------------------------------
@@ -641,7 +701,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     startBtn.disabled = true;
     startBtn.addEventListener("click", () => {
       if (chosenSeed === null) return;
-      hireVeil.classList.add("hidden");
+      closeHireModal();
       hooks.onPickFounder(
         chosenSeed,
         nameField.value.trim() || "Founder",
@@ -663,7 +723,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
       startBtn,
     );
     hireVeil.append(modal);
-    hireVeil.classList.remove("hidden");
+    showHireModal();
   };
 
   // ---- generator rows -----------------------------------------------------
@@ -760,6 +820,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
 
   let celebrationTimer: ReturnType<typeof setTimeout> | undefined;
   const celebrate = (title: string, sub: string) => {
+    management.close();
     celebration.textContent = "";
     celebration.append(el("div", "celebration-title", title), el("div", "celebration-sub", sub));
     celebration.classList.remove("hidden");
@@ -786,11 +847,16 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
   };
 
   const showCrash = (sub: string) => {
+    management.close();
+    decisionPending = false;
+    closeHireModal();
+    frame.inert = true;
     crashVeil.textContent = "";
     const box = el("div", "crash-box");
     const restart = el("button", "crash-btn", "Start over 🌱");
     restart.addEventListener("click", () => {
       crashVeil.classList.add("hidden");
+      frame.inert = false;
       hooks.onRestart();
     });
     box.append(
@@ -801,6 +867,7 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
     );
     crashVeil.append(box);
     crashVeil.classList.remove("hidden");
+    restart.focus();
   };
 
   // lucky bubble (one at a time)
@@ -1059,6 +1126,11 @@ export function createUI(app: HTMLElement, hooks: UIHooks): UI {
 
     // office
     const office = currentOffice(state);
+    journeyTitle.textContent = `CHAPTER ${state.officeIndex + 1} · ${office.name.toUpperCase()}`;
+    const destination = nextOffice(state);
+    journeyNext.textContent = destination
+      ? `Next: ${destination.name} · ${money(destination.cost)} · build your team to get there.`
+      : "The skyline is yours. Grow your team and finish the research.";
     const nextHq = nextOffice(state);
     officeLabel.textContent = office.name;
     if (officeIcon.dataset.tier !== String(state.officeIndex)) {
