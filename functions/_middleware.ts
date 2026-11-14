@@ -312,7 +312,9 @@ export async function onRequest(context: {
     const result = markdownResponse("# Not found\n", request, { "Cache-Control": "no-store" });
     return new Response(result.body, { status: 404, headers: result.headers });
   }
-  let response = await next();
+  const assetRequest = new Request(request);
+  if (pathname === "/play/war-chest/index.wasm") assetRequest.headers.delete("Range");
+  let response = await next(assetRequest);
   if (
     [
       "/",
@@ -343,7 +345,7 @@ export async function onRequest(context: {
     });
   }
 
-  if (pathname === "/play/war-chest/index.wasm" && response.ok) {
+  if (pathname === "/play/war-chest/index.wasm" && response.status === 200) {
     const headers = withRateLimit(new Headers(response.headers));
     headers.set("Content-Type", "application/wasm");
     headers.set("Content-Encoding", "br");

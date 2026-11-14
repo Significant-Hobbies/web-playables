@@ -194,6 +194,7 @@ describe("the old road", () => {
       expect(state.meta.gold).toBe(reward);
       expect(returnToCamp(state)).toBe(true);
       expect(state.run.perks).toEqual({});
+      expect(state.run.chapter).toBe(2);
       expect(validState(state)).toBe(true);
     }
   });
@@ -227,6 +228,17 @@ describe("the old road", () => {
       expect(stepGame(restored, 1 / 30)).toEqual(stepGame(original, 1 / 30));
       expect(restored).toEqual(original);
     }
+  });
+
+  it("retains a living enemy with fractional health across a save", () => {
+    const state = initialState();
+    startRun(state);
+    for (let i = 0; i < 40; i++) stepGame(state, 1 / 30);
+    if (state.phase.kind !== "battle") throw new Error("Expected battle");
+    state.phase.enemy.hp = 0.001;
+    expect(validState(JSON.parse(JSON.stringify(state)))).toBe(true);
+    state.phase.enemy.hp = 0;
+    expect(validState(state)).toBe(false);
   });
 
   it("rejects malformed or impossible persisted state instead of trusting it", () => {

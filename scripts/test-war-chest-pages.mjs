@@ -59,7 +59,7 @@ try {
   assert(ready, `Pages did not start; see ${evidence}/pages.log`);
   const wasm = await fetch(`${origin}/play/war-chest/index.wasm`);
   assert.equal(wasm.status, 200);
-  assert.match(wasm.headers.get("content-encoding"), /^(br|gzip)$/);
+  assert.equal(wasm.headers.get("content-encoding"), "br");
   assert.match(wasm.headers.get("cache-control"), /max-age=0/);
   assert.match(wasm.headers.get("content-type"), /application\/wasm/);
   const decoded = Buffer.from(await wasm.arrayBuffer());
@@ -67,6 +67,17 @@ try {
     decoded.subarray(0, 4).toString(),
     "\0asm",
     "Pages plus middleware must deliver a correctly decoded WASM module",
+  );
+  const ranged = await fetch(`${origin}/play/war-chest/index.wasm`, {
+    headers: { Range: "bytes=0-31" },
+  });
+  assert.equal(ranged.status, 200, "Compressed WASM serves a complete body for Range requests");
+  assert.equal(ranged.headers.get("content-encoding"), "br");
+  assert.equal(
+    Buffer.from(await ranged.arrayBuffer())
+      .subarray(0, 4)
+      .toString(),
+    "\0asm",
   );
   const test = spawn(process.execPath, [join(root, "scripts/test-war-chest-browser.mjs")], {
     cwd: root,

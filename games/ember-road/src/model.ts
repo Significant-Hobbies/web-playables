@@ -301,6 +301,8 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
 
 export function returnToCamp(state: GameState): boolean {
   if (!["victory", "defeat"].includes(state.phase.kind)) return false;
+  if (state.phase.kind === "victory")
+    state.run.chapter = Math.min(state.meta.unlockedChapter, state.run.chapter + 1);
   state.phase = { kind: "camp" };
   state.run.perks = {};
   state.run.hp = heroStats(state).hp;
@@ -574,7 +576,8 @@ export function validState(value: unknown): value is GameState {
     e.interval !== expected.interval ||
     e.armor !== expected.armor ||
     e.gold !== expected.gold ||
-    !number(e.hp, 0.01, expected.maxHp)
+    !number(e.hp, 0, expected.maxHp) ||
+    e.hp === 0
   )
     return false;
   if (!number(p.heroCooldown, -0.25, 5) || !number(p.enemyCooldown, -0.25, 5)) return false;

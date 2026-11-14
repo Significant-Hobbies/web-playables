@@ -131,6 +131,63 @@ test("Ember Road playable loop, pauses and durable saves", { timeout: 120000 }, 
     assert.match(await page.locator('[data-upgrade="blade"]').innerText(), /Rank 1/);
     result.upgradeGold = await page.locator("#gold").innerText();
 
+    const savedJourney = await page.evaluate(() => localStorage.getItem("save:ember-road:v1"));
+    const delayedContext = await browser.newContext();
+    await delayedContext.addInitScript((raw) => {
+      window.__sdkWrites = [];
+      window.__sdkStored = raw;
+      const loading = new Promise((resolve) => {
+        window.__finishSdkLoad = () => resolve(raw);
+      });
+      let reads = 0;
+      window.ytgame = {
+        IN_PLAYABLES_ENV: true,
+        game: {
+          firstFrameReady() {},
+          gameReady() {},
+          loadData: () => (reads++ === 0 ? loading : Promise.resolve(window.__sdkStored)),
+          saveData: async (value) => {
+            window.__sdkWrites.push(value);
+            window.__sdkStored = value;
+          },
+        },
+        system: {
+          isAudioEnabled: () => true,
+          onAudioEnabledChange() {},
+          onPause: (callback) => {
+            window.__sdkPause = callback;
+          },
+          onResume() {},
+        },
+      };
+    }, savedJourney);
+    const delayedPage = await delayedContext.newPage();
+    await delayedPage.goto(url);
+    await delayedPage.waitForFunction(() => typeof window.__sdkPause === "function");
+    await delayedPage.locator("#settings-toggle").click();
+    await delayedPage.evaluate(() => window.__sdkPause());
+    await delayedPage.waitForTimeout(100);
+    assert.equal(
+      await delayedPage.evaluate(() => window.__sdkWrites.length),
+      0,
+      "Pause and settings during an unfinished SDK load cannot write a fresh game",
+    );
+    await delayedPage.evaluate(() => window.__finishSdkLoad());
+    await delayedPage.waitForFunction(() =>
+      document.getElementById("save-status").textContent.includes("saved"),
+    );
+    assert.equal(
+      await delayedPage.locator("#gold").innerText(),
+      result.upgradeGold,
+      "Delayed SDK loading preserves earned gold",
+    );
+    assert.equal(
+      await delayedPage.evaluate(() => JSON.parse(window.__sdkStored).state.meta.upgrades.blade),
+      1,
+    );
+    result.delayedSdkLoadPreservesProgress = true;
+    await delayedContext.close();
+
     const protectedContext = await browser.newContext();
     const invalid = '{"version":999,"state":{"gold":777}}';
     await protectedContext.addInitScript(

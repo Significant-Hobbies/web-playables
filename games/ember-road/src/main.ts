@@ -52,7 +52,7 @@ app.innerHTML = `
     <main class="game">
       <section class="world" aria-label="The Cinder March battlefield">
         <canvas id="world" aria-label="An armored traveler facing the creatures of the old road" role="img"></canvas>
-        <div class="world-top"><div class="chapter"><span class="eyebrow" id="chapter-number">CHAPTER I</span><h1 id="chapter-title">The Cinder March</h1><span class="place" id="place">Ashen Verge</span></div><div class="top-actions"><span class="gold" title="Gold kept between journeys">${icon("coin")}<b id="gold">0</b></span><button class="pause-button" id="pause" aria-label="Pause game">${icon("pause")}</button></div></div>
+        <div class="world-top"><div class="chapter"><span class="eyebrow" id="chapter-number">CHAPTER I</span><h1 id="chapter-title">The Cinder March</h1><span class="place" id="place">Ashen Verge</span></div><div class="top-actions"><span class="gold" title="Gold kept between journeys">${icon("coin")}<b id="gold">0</b></span><button class="pause-button" id="pause" aria-label="Pause game" disabled>${icon("pause")}</button></div></div>
         <div class="road-progress"><span id="progress-title">A new journey</span><div class="road-dots" id="road-dots" aria-label="Chapter progress"></div><span id="encounter">0 / 12</span></div>
         <div class="scene-caption"><span class="eyebrow" id="enemy-label">THE ROAD IS WAITING</span><strong id="enemy-name">A small light against the dark.</strong></div>
         <div class="battle-note" id="battle-note">Your knight walks and fights automatically. You shape the build.</div>
@@ -77,6 +77,7 @@ const platform = createPlatform({ storageKey: "save:ember-road:v1" });
 if (platform.env === "yt") app.querySelector(".back-link")?.remove();
 let state = initialState();
 let saveLocked = false;
+let bootLoaded = false;
 let loadMessage = "";
 let userPaused = false;
 let platformPaused = false;
@@ -153,6 +154,7 @@ function setNote(text: string, seconds = 4) {
 }
 
 async function persist() {
+  if (!bootLoaded) return;
   if (saveLocked) {
     get("save-status").textContent = loadMessage;
     return;
@@ -563,6 +565,7 @@ try {
   loadMessage = "Existing save kept untouched · playing a temporary journey";
   state = initialState();
 }
+bootLoaded = true;
 get("save-status").textContent = loadMessage || "Progress stays in this browser";
 heroDeath = state.phase.kind === "defeat" ? 1 : 0;
 renderUi();
