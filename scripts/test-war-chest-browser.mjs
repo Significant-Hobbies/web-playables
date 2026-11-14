@@ -27,6 +27,41 @@ const context = await browser.newContext({
   acceptDownloads: true,
 });
 const page = await context.newPage();
+if (process.env.CI) {
+  page.on("console", (message) => {
+    if (message.text().startsWith("SAVE TRACE ")) console.log(message.text());
+  });
+  await context.addInitScript(() => {
+    const trace = (operation, key, value) => {
+      if (!String(key).includes("winter-wages-story-v1.json") || !value?.contents) return;
+      try {
+        const state = JSON.parse(new TextDecoder().decode(value.contents));
+        console.log(
+          "SAVE TRACE " +
+            JSON.stringify({
+              operation,
+              key,
+              round: state.battle?.round,
+              lessons: state.campaign?.lessons,
+              timestamp: value.timestamp,
+              page: performance.timeOrigin,
+            }),
+        );
+      } catch {}
+    };
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function (value, key) {
+      trace("put", key, value);
+      return put.call(this, value, key);
+    };
+    const get = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (key) {
+      const request = get.call(this, key);
+      request.addEventListener("success", () => trace("get", key, request.result));
+      return request;
+    };
+  });
+}
 const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("console", (message) => {
