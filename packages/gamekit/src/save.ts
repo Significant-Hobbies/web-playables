@@ -41,14 +41,20 @@ export function createSaveManager<T>(opts: SaveManagerOptions<T>): SaveManager<T
   const { platform, version, initial } = opts;
   const migrations = opts.migrations ?? {};
   let loaded = false;
+  let latest: T | null = null;
+  let snapshotRequestsAllowed = false;
 
-  const fresh = (): LoadResult<T> => ({ state: initial(), savedAt: null });
+  const fresh = (allowSnapshot = false): LoadResult<T> => {
+    snapshotRequestsAllowed = allowSnapshot;
+    latest = initial();
+    return { state: latest, savedAt: null };
+  };
 
-  return {
+  const manager: SaveManager<T> = {
     async load() {
       loaded = true;
       const raw = await platform.loadData();
-      if (raw === null) return fresh();
+      if (raw === null) return fresh(true);
 
       let envelope: SaveEnvelope<unknown>;
       try {
@@ -76,6 +82,8 @@ export function createSaveManager<T>(opts: SaveManagerOptions<T>): SaveManager<T
       // rather than corrupt it. The old save survives until the next save().
       if (saveVersion > version) return fresh();
 
+      snapshotRequestsAllowed = true;
+      latest = state as T;
       return { state: state as T, savedAt: envelope.savedAt };
     },
 
@@ -90,6 +98,11 @@ export function createSaveManager<T>(opts: SaveManagerOptions<T>): SaveManager<T
         throw new Error(`save is ${bytes} bytes, over the ${MAX_SAVE_BYTES} byte guard`);
       }
       await platform.saveData(raw);
+      latest = state;
     },
   };
+  platform.onSaveRequest?.(async () => {
+    if (loaded && snapshotRequestsAllowed && latest !== null) await manager.save(latest);
+  });
+  return manager;
 }

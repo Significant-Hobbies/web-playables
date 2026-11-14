@@ -53,9 +53,11 @@ function observedOpen(...args){const request=originalOpen.apply(databaseFactory,
 function armBootDeadline(){clearTimeout(bootTimer);bootTimer=setTimeout(()=>failBoot('Startup has stopped responding. Close other War Chest tabs, then reload. Your saved company is kept.'),30000);}
 function failBoot(message){if(started||bootFailed)return;bootFailed=true;clearTimeout(bootTimer);restoreDatabaseOpen();const loading=document.getElementById('loading');loading.textContent=message;loading.classList.add('error');const play=document.getElementById('play');play.disabled=false;play.textContent='Reload game';}
 
-function setPaused(value){if(!started)return;paused=value;window.warChestPause?.(value);pauseCover.hidden=!value;pauseButton.textContent=value?'Resume':'Pause';if(!value)canvas.focus();}
+let cloudPause=false;
+window.warChestCloudPause=(value)=>{cloudPause=value;setPaused(document.hidden||manualPause||menuOpen||cloudPause);};
+function setPaused(value){value=Boolean(value||cloudPause);if(!started)return;paused=value;window.warChestPause?.(value);pauseCover.hidden=!value;pauseButton.textContent=value?'Resume':'Pause';if(!value)canvas.focus();}
 function storageError(){saveStatus.textContent='Storage unavailable · export your save';saveStatus.classList.add('error');window.warChestStorageError?.();}
-window.warChestReady=(persistent)=>{started=true;clearTimeout(bootTimer);restoreDatabaseOpen();document.getElementById('start-cover').hidden=true;pauseButton.disabled=false;document.getElementById('fullscreen').disabled=false;document.getElementById('export').disabled=false;if(persistent===false)storageError();setPaused(document.hidden||manualPause||menuOpen);};
+window.warChestReady=(persistent)=>{started=true;clearTimeout(bootTimer);restoreDatabaseOpen();document.getElementById('start-cover').hidden=true;pauseButton.disabled=false;document.getElementById('fullscreen').disabled=false;document.getElementById('export').disabled=false;if(persistent===false)storageError();setPaused(document.hidden||manualPause||menuOpen||cloudPause);};
 window.warChestSaveChanged=()=>{if(!saveStatus.classList.contains('error'))saveStatus.textContent='Saves use this browser’s storage';};
 window.warChestSaveSnapshot=(snapshot)=>{const blob=new Blob([snapshot],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='war-chest-company.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 document.getElementById('play').addEventListener('click',async()=>{if(bootAttempted){location.reload();return;}bootAttempted=true;const play=document.getElementById('play');play.disabled=true;try{if(typeof Engine==='undefined')throw new Error('The game engine download failed. Reload to try again.');const missing=Engine.getMissingFeatures({threads:false});if(missing.length)throw new Error(`This browser is missing ${missing.join(', ')}.`);if(databaseFactory)databaseFactory.open=observedOpen;armBootDeadline();await new Engine(engineOptions).startGame();}catch(error){failBoot(error.message||String(error));}});
@@ -66,7 +68,7 @@ pauseButton.addEventListener('click',()=>{manualPause=!paused;setPaused(manualPa
 document.getElementById('resume').addEventListener('click',()=>{manualPause=false;setPaused(false);});
 document.getElementById('export').addEventListener('click',()=>window.warChestExport?.());
 document.getElementById('fullscreen').addEventListener('click',async()=>{try{const stage=document.documentElement;if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();canvas.focus();}catch{saveStatus.textContent='Fullscreen is unavailable in this browser';}});
-document.addEventListener('visibilitychange',()=>{setPaused(document.hidden||manualPause||menuOpen);});
+document.addEventListener('visibilitychange',()=>{setPaused(document.hidden||manualPause||menuOpen||cloudPause);});
 window.addEventListener('blur',()=>setPaused(true));
 window.addEventListener('focus',()=>{if(!document.hidden&&!manualPause&&!menuOpen)setPaused(false);});
 window.addEventListener('unhandledrejection',event=>{if(String(event.reason).match(/indexeddb|idbfs|idb file system|quota/i))storageError();if(bootAttempted&&!started)failBoot('The game could not finish loading. Reload to try again. Your saved company is kept.');});

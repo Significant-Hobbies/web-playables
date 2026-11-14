@@ -19,6 +19,9 @@ export interface Platform {
   loadData(): Promise<string | null>;
   saveData(data: string): Promise<void>;
 
+  /** Optional web host asks the game to persist a fresh checkpoint before account actions. */
+  onSaveRequest?(callback: () => void | Promise<void>): Unsubscribe;
+
   audioEnabled(): boolean;
   onAudioEnabledChange(cb: (enabled: boolean) => void): Unsubscribe;
 

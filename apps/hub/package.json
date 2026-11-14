@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "build": "vite build"
+    "build": "vite build && vite build --config vite.cloud.config.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
-    "@fontsource-variable/space-grotesk": "^5.2.8"
+    "@fontsource-variable/space-grotesk": "^5.2.8",
+    "@games/cloud-contract": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.3",

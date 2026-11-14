@@ -13,6 +13,7 @@ import {
   loadGame,
   restoreSavedGameState,
   setAuthenticated,
+  startAccountCampaign,
 } from '@/lib/game-storage';
 import { INITIAL_PLAYERS } from '@/lib/map-generator';
 import { GameConfig } from '@/lib/types';
@@ -69,7 +70,7 @@ export function useGameState(initialGameId?: string) {
 
   // Sync auth state + re-fetch saves when session changes
   useEffect(() => {
-    setAuthenticated(!!authSession?.user);
+    setAuthenticated(!!authSession?.user, authSession?.user.id);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSavedGames();
   }, [authSession, refreshSavedGames]);
@@ -230,6 +231,7 @@ export function useGameState(initialGameId?: string) {
         advisorHistory: [],
       };
 
+      startAccountCampaign();
       setGameState(newState);
 
       return gameId;

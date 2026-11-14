@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { authClient } from '@/lib/auth-client';
-import { localListSavedGames, uploadLocalSavesToCloud } from '@/lib/game-storage';
+import { guestSavedGames, uploadLocalSavesToCloud } from '@/lib/game-storage';
 
 const UPLOAD_PROMPTED_KEY = 'oh_upload_prompted';
 
@@ -16,20 +16,20 @@ export default function UserMenu({ user, onRefreshSaves }: UserMenuProps) {
   const [showUploadPrompt, setShowUploadPrompt] = useState(false);
 
   useEffect(() => {
-    const alreadyPrompted = localStorage.getItem(UPLOAD_PROMPTED_KEY);
+    const alreadyPrompted = localStorage.getItem(`${UPLOAD_PROMPTED_KEY}:${user.email}`);
     if (alreadyPrompted) return;
-    const localSaves = localListSavedGames();
+    const localSaves = guestSavedGames();
     if (localSaves.length > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowUploadPrompt(true);
     }
-  }, []);
+  }, [user.email]);
 
   const handleUpload = async () => {
     setShowUploadPrompt(false);
-    localStorage.setItem(UPLOAD_PROMPTED_KEY, '1');
+    localStorage.setItem(`${UPLOAD_PROMPTED_KEY}:${user.email}`, '1');
 
-    const localSaves = localListSavedGames();
+    const localSaves = guestSavedGames();
     if (localSaves.length === 0) {
       setUploadResult('No local saves to upload.');
       setTimeout(() => setUploadResult(null), 3000);
@@ -38,8 +38,10 @@ export default function UserMenu({ user, onRefreshSaves }: UserMenuProps) {
 
     setUploading(true);
     try {
-      const count = await uploadLocalSavesToCloud();
-      setUploadResult(`Uploaded ${count} save${count !== 1 ? 's' : ''} to cloud.`);
+      const result = await uploadLocalSavesToCloud();
+      setUploadResult(
+        `${result.uploaded} uploaded · ${result.alreadyPresent} already present${result.conflicts.length ? ` · ${result.conflicts.length} conflicts kept locally` : ''}.`
+      );
       onRefreshSaves?.();
     } catch (err) {
       console.error(err);
@@ -52,7 +54,7 @@ export default function UserMenu({ user, onRefreshSaves }: UserMenuProps) {
 
   const dismissPrompt = () => {
     setShowUploadPrompt(false);
-    localStorage.setItem(UPLOAD_PROMPTED_KEY, '1');
+    localStorage.setItem(`${UPLOAD_PROMPTED_KEY}:${user.email}`, '1');
   };
 
   const handleSignOut = async () => {

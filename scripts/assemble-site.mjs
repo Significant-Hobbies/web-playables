@@ -32,7 +32,7 @@ for (const entry of readdirSync(gamesDir, { withFileTypes: true })) {
     htmlFile,
     html.replace(
       "</head>",
-      `<meta name="ai-summary" content="${description}" /><link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/${entry.name}.md" /></head>`,
+      `<script src="/cloud-host.js"></script><meta name="ai-summary" content="${description}" /><link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/${entry.name}.md" /></head>`,
     ),
   );
   copied += 1;
@@ -53,3 +53,12 @@ cpSync(
   path.join(hubDist, "war-chest-cover.png"),
 );
 console.log("Copied War Chest web export to apps/hub/dist/play/war-chest/");
+
+const warHtmlPath = path.join(playDir, "war-chest", "index.html");
+writeFileSync(
+  warHtmlPath,
+  readFileSync(warHtmlPath, "utf8").replace(
+    "</head>",
+    '<script src="/cloud-host.js"></script></head>',
+  ),
+);

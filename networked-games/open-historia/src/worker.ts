@@ -8,6 +8,8 @@ import { createAppHealthMiddleware } from './worker/app-health';
 import { bindWorkerEnv } from './worker/bind-env';
 import llmRoutes from './worker/routes/llm';
 import savesRoutes from './worker/routes/saves';
+import playerRoutes from './worker/routes/player-saves';
+import { accountCors } from '../lib/cloud-saves/security';
 import {
   agentCatalog,
   openApiSpec,
@@ -74,6 +76,20 @@ api.use('*', async (c, next) => {
 });
 
 api.use('*', createAppHealthMiddleware());
+
+api.use('/api/*', async (c, next) => {
+  if (
+    c.req.path.startsWith('/api/auth/') ||
+    c.req.path === '/api/player' ||
+    c.req.path.startsWith('/api/player/') ||
+    c.req.path === '/api/saves' ||
+    c.req.path.startsWith('/api/saves/')
+  )
+    return accountCors(c, next);
+  await next();
+});
+
+api.route('/api/player', playerRoutes);
 
 api.on(['GET', 'POST'], '/api/auth/*', (c) => {
   const auth = createAuth(c.env);
