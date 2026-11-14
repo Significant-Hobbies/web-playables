@@ -1,0 +1,321 @@
+{
+  "$schema": "fleet.design-review.v2",
+  "version": 2,
+  "project": "war-chest",
+  "target": "Opening mission, company camp, and paired native game teaser",
+  "surfaceMode": "experience",
+  "mode": "overhaul",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "productSurfaces": {
+      "scope": "paired",
+      "landing": "site/index.html",
+      "app": "scenes/pocket.tscn / scripts/pocket_main.gd",
+      "reason": "Native game and deployed teaser exist; historical standalone declaration is inaccurate."
+    },
+    "pairedPreview": {
+      "landing": "artifacts/game-experience-2026-10-03/a-crossing-landing-static-1280x1150.png",
+      "app": "artifacts/game-experience-2026-10-03/a-crossing-battle-1440x900.png"
+    },
+    "source": "comparison",
+    "references": [
+      "Into the Breach Design Postmortem \u2014 readable telegraphed threats",
+      "The Banner Saga \u2014 company and journey continuity"
+    ],
+    "probes": [
+      {
+        "id": "a-crossing",
+        "title": "The Last Crossing",
+        "path": "artifacts/game-experience-2026-10-03/a-crossing-battle-1440x900.png",
+        "thesis": "People, gate and actions inhabit one world",
+        "layout": "Elevated diorama, sparse HUD, contextual commands, world camp",
+        "typography": "Georgia story, Avenir actions, Menlo metadata",
+        "surfaces": {
+          "landing": "artifacts/game-experience-2026-10-03/a-crossing-landing-static-1280x1150.png",
+          "app": "artifacts/game-experience-2026-10-03/a-crossing-battle-1440x900.png"
+        },
+        "secondContext": "artifacts/game-experience-2026-10-03/a-crossing-camp-1440x900.png",
+        "compact": "artifacts/game-experience-2026-10-03/a-crossing-battle-1152x720.png",
+        "limitation": "Static storyboard, not native/browser screenshot or playable demo; compact is scaled."
+      },
+      {
+        "id": "b-table",
+        "title": "The Captain Table",
+        "path": "artifacts/game-experience-2026-10-03/b-table-battle-1440x900.png",
+        "thesis": "Every attack and counter reads as a plan",
+        "layout": "Carved top-down board and order docket; same table chest",
+        "typography": "Georgia character, monospaced tactics, Avenir instructions",
+        "surfaces": {
+          "landing": "artifacts/game-experience-2026-10-03/b-table-landing-static-1280x1150.png",
+          "app": "artifacts/game-experience-2026-10-03/b-table-battle-1440x900.png"
+        },
+        "secondContext": "artifacts/game-experience-2026-10-03/b-table-camp-1440x900.png",
+        "compact": "artifacts/game-experience-2026-10-03/b-table-battle-1152x720.png",
+        "limitation": "Static storyboard, not native/browser screenshot or playable demo; compact is scaled."
+      },
+      {
+        "id": "c-road",
+        "title": "The Company Road",
+        "path": "artifacts/game-experience-2026-10-03/c-road-battle-1440x900.png",
+        "thesis": "Follow companions through the journey",
+        "layout": "Side-view wall, companion strip, intimate camp",
+        "typography": "Georgia story and Avenir actions",
+        "surfaces": {
+          "landing": "artifacts/game-experience-2026-10-03/c-road-landing-static-1280x1150.png",
+          "app": "artifacts/game-experience-2026-10-03/c-road-battle-1440x900.png"
+        },
+        "secondContext": "artifacts/game-experience-2026-10-03/c-road-camp-1440x900.png",
+        "compact": "artifacts/game-experience-2026-10-03/c-road-battle-1152x720.png",
+        "limitation": "Static storyboard, not native/browser screenshot or playable demo; compact is scaled."
+      }
+    ],
+    "selected": "a-crossing",
+    "approval": "approved",
+    "ownerEvidence": {
+      "path": ".fleet/game-experience-owner-selection-2026-10-03.md",
+      "quote": "Yes \u2014 build A, The Last Crossing (Recommended)"
+    },
+    "supplied": "",
+    "before": "artifacts/story-onboarding/first-battle-rowan-1440x900.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "Preserved project static semantic header/figure/caption; native Godot outside web standard.",
+      "sources": [
+        "https://github.com/Significant-Hobbies/war-chest/blob/7c4492cba002b42abf671a48a38046110d2b99e9/site/index.html",
+        "https://preline.co/blocks/marketing/hero-sections/"
+      ],
+      "runtime": "markup-only",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": "Probes reuse static project figure/link pattern; no standard interaction replaced."
+      }
+    },
+    "contract": {
+      "purpose": "War Chest helps the owner judge a local tactical game by playing a persistent company with spatial equipment choices.",
+      "purposeSource": "../site-health/apps/backend/config/projects.json: war-chest; PRODUCT.md; .fleet/game-experience-plan-2026-10-03.md",
+      "canonicalPurpose": "Explore a playable tactical war game with a persistent company and spatial equipment choices.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Owner testing a local native game experiment.",
+      "job": "Understand whom to protect, select a companion, issue an order and see its consequence.",
+      "thesis": "A world-first crossing where the people, defended gate, selected companion and resulting orders share one coherent scene.",
+      "system": "Elevated world; sparse corner HUDs; actor-context commands; deep river/forest, warm stone, gold action, rust threat, paper narrative; Georgia story/Avenir action/Menlo metadata; shared world camp and physical chest.",
+      "signature": "Open gate, family carts, company and stolen wages connect battle and camp.",
+      "risk": "Visible rescue must derive truthfully from resolved enemy phases. Contextual commands must preserve discoverability, keyboard operation and compact-window readability.",
+      "qualityBar": "Visible human goal, useful first decision, exact threat/result preview, coherent company/camp/chest/teaser. Owner rejected current experience as confusing and unconvincing."
+    }
+  },
+  "evidence": {
+    "platform": "native-macos",
+    "productContinuity": {
+      "status": "blocked",
+      "reason": "Paired source identity and truthful lifecycle inspected; actual native and browser renders denied.",
+      "reviewer": "Root source review with reliability teaser audit",
+      "report": ".fleet/last-crossing-review-2026-10-03.md",
+      "surfaces": {
+        "landing": "site/index.html",
+        "app": "scenes/pocket.tscn"
+      },
+      "checks": {
+        "designSystem": {
+          "status": "blocked",
+          "observation": "Same river/forest, paper, gold and rust roles; Georgia story and Avenir actions in source. Actual paired rendered evidence unavailable."
+        },
+        "identity": {
+          "status": "blocked",
+          "observation": "War Chest and the winter wages/company story agree in both source surfaces; native campaign uses selected Last Crossing system."
+        },
+        "vocabulary": {
+          "status": "blocked",
+          "observation": "Companions, shared orders, campaign, packed versus stored gear and winter wages agree in inspected copy."
+        },
+        "productTruth": {
+          "status": "blocked",
+          "observation": "Teaser says local development and labels origin-approved images as earlier prototype. No public build/download/payment claims; both origin asset and teaser source checks pass."
+        },
+        "handoff": {
+          "status": "blocked",
+          "observation": "Explore campaign reaches real #campaign content; local practice is separate from public availability. Native/browser first-value behavior not rendered."
+        }
+      }
+    },
+    "slopScale": {
+      "platform": "native",
+      "posture": "advisory",
+      "reason": "Native game outside browser scanner. Paired teaser attempts blocked by Chromium bootstrap and localhost bind restrictions. Static boards do not substitute rendered scans.",
+      "checkpoints": [
+        {
+          "stage": "directions",
+          "direction": "a-crossing",
+          "status": "blocked",
+          "report": ".fleet-local/slop/game-experience-2026-10-03/a-crossing.json",
+          "reason": "Chromium bootstrap_check_in permission denied; localhost bind denied. Static fallback, score unknown.",
+          "findingsReview": "Static craft, font/glyph/reward/proposed-rules corrections in .fleet/game-experience-directions-review-2026-10-03.md."
+        },
+        {
+          "stage": "directions",
+          "direction": "b-table",
+          "status": "blocked",
+          "report": ".fleet-local/slop/game-experience-2026-10-03/remaining-directions.json",
+          "reason": "Chromium bootstrap_check_in permission denied; localhost bind denied. Static fallback, score unknown.",
+          "findingsReview": "Static craft, font/glyph/reward/proposed-rules corrections in .fleet/game-experience-directions-review-2026-10-03.md."
+        },
+        {
+          "stage": "directions",
+          "direction": "c-road",
+          "status": "blocked",
+          "report": ".fleet-local/slop/game-experience-2026-10-03/remaining-directions.json",
+          "reason": "Chromium bootstrap_check_in permission denied; localhost bind denied. Static fallback, score unknown.",
+          "findingsReview": "Static craft, font/glyph/reward/proposed-rules corrections in .fleet/game-experience-directions-review-2026-10-03.md."
+        },
+        {
+          "stage": "iteration",
+          "status": "blocked",
+          "report": ".fleet-local/teaser-last-crossing-2026-10-03/iteration-blocked.json",
+          "reason": "Capability limitation record; no new scan. Actual prior Chromium/bootstrap and localhost failures retained. Native scanner inapplicable; paired teaser score unknown.",
+          "findingsReview": ".fleet/last-crossing-review-2026-10-03.md"
+        },
+        {
+          "stage": "final",
+          "status": "blocked",
+          "report": ".fleet-local/teaser-last-crossing-2026-10-03/final-blocked.json",
+          "reason": "Capability limitation record; no new scan. Actual prior Chromium/bootstrap and localhost failures retained. Native scanner inapplicable; paired teaser score unknown.",
+          "findingsReview": ".fleet/last-crossing-review-2026-10-03.md"
+        }
+      ]
+    },
+    "visualReview": {
+      "status": "blocked",
+      "reviewer": "Root with presentation_review and rules_quality; source composition and font review only",
+      "direction": "a-crossing",
+      "report": ".fleet/last-crossing-review-2026-10-03.md",
+      "checks": {
+        "hierarchy": {
+          "status": "blocked",
+          "observation": "Every mission states a concrete task. Eighteen fixed source compositions reviewed; native hierarchy and first-time comprehension unverified."
+        },
+        "typography": {
+          "status": "blocked",
+          "observation": "Actual configured Godot font metrics cover all dialogue/choices/road and battle/chest fixtures at requested 1440/1152 sizes; final source records have zero overflow flags. Native rasterization remains unverified."
+        },
+        "composition": {
+          "status": "blocked",
+          "observation": "Source records exposed and resolved badge/arrow/landmark occlusions. Fixed-canvas reconstructions are not native window captures."
+        },
+        "identity": {
+          "status": "blocked",
+          "observation": "World, company, open gate and physical chest match selected A in inspected source records. Paired browser/native renders unavailable."
+        },
+        "interaction": {
+          "status": "blocked",
+          "observation": "19 source suites pass including actual UI callbacks, free selection, atomic rejected-choice feedback and legal recruitment/rune flow. Native mouse timing, motion/hit regions and input feel unverified."
+        },
+        "responsive": {
+          "status": "blocked",
+          "observation": "Headless font/control fixtures at requested sizes passed. No native measured screenshot at supported minimum and two larger widths; no responsive acceptance."
+        }
+      }
+    },
+    "screenshots": [],
+    "projectCheck": {
+      "command": "sh scripts/check.sh in byte-identical temporary source/runtime with test-only public CA and self-contained editor profile",
+      "status": "pass",
+      "report": "artifacts/last-crossing-build-audit-2026-10-03/source-check.log",
+      "limits": "Production TLS settings and strict error gate unchanged. This is headless source verification, not native rendered qualification."
+    },
+    "critique": {
+      "score": 0,
+      "maximum": 40,
+      "dimensions": {
+        "hierarchy": 0,
+        "typography": 0,
+        "composition": 0,
+        "identity": 0,
+        "interaction": 0,
+        "responsive": 0
+      }
+    },
+    "audit": {
+      "score": 0,
+      "maximum": 20,
+      "dimensions": {
+        "purpose": 0,
+        "accessibility": 0,
+        "behavior": 0,
+        "responsive": 0,
+        "performance": 0
+      }
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 1
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": []
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    },
+    "supportedMinimumWidth": 1152,
+    "sourceComposition": {
+      "report": "artifacts/crossing-source-records/REVIEW.md",
+      "manifest": "artifacts/crossing-source-records/composition-evidence.json",
+      "sourceHashes": "artifacts/crossing-source-records/source-hashes.json",
+      "count": 18,
+      "nativeAcceptance": false,
+      "method": "Production drawing records plus Pillow approximation, schema-checked UI fixtures; not native screenshots, measured windows or earned campaign proof."
+    },
+    "assessmentStatus": "Unmeasured visual scores remain placeholders; fresh native and paired browser review is required. Completion is blocked.",
+    "packagedCheck": {
+      "status": "pass",
+      "suiteCount": 14,
+      "resourceCount": 40,
+      "report": "artifacts/last-crossing-build-audit-2026-10-03/AUDIT.md",
+      "sourceClosure": "artifacts/last-crossing-build-audit-2026-10-03/source-closure-audit.json",
+      "limits": "Headless isolated packaged verification; no native acceptance."
+    },
+    "localCandidate": {
+      "practiceApp": "builds/Practice War Chest Last Crossing.app",
+      "proof": "artifacts/last-crossing-build-audit-2026-10-03/practice-app-proof.json",
+      "publication": "blocked: local Git index is read-only; GitHub write tool requires approval but session approval policy is never",
+      "nativeAcceptance": false
+    },
+    "closeoutAttempt": {
+      "report": ".fleet/last-crossing-review-2026-10-03.md",
+      "status": "blocked",
+      "native": "Computer Use was not approved to use Practice War Chest",
+      "localGit": "Unable to create .git/index.lock: Operation not permitted",
+      "github": "MCP tool call requires approval, but approval policy is never",
+      "browser": "Local file URL rejected by browser protocol policy; no workaround attempted"
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner explicitly selected A. This keep decision records direction selection only; native/paired rendered inspection and finished-quality acceptance remain blocked."
+  }
+}

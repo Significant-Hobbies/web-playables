@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T00:00:00Z",
+  "title": "War Chest — Banner & Steel",
+  "extensions": {
+    "platform": "Native Godot desktop; snippets below are token references, not the game implementation.",
+    "motion": [
+      {"name":"combat","value":"0.68s maximum","purpose":"Snapshot-derived strikes, projectiles and formation changes; canceled by undo/navigation/reduced motion."},
+      {"name":"level-seal","value":"0.65s","purpose":"One-shot level reveal; stationary under reduced motion."}
+    ],
+    "breakpoints": [{"name":"minimum-desktop","value":"1152x720"},{"name":"design-canvas","value":"1440x900, aspect preserved"}]
+  },
+  "components": [
+    {"name":"Primary order","kind":"button","description":"Ink action, paper label, olive hover and ochre press; visible focus.","html":"<button class=\"ds-order\">End turn</button>","css":".ds-order{background:#203340;color:#f4ebd8;border:1px solid #b5aa90;border-radius:4px;padding:12px 24px;font:18px Arial}.ds-order:hover{background:#405947}.ds-order:active{background:#dbac51;color:#203340}.ds-order:focus-visible{outline:3px solid #203340;outline-offset:3px}"},
+    {"name":"Equipment command","kind":"button","description":"Labelled gear-derived action with order cost; selected state ochre.","html":"<button class=\"ds-gear\">Cleave · 2 orders</button>","css":".ds-gear{background:#f4ebd8;color:#203340;border:1px solid #b5aa90;border-radius:4px;padding:18px;font:18px Arial}.ds-gear:hover{background:#e4d9bf}.ds-gear:focus-visible{outline:3px solid #203340}.ds-gear[aria-pressed=true]{background:#dbac51;border:2px solid #203340}"}
+  ],
+  "narrative": {
+    "northStar":"Banner & Steel",
+    "overview":"Owner-selected refined A: mature, simple flat illustration with adult-proportioned troops, an olive company standard and warm stone terrain.",
+    "keyCharacteristics":["World-first battlefield","Live gear-derived orders","Restrained paper controls","Adult-proportioned 2D troops"],
+    "rules":[],
+    "dos":["Keep scenery quieter than characters and decisions.","Preserve progress and saves, including on defeat."],
+    "donts":["Do not reintroduce realistic illustrations, chibi proportions, dense floating labels or ornate fantasy chrome.","Do not describe a generated concept as the working game."]
+  }
+}

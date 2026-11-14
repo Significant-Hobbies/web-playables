@@ -3,7 +3,11 @@ import "./style.css";
 
 import { drawCover } from "./cover";
 
-const COVER_ART: Record<string, string> = { "idle-startup": "/og-card.jpg" };
+const COVER_ART: Record<string, string> = {
+  "ember-road": "/ember-road-cover.png",
+  "idle-startup": "/og-card.jpg",
+  "war-chest": "/war-chest-cover.png",
+};
 
 import { GAMES, type GameMeta } from "./games";
 
@@ -161,13 +165,15 @@ footer.setAttribute("data-mode", "dark");
 const footerConfig = document.createElement("script");
 footerConfig.type = "application/json";
 footerConfig.textContent = JSON.stringify({
-  summary: "A parked browser-game lab: one idle game and a reusable gamekit.",
+  summary: "A browser-game lab with Ember Road, Idle Startup and War Chest.",
   groups: [
     {
       title: "project",
       links: [
         { label: "GitHub repository", href: repositoryUrl },
         { label: "idle startup", href: "/play/idle-startup/" },
+        { label: "war chest", href: "/play/war-chest/" },
+        { label: "ember road", href: "/play/ember-road/" },
       ],
     },
   ],

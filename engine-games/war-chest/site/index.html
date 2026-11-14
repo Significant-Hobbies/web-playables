@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="War Chest is a local story tactics prototype for Mac. Defend the crossing, lead a persistent company and recover the valley’s stolen winter wages. In development.">
+<meta property="og:title" content="War Chest — The Last Crossing">
+<meta property="og:description" content="Defend the families. Bring the company home. A local turn-based story tactics prototype for Mac, in development.">
+<meta property="og:image" content="images/battle-1440.png">
+<meta property="og:image:alt" content="A tactical battle from an earlier War Chest prototype">
+<meta property="og:type" content="website">
+<title>War Chest — The Last Crossing</title>
+<style>
+  :root { color-scheme:dark; --river:#102a30; --forest:#294743; --paper:#efe8d6; --stone:#c4baa2; --gold:#e9b85f; --rust:#c15b49; --line:#55706a; }
+  * { margin:0; box-sizing:border-box; }
+  html { scroll-padding-top:24px; }
+  body { background:var(--river); color:var(--paper); font-family:'Avenir Next', Avenir, Arial, sans-serif; font-size:18px; line-height:1.55; }
+  a { color:inherit; text-underline-offset:4px; }
+  a:focus-visible { outline:3px solid var(--gold); outline-offset:6px; }
+  .skip { position:absolute; top:12px; left:24px; padding:10px 18px; color:var(--river); background:var(--gold); transform:translateY(-160%); z-index:2; }
+  .skip:focus { transform:none; }
+  .wrap { width:min(1200px,100%); margin-inline:auto; padding-inline:clamp(24px,5vw,64px); }
+  .masthead { display:flex; justify-content:space-between; align-items:center; gap:20px; min-height:92px; border-bottom:1px solid var(--line); }
+  .brand { font:30px/1.1 Georgia, 'Iowan Old Style', serif; text-decoration:none; }
+  .stage, .eyebrow { color:var(--gold); font:12px/1.5 Menlo, Consolas, monospace; letter-spacing:.075em; text-transform:uppercase; }
+  .stage { text-align:right; }
+  .hero { padding-block:64px 48px; }
+  h1, h2, h3 { font-family:Georgia, 'Iowan Old Style', serif; font-weight:normal; }
+  h1 { max-width:1040px; margin-top:20px; font-size:clamp(40px,6vw,76px); line-height:1.07; letter-spacing:-.025em; text-wrap:balance; }
+  .lede { max-width:760px; margin-top:26px; font-size:clamp(19px,2vw,23px); }
+  .availability { max-width:760px; margin-top:14px; color:var(--stone); font-size:15px; }
+  .actions { display:flex; align-items:center; flex-wrap:wrap; gap:20px 28px; margin-top:30px; }
+  .primary { display:inline-flex; align-items:center; justify-content:center; min-height:50px; padding:12px 24px; color:var(--river); background:var(--gold); border:1px solid var(--gold); border-radius:3px; text-decoration:none; font-weight:600; }
+  .primary:hover { background:var(--paper); border-color:var(--paper); }
+  .secondary { padding-block:12px; color:var(--paper); }
+  figure { min-width:0; }
+  img { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:3px; }
+  figcaption { margin-top:14px; color:var(--stone); font-size:14px; line-height:1.5; }
+  .record { display:block; margin-bottom:4px; color:var(--gold); font:12px/1.5 Menlo, Consolas, monospace; text-transform:uppercase; letter-spacing:.04em; }
+  .campaign { display:grid; grid-template-columns:1fr 1.2fr; gap:48px 72px; padding-block:84px; }
+  h2 { margin-top:14px; font-size:clamp(30px,3.5vw,44px); line-height:1.16; text-wrap:balance; }
+  .intro { margin-top:20px; color:var(--stone); }
+  .journey { list-style:none; padding:0; border-left:2px solid var(--rust); }
+  .journey li { padding:0 0 28px 28px; }
+  .journey li:last-child { padding-bottom:0; }
+  h3 { font-size:25px; line-height:1.25; }
+  .journey p { margin-top:9px; color:var(--stone); }
+  .chest-band { background:var(--forest); border-block:1px solid var(--line); }
+  .chest { display:grid; grid-template-columns:1.3fr 1fr; align-items:start; gap:36px 56px; padding-block:64px; }
+  .chest p:not(.eyebrow) { margin-top:20px; color:var(--paper); }
+  .chest figcaption { color:var(--paper); }
+  footer { display:flex; justify-content:space-between; flex-wrap:wrap; gap:14px 24px; padding-block:30px; color:var(--stone); font-size:14px; }
+  @media (max-width:760px) {
+    .masthead { min-height:82px; }
+    .brand { font-size:26px; }
+    .stage { max-width:160px; font-size:11px; }
+    .hero { padding-block:42px 32px; }
+    .campaign, .chest { grid-template-columns:1fr; gap:32px; padding-block:48px; }
+    .chest-copy { grid-row:1; }
+    .journey li { padding-left:22px; }
+  }
+  @media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="wrap">
+  <div class="masthead">
+    <a class="brand" href="#main" aria-label="War Chest home">War Chest</a>
+    <p class="stage">Local prototype · macOS<br>In development</p>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+  <div class="wrap">
+    <section class="hero" aria-labelledby="title">
+      <p class="eyebrow">The Last Crossing</p>
+      <h1 id="title">Keep the crossing open.<br>Bring the company home.</h1>
+      <p class="lede">A turn-based story tactics prototype for Mac. Lead Rowan, Lysa and Fen, defend the families at Lantern Gate, and recover the valley’s stolen winter wages.</p>
+      <p class="availability">An evolving local game prototype. No public game build is available.</p>
+      <nav class="actions" aria-label="Explore the prototype">
+        <a class="primary" href="#campaign">Explore the campaign</a>
+        <a class="secondary" href="#war-chest">See the war chest</a>
+      </nav>
+    </section>
+    <figure>
+      <img src="images/battle-1440.png" width="1440" height="900" alt="An earlier War Chest prototype’s tactical battlefield, with company commands and enemy health">
+      <figcaption><span class="record">Earlier prototype · battle</span>A record of the preceding battle interface. The selected Last Crossing presentation is being built; this image does not depict the new interface.</figcaption>
+    </figure>
+    <section class="campaign" id="campaign" tabindex="-1" aria-labelledby="campaign-title">
+      <div>
+        <p class="eyebrow">The company’s road</p>
+        <h2 id="campaign-title">A reason to hold.<br>A company to return to.</h2>
+        <p class="intro">The campaign follows a small company across three chapters and twelve encounters. Its choices carry into the next battle and the journey home.</p>
+      </div>
+      <ol class="journey">
+        <li>
+          <h3>Hold Lantern Gate</h3>
+          <p>Keep the crossing open while the families escape. Select a companion, choose an order and its target, then let the enemies answer. The company shares its orders.</p>
+        </li>
+        <li>
+          <h3>Return to camp</h3>
+          <p>Keep earned gold and equipment, hear from the company, and prepare for the next fight. Lysa is looking for her brother Ivo; the road ahead follows the missing wages.</p>
+        </li>
+        <li>
+          <h3>Choose what to protect</h3>
+          <p>Escort a convoy, recover a relic and face the winter siege. Reinforcements, wards and evacuation choices change later encounters and what the company remembers.</p>
+        </li>
+      </ol>
+    </section>
+  </div>
+  <section class="chest-band" id="war-chest" tabindex="-1" aria-labelledby="chest-title">
+    <div class="wrap chest">
+      <figure>
+        <img src="images/chest-1440.png" width="1440" height="900" loading="lazy" alt="An earlier War Chest prototype’s spatial equipment chest, with shaped items occupying its grid">
+        <figcaption><span class="record">Earlier prototype · equipment</span>The preceding chest interface shows the spatial packing rules. Equipment must be packed to grant its commands.</figcaption>
+      </figure>
+      <div class="chest-copy">
+        <p class="eyebrow">The war chest</p>
+        <h2 id="chest-title">What you pack becomes what you can command.</h2>
+        <p>Weapons, shields and relics compete for a thirty-cell chest. Their shapes and neighbours change the company’s options.</p>
+        <p>Earn a Storm rune at Lantern Gate, then pack it against a weapon’s edge. Its +2 damage can turn Rowan’s eight-damage Cleave into ten: enough to finish a ten-health raider.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="wrap">
+  <p>War Chest · A Significant Hobbies game in development.</p>
+  <p>Native Godot prototype · Local progress</p>
+</footer>
+</body>
+</html>

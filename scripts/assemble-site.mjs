@@ -40,3 +40,16 @@ for (const entry of readdirSync(gamesDir, { withFileTypes: true })) {
 }
 
 console.log(`Assembled site with ${copied} game${copied === 1 ? "" : "s"}.`);
+
+const warChest = path.join(root, "engine-games/war-chest/dist/web");
+if (!existsSync(path.join(warChest, "index.html"))) {
+  throw new Error(
+    "War Chest web export is missing. Run pnpm war-chest:build before assembling the full site.",
+  );
+}
+cpSync(warChest, path.join(playDir, "war-chest"), { recursive: true });
+cpSync(
+  path.join(root, "engine-games/war-chest/assets/banner-steel/lantern-gate.png"),
+  path.join(hubDist, "war-chest-cover.png"),
+);
+console.log("Copied War Chest web export to apps/hub/dist/play/war-chest/");

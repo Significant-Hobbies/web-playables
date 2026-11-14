@@ -1,0 +1,65 @@
+WAR CHEST — LOCAL PLAY BUILD
+
+Double-click Play War Chest.command to continue your company. A genuinely new
+company begins The Winter Wages story; existing companies keep their modes.
+Double-click Practice War Chest.command for a fresh story session that never reads
+or writes your campaign save or settings. Practice progress is not saved.
+
+Keep this whole folder together. The runtime and both Banner & Steel artwork
+images are included. No editor, export templates, downloads or account needed.
+This local bundle uses the existing Godot editor binary as a game runner;
+it is not a separately exported, signed or notarized War Chest application.
+
+HOW TO PLAY
+All companions deploy. Bottom portraits or 1–5 select whose cards you command;
+switching costs no orders. Choose a card, then click its target.
+Space: end turn. Z: undo your last order. T/F: preview/confirm a target.
+Lead Rowan, Lysa and Fen through twelve encounters. Hear the company before
+each march and make three choices that change later battles and the homecoming.
+The first victory awards a storm rune. Pack it beside a weapon, then test its
++2 command damage in battle two. Objectives include rescuing Ivo, escorting
+supplies, carrying a seal and bringing the pay chest home under fire.
+Pack equipment before battle; stored items have no effect.
+Earn gold in battles and upgrade gear. Merrin joins free after the Sunken
+Reliquary and deploys next battle; pack his staff for Storm.
+Company levels advance after Gate, Convoy, Watchfires, Iron Oath and Winterwatch,
+up to level 6. The road names your next milestone. Individual mastery grows
+separately at 2, 5 and 9 victories. Talon opens after the story ending.
+Existing companies retain their original missions, quests and recruitment.
+No real purchases.
+Menu contains help, sound and reduced-motion settings.
+
+SAVES
+Original companies keep their existing location:
+~/Library/Application Support/Godot/app_userdata/War Chest/iron-and-ember-v2.json
+The authored story uses a separate company:
+~/Library/Application Support/Godot/app_userdata/War Chest/winter-wages-story-v1.json
+Menu lets an existing company begin or resume the story in that separate slot.
+No save is included in this bundle. Existing malformed saves are preserved;
+the game reports that saving is disabled instead of replacing them.
+
+DIAGNOSTICS
+Verify Local Game.command checks bundle hashes, the earned twelve-encounter
+journey, native button presses, keyboard focus, manual return, onboarding,
+motion, real-opening boot, both twelve-encounter story branches, story scenes,
+separate-slot recovery, exact rule forecasts, the reward-to-packing flow and
+forty battle/navigation cycles without player data. Fourteen suites run.
+Malformed-save fixtures use
+isolated session storage; earned story tests write reports only when requested.
+Any engine error makes verification fail, even when gameplay assertions pass.
+Logs are kept in this folder's logs directory, one folder per session.
+
+Earlier story input and rendering were inspected on October 2. The selected
+October 3 Last Crossing overhaul needs fresh native inspection; the agent's
+current session denies native UI access. Earlier packaged native launch
+evidence is recorded separately in .fleet/story-mode-review-2026-10-02.md;
+the companion/level teaching pass is in .fleet/story-onboarding-review-2026-10-02.md.
+A full manual story playthrough, long-session background stability and native
+performance remain unqualified. Headless checks do not prove graphical stability.
+If a macOS security warning appears, do not disable security protections.
+Do not delete your save to troubleshoot a launch failure.
+
+The Godot runtime is copied without modifying its original signature. Bundle
+integrity checks cover every runtime file. This local launcher is not a signed
+or notarized War Chest release; hash checks do not certify native graphics or
+macOS security acceptance.

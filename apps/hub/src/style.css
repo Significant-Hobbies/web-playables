@@ -89,7 +89,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
-  max-width: 520px;
+  max-width: 1040px;
 }
 
 .game-card {
@@ -114,6 +114,7 @@ h1 {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 7;
+  object-fit: cover;
   border-radius: 10px;
   border: 1px solid var(--line);
 }

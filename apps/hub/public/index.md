@@ -2,9 +2,21 @@
 
 Canonical: https://idle.aliveville.com/
 
-Research complete · parked
+Browser games · in development
 
-A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
+Small worlds, ready to play. Forge a wandering knight, build a startup, or lead a company through The Last Crossing. No download or account needed.
+
+## Ember Road
+
+Forge your knight. Choose your oaths. Walk one road further.
+
+[Play →](https://idle.aliveville.com/play/ember-road/)
+
+## War Chest
+
+Defend the crossing. Pack your gear. Bring the company home.
+
+[Play →](https://idle.aliveville.com/play/war-chest/)
 
 ## Idle Startup
 
@@ -12,8 +24,8 @@ Ship features. Hire the team. Raise the round.
 
 [Play →](https://idle.aliveville.com/play/idle-startup/)
 
-## One mechanic, two distribution targets.
+## Different worlds. One browser.
 
-What the lab produced
+Inside the arcade
 
-The reusable gamekit owns the loop, versioned saves, offline progress, pause behavior, and platform adapters. The same game builds as a normal browser experience and as a submission-ready YouTube Playable. There is no promised next game; the project reopens only for a specific mechanic worth studying. Microsoft Clarity measures visits to this hub only; the game and YouTube bundle remain analytics-free.
+Ember Road is an original idle battle game with animated characters, earned upgrades and a fresh perk build each journey. Idle Startup is an incremental company simulator built on gamekit, with a separate YouTube Playables build. War Chest is a Godot tactical story prototype with a twelve-encounter campaign, animated companions and a spatial equipment chest. War Chest saves in this browser and is best played in landscape on a larger screen. The games include no analytics; visits to the hub are measured separately.

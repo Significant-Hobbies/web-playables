@@ -238,6 +238,8 @@ function sitemapXml(origin: string): string {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${origin}/</loc></url>
   <url><loc>${origin}/play/idle-startup/</loc></url>
+  <url><loc>${origin}/play/war-chest/</loc></url>
+  <url><loc>${origin}/play/ember-road/</loc></url>
 </urlset>
 `;
 }
@@ -251,8 +253,7 @@ export async function onRequest(context: {
   const pathname = url.pathname;
   const assets = { fetch: (input: Request) => context.next(input) };
   const readableUrl = new URL(request.url);
-  if (readableUrl.pathname === "/play/idle-startup/index.md")
-    readableUrl.pathname = "/play/idle-startup.md";
+  readableUrl.pathname = readableUrl.pathname.replace(/^(\/play\/[^/]+)\/index\.md$/, "$1.md");
   const readable = await handleReadability(new Request(readableUrl, request), assets);
   if (readable) return readable;
 
@@ -311,12 +312,24 @@ export async function onRequest(context: {
     const result = markdownResponse("# Not found\n", request, { "Cache-Control": "no-store" });
     return new Response(result.body, { status: 404, headers: result.headers });
   }
-  let response = await next();
-  if (["/", "/play/idle-startup", "/play/idle-startup/"].includes(pathname))
+  const assetRequest = new Request(request);
+  if (pathname === "/play/war-chest/index.wasm") assetRequest.headers.delete("Range");
+  let response = await next(assetRequest);
+  if (
+    [
+      "/",
+      "/play/idle-startup",
+      "/play/idle-startup/",
+      "/play/war-chest",
+      "/play/war-chest/",
+      "/play/ember-road",
+      "/play/ember-road/",
+    ].includes(pathname)
+  )
     response = advertiseMarkdown(
       response,
       SITE_ORIGIN,
-      pathname === "/" ? "/index.md" : "/play/idle-startup.md",
+      pathname === "/" ? "/index.md" : `${pathname.replace(/\/$/, "")}.md`,
     );
 
   // Add Vary: Accept to HTML responses
@@ -330,6 +343,21 @@ export async function onRequest(context: {
       statusText: response.statusText,
       headers,
     });
+  }
+
+  if (pathname === "/play/war-chest/index.wasm" && response.status === 200) {
+    const headers = withRateLimit(new Headers(response.headers));
+    headers.set("Content-Type", "application/wasm");
+    headers.set("Content-Encoding", "br");
+    headers.set("Cache-Control", "public, max-age=0, must-revalidate, no-transform");
+    headers.delete("Content-Length");
+    const init: ResponseInit & { encodeBody: "manual" } = {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+      encodeBody: "manual",
+    };
+    return new Response(request.method === "HEAD" ? null : response.body, init);
   }
 
   // Add rate-limit headers to all other responses.

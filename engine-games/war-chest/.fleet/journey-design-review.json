@@ -1,0 +1,102 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "war-chest",
+  "target": "Pocket Siege authored side-story journey — implemented locally; native visual qualification blocked",
+  "surfaceMode": "experience",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "DESIGN.md"
+  },
+  "direction": {
+    "references": [
+      "Owner-selected cartoon B — Pocket Siege"
+    ],
+    "probes": [
+      {"id":"banner-brigade","path":"artifacts/cartoon-directions/banner_brigade.png"},
+      {"id":"pocket-siege","path":"artifacts/cartoon-directions/pocket_siege.png"},
+      {"id":"storybook-siege","path":"artifacts/cartoon-directions/storybook_siege.png"}
+    ],
+    "selected": "pocket-siege",
+    "approval": "approved",
+    "before": "artifacts/motion-wide/heal-06.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "Godot Control native engine widgets",
+      "sources": [
+        "https://docs.godotengine.org/en/stable/classes/class_control.html"
+      ],
+      "runtime": "existing",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": "Native desktop game, not a web surface."
+      }
+    },
+    "contract": {
+      "purpose": "War Chest helps a strategy-game lover grow an enduring warband through tactical battles and spatial equipment builds.",
+      "purposeSource": "PRODUCT.md and owner answers",
+      "canonicalPurpose": "New private project; no existing catalog contract",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Sarthak playing for personal enjoyment on a computer",
+      "job": "Prepare a spatial loadout, command a tactical party and earn persistent growth",
+      "thesis": "Expressive illustrated cartoon company on three snowy bridges, with native equipment-driven commands",
+      "system": "Owner-selected off-white, sky blue, navy, coral, gold; rounded sans; illustrated scenery and troop atlas; live native equipment hand and contextual detail line",
+      "signature": "A tiny cartoon company fights with commands granted by its packed gear",
+      "risk": "Minimal UI must keep exact intent and equipment effects available on inspection"
+    }
+  },
+  "evidence": {
+    "screenshots": [],
+    "projectCheck": {
+      "command": "Ten suites directly via scripts/play.sh --headless --log-file /private/tmp/war-chest-journey-<suite>.log --script tests/test_<suite>.gd -- --pocket-demo",
+      "status": "blocked",
+      "note": "620 numbered assertions plus campaign/UI smoke suites pass, including earned twelve-encounter route. Strict wrapper remains unqualified due host system-CA and editor-preference permission errors. Native graphical verification unavailable."
+    },
+    "critique": {
+      "score": null,
+      "maximum": 40
+    },
+    "audit": {
+      "score": null,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": ["Zero explicit-file text findings; not Godot rendering validation. Dual source reviews found no P0/P1. Quest mastery visibility, failure explanations, named tier milestones and phantom attack feedback corrected. Current visual scores withheld: native graphical launch blocked, no new screenshots. See .fleet/journey-review.md. Generic visual gate is not cleared."]
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner selected cartoon B and agreed to an illustrated retry, then requested more game substance. Preserve that direction while extending existing keep/reward controls. Expansion and final visual quality await owner playtesting; no inferred whole-game acceptance."
+  }
+}

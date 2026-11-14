@@ -6,14 +6,16 @@ Also read and follow the shared fleet-level agent standard at `../AGENTS.md`. Tr
 
 - **Stack**: pnpm monorepo — `packages/gamekit` (TS game framework, no build step), `games/*` (Vite vanilla-TS games), `apps/hub` (arcade site listing all games), `networked-games/*` (games that need a backend; see below)
 - **Local dev**: `pnpm install`, then `pnpm dev` (first game) or `pnpm dev:hub`
-- **Checks**: `pnpm check` = biome + typecheck + vitest + build for the certified lane (`packages/`, `games/`, `apps/`); `pnpm historia:check` and `pnpm historia:e2e` for Open Historia. CI runs both as separate jobs.
+- **Checks**: `pnpm check` runs biome, typecheck and vitest for the certified lane (`packages/`, `games/`, `apps/`), then builds both certified games and the Godot web export; `pnpm historia:check` and `pnpm historia:e2e` for Open Historia. CI runs both as separate jobs.
 - **Deploy**: manual Cloudflare Pages; `pnpm build` assembles hub + games under `apps/hub/dist/` (games served at `/play/<id>/`). Networked games deploy separately (see below).
 
-## Two lanes
+## Game lanes
 
 - **Certified lane** — `packages/gamekit`, `games/*`, `apps/hub`. Offline, network-free, YouTube Playables submission-ready. The rules in the next section apply here.
 - **Networked lane** — `networked-games/*`. Games that need AI/backend services and larger saves. They are **not** YouTube Playables targets and must not be described as certified, offline or network-free. They are excluded from root `lint`/`typecheck`/`test`/`build`/`build:yt` and the Pages site assembly; each keeps its own toolchain, checks, `AGENTS.md` and deploy. Certified code must never import from `networked-games/`, and networked games must not use `@games/gamekit`'s 64 KiB save envelope as a constraint.
   - `networked-games/open-historia` — Open Historia, an AI grand-strategy game (React + MapLibre SPA, Hono Worker, D1, better-auth, multi-provider AI). It deploys as the Cloudflare Worker `open-historia` at historia.aliveville.com through `.github/workflows/deploy-historia.yml` (manual dispatch). Read `networked-games/open-historia/AGENTS.md` before working there. It was merged from `Significant-Hobbies/open-historia` at `84e83aa9eddc63f82e3be2d5175eb47da275b622`.
+
+- **Engine lane** — `engine-games/war-chest` preserves the original Godot game and Git history. It is a browser export, not a gamekit or YouTube Playables target. `pnpm war-chest:check` runs its native rule suites; `pnpm war-chest:build` exports the single-thread web runtime. Root `build` includes this export in `/play/war-chest/`. Run `pnpm war-chest:setup` once to acquire the pinned official Godot toolchain.
 
 ## Rules that exist because of YouTube Playables certification (certified lane only)
 

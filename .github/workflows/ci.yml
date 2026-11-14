@@ -17,7 +17,17 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/war-chest-godot-4.7.2
+            ~/.local/share/godot/export_templates/4.7.2.stable
+          key: godot-web-4.7.2-${{ runner.os }}
+      - run: pnpm war-chest:setup
+      - run: pnpm war-chest:check
       - run: pnpm run check
+      - run: pnpm --filter open-historia exec playwright install --with-deps chromium
+      - run: pnpm games:e2e
       - name: Run Idle Startup test suite
         working-directory: games/idle-startup
         run: pnpm test

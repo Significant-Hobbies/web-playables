@@ -14,6 +14,7 @@
     "includes": [
       "**",
       "!networked-games",
+      "!engine-games",
       "!apps/hub/public/footer.js",
       "!apps/hub/public/footer.css",
       "!shared/agent-surfaces"

@@ -9,8 +9,8 @@
     "lint:fix": "biome check --write .",
     "typecheck": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r typecheck",
     "test": "pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r test",
-    "build": "pnpm generate:readability && pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r build && node scripts/assemble-site.mjs",
-    "build:yt": "pnpm --filter @games/idle-startup build:yt",
+    "build": "pnpm generate:readability && pnpm --filter \"./packages/**\" --filter \"./games/**\" --filter \"./apps/**\" -r build && pnpm war-chest:build && node scripts/assemble-site.mjs",
+    "build:yt": "pnpm --filter \"./games/**\" -r build:yt",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "deploy": "pnpm build && wrangler pages deploy apps/hub/dist --project-name=web-playables --branch=main",
     "preview": "pnpm --filter @games/idle-startup preview",
@@ -20,7 +20,16 @@
     "historia:check": "pnpm --filter open-historia typecheck && pnpm --filter open-historia lint && pnpm --filter open-historia check && pnpm --filter open-historia test && pnpm --filter open-historia cf:build",
     "historia:e2e": "pnpm --filter open-historia exec playwright test e2e/campaign.spec.ts e2e/campaign-layout.spec.ts --project=desktop --project=mobile",
     "historia:deploy": "pnpm --filter open-historia run deploy",
-    "generate:readability": "node scripts/generate-readability.mjs"
+    "generate:readability": "node scripts/generate-readability.mjs",
+    "war-chest:build": "sh engine-games/war-chest/scripts/build-web.sh",
+    "war-chest:check": "sh engine-games/war-chest/scripts/check.sh",
+    "war-chest:serve": "node scripts/serve-site.mjs",
+    "war-chest:setup": "node scripts/setup-war-chest-godot.mjs",
+    "war-chest:e2e": "node scripts/test-war-chest-browser.mjs",
+    "dev:ember-road": "pnpm --filter @games/ember-road dev",
+    "ember-road:e2e": "node scripts/test-ember-road-browser.mjs",
+    "war-chest:pages-test": "node scripts/test-war-chest-pages.mjs",
+    "games:e2e": "node scripts/test-web-games-browser.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.11",
