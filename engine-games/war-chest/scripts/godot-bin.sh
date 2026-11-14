@@ -2,6 +2,8 @@
 # Source from the project root. An explicit override must never silently fall back.
 if [ -z "${GODOT_BIN:-}" ]; then
   for GODOT_CANDIDATE in \
+    "$HOME/.cache/war-chest-godot-4.7.2/Godot.app/Contents/MacOS/Godot" \
+    "$HOME/.cache/war-chest-godot-4.7.2/Godot_v4.7.2-stable_linux.x86_64" \
     /Users/sarthak/Downloads/war-chest-tools/Godot.app/Contents/MacOS/Godot \
     "$(pwd)/builds/War Chest Local/runtime/Godot.app/Contents/MacOS/Godot"; do
     if [ -x "$GODOT_CANDIDATE" ]; then GODOT_BIN="$GODOT_CANDIDATE"; break; fi

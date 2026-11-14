@@ -1,4 +1,22 @@
-# War Chest
+# War Chest in Web Playables
+
+The original Godot game is now owned here. Its complete original Git ancestry is retained by a subtree import from `f4c9f48` of `sarthakagrawal927/war-chest`. The two approved Banner & Steel artworks are bundled unchanged with provenance in ASSETS.md.
+
+From the Web Playables root:
+
+- `pnpm war-chest:setup` downloads and verifies official Godot 4.7.2 plus web templates.
+- `pnpm war-chest:check` runs the isolated original rules/UI suites.
+- `pnpm war-chest:build` exports to `engine-games/war-chest/dist/web/`.
+- `pnpm build` assembles every browser game, including `/play/war-chest/`.
+- `pnpm war-chest:serve` serves the assembled arcade at `http://127.0.0.1:4178`.
+
+The build Brotli-compresses the WASM below the Pages single-file limit. Serve the assembled site with the supplied server or honor apps/hub/public/_headers on another host.
+
+The browser build preserves the selected Last Crossing presentation, campaign and combat animation. It adds explicit launch, fullscreen, pause on hiding/focus loss and JSON save backup. Browser storage and native save files are separate. The original 1440×900 composition scales to the available width; play in landscape on a larger screen. It is outside the certified YouTube Playables lane.
+
+The notes below describe the original native prototype and are historical where they refer to local build bundles.
+
+## Original native game
 
 A personal desktop story RPG: bring a valley's stolen winter wages home, command an enduring company, and fit equipment into a spatial war chest.
 

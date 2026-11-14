@@ -1,10 +1,10 @@
 export const PUBLIC_COPY = {
-  status: "Research complete \u00b7 parked",
+  status: "Browser games · in development",
   wordmark: "idle.",
   intro:
-    "A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.",
-  proofEyebrow: "What the lab produced",
-  proofTitle: "One mechanic, two distribution targets.",
+    "Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.",
+  proofEyebrow: "Inside the arcade",
+  proofTitle: "Different worlds. One browser.",
   proofBody:
-    "The reusable gamekit owns the loop, versioned saves, offline progress, pause behavior, and platform adapters. The same game builds as a normal browser experience and as a submission-ready YouTube Playable. There is no promised next game; the project reopens only for a specific mechanic worth studying. Microsoft Clarity measures visits to this hub only; the game and YouTube bundle remain analytics-free.",
+    "Idle Startup is an incremental company simulator built on gamekit, with a separate YouTube Playables build. War Chest is a Godot tactical story prototype with a twelve-encounter campaign, animated companions and a spatial equipment chest. War Chest saves in this browser and is best played in landscape on a larger screen. Neither game includes analytics; visits to the hub are measured separately.",
 } as const;

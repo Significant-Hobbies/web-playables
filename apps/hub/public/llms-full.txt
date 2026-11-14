@@ -1,8 +1,8 @@
 # Idle — Web Playables - full content
 
-> A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
+> Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
 
-Generated: 2026-10-26
+Generated: 2026-11-14
 
 ---
 <!-- source: https://idle.aliveville.com/ -->
@@ -10,9 +10,15 @@ Generated: 2026-10-26
 
 Canonical: https://idle.aliveville.com/
 
-Research complete · parked
+Browser games · in development
 
-A browser-game lab built to learn idle mechanics and portable HTML5 distribution. The retained result is Idle Startup: playable here, packaged for the web and YouTube Playables.
+Small worlds, ready to play. Build a startup or lead a company through The Last Crossing. No download or account needed.
+
+## War Chest
+
+Defend the crossing. Pack your gear. Bring the company home.
+
+[Play →](https://idle.aliveville.com/play/war-chest/)
 
 ## Idle Startup
 
@@ -20,11 +26,34 @@ Ship features. Hire the team. Raise the round.
 
 [Play →](https://idle.aliveville.com/play/idle-startup/)
 
-## One mechanic, two distribution targets.
+## Different worlds. One browser.
 
-What the lab produced
+Inside the arcade
 
-The reusable gamekit owns the loop, versioned saves, offline progress, pause behavior, and platform adapters. The same game builds as a normal browser experience and as a submission-ready YouTube Playable. There is no promised next game; the project reopens only for a specific mechanic worth studying. Microsoft Clarity measures visits to this hub only; the game and YouTube bundle remain analytics-free.
+Idle Startup is an incremental company simulator built on gamekit, with a separate YouTube Playables build. War Chest is a Godot tactical story prototype with a twelve-encounter campaign, animated companions and a spatial equipment chest. War Chest saves in this browser and is best played in landscape on a larger screen. Neither game includes analytics; visits to the hub are measured separately.
+
+
+---
+<!-- source: https://idle.aliveville.com/play/war-chest/ -->
+# War Chest
+
+Canonical: https://idle.aliveville.com/play/war-chest/
+
+A tactical story game about bringing the valley’s stolen winter wages home. Command Rowan, Lysa and Fen across The Last Crossing, then prepare your company around a physical 6 × 5 equipment chest.
+
+## Play
+
+Press Play to load the game. Read the opening conversation, prepare your company, then choose a companion and an order. End turn when you are ready for enemies to act. The campaign contains twelve encounters and three chapters.
+
+- Click a companion portrait or press 1–5 to select freely.
+- Choose an order, then a legal target. T cycles targets; F confirms.
+- Space ends the turn. Z undoes the last order in the current turn.
+- In camp, pack equipment into the chest. R rotates; WASD moves the cursor; F places.
+- Menu contains the manual, sound and reduced-motion settings.
+
+Browser prototype. Best in landscape on a larger screen. Saves remain in this browser; private browsing or clearing site data may remove them. Native saves are separate. Export a backup from the browser toolbar before clearing storage. This Godot game is outside the YouTube Playables lane.
+
+[Play War Chest](https://idle.aliveville.com/play/war-chest/) · [Game directory](https://idle.aliveville.com/)
 
 
 ---
@@ -66,6 +95,6 @@ The playable page keeps player names, company names, saves, balances, progress a
 [Play Idle Startup](https://idle.aliveville.com/play/idle-startup/) · [Game directory](https://idle.aliveville.com/)
 
 
-Included 2 of 2 registered public pages (limit 50 pages / 500000 characters).
+Included 3 of 3 registered public pages (limit 50 pages / 500000 characters).
 
 Full catalog: https://idle.aliveville.com/api/md/_catalog

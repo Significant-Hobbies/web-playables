@@ -238,6 +238,7 @@ function sitemapXml(origin: string): string {
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${origin}/</loc></url>
   <url><loc>${origin}/play/idle-startup/</loc></url>
+  <url><loc>${origin}/play/war-chest/</loc></url>
 </urlset>
 `;
 }
@@ -251,8 +252,7 @@ export async function onRequest(context: {
   const pathname = url.pathname;
   const assets = { fetch: (input: Request) => context.next(input) };
   const readableUrl = new URL(request.url);
-  if (readableUrl.pathname === "/play/idle-startup/index.md")
-    readableUrl.pathname = "/play/idle-startup.md";
+  readableUrl.pathname = readableUrl.pathname.replace(/^(\/play\/[^/]+)\/index\.md$/, "$1.md");
   const readable = await handleReadability(new Request(readableUrl, request), assets);
   if (readable) return readable;
 
@@ -312,11 +312,19 @@ export async function onRequest(context: {
     return new Response(result.body, { status: 404, headers: result.headers });
   }
   let response = await next();
-  if (["/", "/play/idle-startup", "/play/idle-startup/"].includes(pathname))
+  if (
+    [
+      "/",
+      "/play/idle-startup",
+      "/play/idle-startup/",
+      "/play/war-chest",
+      "/play/war-chest/",
+    ].includes(pathname)
+  )
     response = advertiseMarkdown(
       response,
       SITE_ORIGIN,
-      pathname === "/" ? "/index.md" : "/play/idle-startup.md",
+      pathname === "/" ? "/index.md" : `${pathname.replace(/\/$/, "")}.md`,
     );
 
   // Add Vary: Accept to HTML responses

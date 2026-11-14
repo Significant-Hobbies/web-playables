@@ -25,7 +25,8 @@ const PAPER_SURFACES=["guide","shop"]
 
 func _ready():
  super()
- font.font_names=PackedStringArray(["Avenir Next"])
+ if OS.has_feature("web"): font=load("res://assets/fonts/body.tres")
+ else: font.font_names=PackedStringArray(["Avenir Next"])
  font.font_weight=600
  add_child(world)
 

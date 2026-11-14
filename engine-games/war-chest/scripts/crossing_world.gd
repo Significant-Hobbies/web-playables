@@ -18,8 +18,10 @@ var font=SystemFont.new()
 
 func _ready():
  show_behind_parent=true
- font.font_names=PackedStringArray(["Avenir Next"])
- font.font_weight=600
+ if OS.has_feature("web"): font=load("res://assets/fonts/body.tres")
+ else:
+  font.font_names=PackedStringArray(["Avenir Next"])
+  font.font_weight=600
 
 func sync(game,surface: String,world_state: String,objective_at=Vector2.ZERO,carrier_at=Vector2.ZERO):
  if game==null: hide();return

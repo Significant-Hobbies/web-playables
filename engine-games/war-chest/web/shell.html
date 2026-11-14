@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>War Chest — The Last Crossing</title>
+<meta name="description" content="Lead a company through The Last Crossing. A tactical story game with animated companions, deliberate orders and a spatial equipment chest." />
+<link rel="canonical" href="https://idle.aliveville.com/play/war-chest/" />
+<meta name="ai-summary" content="War Chest browser prototype: twelve tactical story encounters, equipment packing and local browser saves. Best played in landscape." />
+<link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/war-chest.md" />
+$GODOT_HEAD_INCLUDE
+<style>
+:root{color-scheme:dark;font:15px/1.5 system-ui,sans-serif;background:#102a30;color:#efe8d6}*{box-sizing:border-box}body{margin:0}button,a{touch-action:manipulation}button{font:inherit;cursor:pointer;color:#efe8d6;border:1px solid #739489;background:#294743;border-radius:4px;padding:7px 14px;min-height:40px}button:disabled{opacity:.45;cursor:default}button:hover:enabled{background:#3a5b50}button:focus-visible,a:focus-visible{outline:3px solid #e9b85f;outline-offset:4px}a{color:#efe8d6;text-decoration-color:#739489;text-underline-offset:4px}header{display:flex;align-items:center;gap:18px;padding:14px 24px;max-width:1488px;margin:auto}header strong{font:700 22px Georgia,serif;letter-spacing:-.02em}header a{font-size:13px;color:#c5c4a5}.controls{margin-left:auto;display:flex;gap:8px}.stage{position:relative;width:min(100%,1440px);aspect-ratio:16/10;margin:auto;background:#102a30;overflow:hidden;box-shadow:0 20px 70px #0005}canvas{display:block;width:100%;height:100%;outline:none;touch-action:none}.stage:fullscreen{width:100vw;height:100dvh;aspect-ratio:auto;display:grid;place-items:center;background:#102a30}.stage:fullscreen canvas{max-width:100%;max-height:100%;width:min(100vw,160dvh);height:auto;aspect-ratio:16/10}.cover{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:28px;background:linear-gradient(0deg,#102a30f2,#102a3066),url(cover.png) center/cover}.cover[hidden]{display:none}.cover h1{font:700 clamp(30px,5vw,64px)/1.1 Georgia,serif;margin:12px 0 18px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:12px;color:#e9b85f}.cover p{max-width:440px;color:#efe8d6;margin:0 auto 24px}.cover button{background:#e9b85f;color:#15282b;border-color:#e9b85f;font-weight:700;padding:12px 32px;min-width:170px}.loading{display:block;font-size:14px;margin-top:12px;color:#c5c4a5}.below{max-width:1440px;padding:16px 24px 32px;margin:auto;display:flex;gap:18px;align-items:baseline}.below p{margin:0;max-width:720px;font-size:13px;color:#c5c4a5}.save-tools{display:flex;align-items:center;gap:12px;margin-left:auto;white-space:nowrap}#save-status{font-size:12px;color:#c5c4a5}#save-status.error{color:#ffb4a4}.portrait{display:none}details{max-width:1440px;margin:0 auto 24px;padding:0 24px;color:#c5c4a5;font-size:14px}summary{cursor:pointer;color:#efe8d6}kbd{color:#e9b85f}#pause-cover{background:#102a30e8}noscript{display:block;padding:24px}@media(max-width:760px){header{padding:10px 12px;gap:10px;flex-wrap:wrap}header strong{font-size:19px}.controls{gap:6px}.controls button{padding:6px 10px;font-size:13px}.below{padding:12px;display:block}.save-tools{margin-top:12px;flex-wrap:wrap;white-space:normal}.portrait{display:block;margin:0;padding:12px;background:#294743;color:#efe8d6;font-size:13px}details{padding:0 12px}.cover h1{font-size:30px}.cover p{font-size:13px;margin-bottom:12px}.cover button{padding:7px 20px}.cover .eyebrow{font-size:10px}}@media(max-width:900px) and (orientation:landscape){header{padding:6px 12px}.stage{max-height:calc(100dvh - 60px);width:auto;height:calc(100dvh - 60px);aspect-ratio:16/10}.below{padding:8px 12px}.portrait{display:none}}@media(orientation:landscape){.portrait{display:none}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<header><a href="../../">← Web Playables</a><strong>War Chest</strong><div class="controls"><button id="pause" disabled>Pause</button><button id="fullscreen" disabled>Fullscreen</button></div></header>
+<p class="portrait">Turn your phone sideways for the battlefield. This prototype uses the original desktop layout; a larger screen gives the clearest controls.</p>
+<main>
+<div class="stage" id="stage">
+<canvas id="canvas" width="1440" height="900" tabindex="0" aria-label="War Chest tactical battlefield. Use Tab to navigate game controls, 1 through 5 to select companions, Space to end turn, and Z to undo.">Your browser needs WebGL 2 and WebAssembly to play War Chest.</canvas>
+<div class="cover" id="start-cover"><div><span class="eyebrow">A company worth bringing home</span><h1>The Last Crossing</h1><p>Open the gate. Recover the winter wages. Keep the company together.</p><button id="play">Play War Chest</button><span class="loading" id="loading" role="status">Browser prototype · no account needed</span></div></div>
+<div class="cover" id="pause-cover" hidden><div><span class="eyebrow">Take your time</span><h1>Company at rest.</h1><p>Your orders and the battlefield will wait.</p><button id="resume">Resume</button></div></div>
+</div>
+<div class="below"><p>Select a companion. Choose an order, then its target. <kbd>Space</kbd> ends the turn; <kbd>Z</kbd> undoes your last order. The in-game Menu has the manual, sound and reduced-motion settings.</p><div class="save-tools"><span id="save-status" role="status">Saves stay in this browser</span><button id="export" disabled>Export save</button></div></div>
+<details><summary>About this browser build</summary><p>The original Godot game now runs in your browser. Its twelve-encounter story, battles, companions, chest and short combat animations are preserved. It is a prototype, best on a larger screen in landscape. Browser saves are separate from native saves. Private browsing, storage restrictions or clearing site data can remove progress. Export a backup before clearing storage. This game is outside the YouTube Playables lane.</p></details>
+</main>
+<noscript>JavaScript is needed to run this game.</noscript>
+<script src="$GODOT_URL"></script>
+<script>
+'use strict';
+const config = $GODOT_CONFIG;
+const engine = new Engine({...config, canvasResizePolicy:0, focusCanvas:true, onProgress(current,total){document.getElementById('loading').textContent=total?`Loading the company… ${Math.round(current/total*100)}%`:'Loading the company…';},onPrintError(...args){console.error(...args);if(args.join(" ").match(/indexeddb|idbfs|sync.*failed|quota/i))storageError();}});
+const canvas=document.getElementById('canvas');
+const pauseButton=document.getElementById('pause');
+const pauseCover=document.getElementById('pause-cover');
+const saveStatus=document.getElementById('save-status');
+let started=false;
+let paused=false;
+let manualPause=false;
+function setPaused(value){if(!started)return;paused=value;window.warChestPause?.(value);pauseCover.hidden=!value;pauseButton.textContent=value?'Resume':'Pause';if(!value)canvas.focus();}
+function storageError(){saveStatus.textContent='Storage unavailable · export your save';saveStatus.classList.add('error');window.warChestStorageError?.();}
+window.warChestReady=(persistent)=>{started=true;document.getElementById('start-cover').hidden=true;pauseButton.disabled=false;document.getElementById('fullscreen').disabled=false;document.getElementById('export').disabled=false;if(persistent===false)storageError();canvas.focus();};
+window.warChestSaveChanged=()=>{if(!saveStatus.classList.contains('error'))saveStatus.textContent='Saving in this browser…';};
+window.warChestSaveSnapshot=(snapshot)=>{const blob=new Blob([snapshot],{type:'application/json'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='war-chest-company.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+document.getElementById('play').addEventListener('click',async()=>{const play=document.getElementById('play');play.disabled=true;try{const missing=Engine.getMissingFeatures({threads:false});if(missing.length)throw new Error(`This browser is missing ${missing.join(', ')}.`);await engine.startGame();}catch(error){document.getElementById('loading').textContent=error.message||String(error);play.disabled=false;play.textContent='Try again';}});
+pauseButton.addEventListener('click',()=>{manualPause=!paused;setPaused(manualPause);});
+document.getElementById('resume').addEventListener('click',()=>{manualPause=false;setPaused(false);});
+document.getElementById('export').addEventListener('click',()=>window.warChestExport?.());
+document.getElementById('fullscreen').addEventListener('click',async()=>{try{const stage=document.getElementById('stage');if(document.fullscreenElement)await document.exitFullscreen();else await stage.requestFullscreen();canvas.focus();}catch{saveStatus.textContent='Fullscreen is unavailable in this browser';}});
+document.addEventListener('visibilitychange',()=>{setPaused(document.hidden||manualPause);});
+window.addEventListener('blur',()=>setPaused(true));
+window.addEventListener('focus',()=>{if(!document.hidden&&!manualPause)setPaused(false);});
+window.addEventListener('unhandledrejection',event=>{if(String(event.reason).match(/indexeddb|idbfs|quota/i))storageError();});
+</script>
+</body>
+</html>

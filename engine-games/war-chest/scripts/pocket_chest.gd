@@ -17,7 +17,8 @@ const CELL=70
 func _ready():
  mouse_filter=Control.MOUSE_FILTER_STOP
  custom_minimum_size=Vector2(420,350)
- font.font_names=PackedStringArray(["Avenir Next"])
+ if OS.has_feature("web"): font=load("res://assets/fonts/body.tres")
+ else: font.font_names=PackedStringArray(["Avenir Next"])
  mouse_exited.connect(func():hovering=false;queue_redraw())
 
 func _draw():

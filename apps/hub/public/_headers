@@ -5,3 +5,7 @@
   Content-Type: application/json; charset=utf-8
 /ai.txt
   Content-Type: text/plain; charset=utf-8
+/play/war-chest/index.wasm
+  Content-Type: application/wasm
+  Content-Encoding: br
+  Cache-Control: public, max-age=3600

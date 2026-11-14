@@ -81,9 +81,14 @@ var last_surface=""
 var actor_controls=[]
 var motion_was_active=false
 var context_rect=Rect2(350,620,700,210)
+var web_pause_callback
+var web_storage_callback
+var web_export_callback
+var web_storage_failed=false
 
 func _ready():
- get_window().min_size=Vector2i(1152,720)
+ if not OS.has_feature("web"): get_window().min_size=Vector2i(1152,720)
+ else: setup_web()
  var args=OS.get_cmdline_user_args()
  demo="--pocket-demo" in args or "--pocket-battle" in args or "--story-demo" in args
  var fresh=demo and "--banner-opening" in args
@@ -94,10 +99,14 @@ func _ready():
    muted=bool(settings.get_value("play","muted",false))
    reduced_motion=bool(settings.get_value("play","reduced_motion",false))
    coaching=bool(settings.get_value("play","coaching",true))
- font.font_names=PackedStringArray(["Avenir Next","Arial"]);font.font_weight=500
- display_font.font_names=PackedStringArray(["Georgia","Times New Roman"]);display_font.font_weight=700
+ if OS.has_feature("web"):
+  font=load("res://assets/fonts/body.tres")
+  display_font=load("res://assets/fonts/display.tres")
+ else:
+  font.font_names=PackedStringArray(["Avenir Next","Arial"]);font.font_weight=500
+  display_font.font_names=PackedStringArray(["Georgia","Times New Roman"]);display_font.font_weight=700
  var t=Theme.new();t.default_font=font;t.default_font_size=18;theme=t
- field=Field.new();field.game=game;field.size=Vector2(1440,900);add_child(field)
+ field=Field.new();field.game=game;field.size=Vector2(1440,900);field.process_mode=Node.PROCESS_MODE_PAUSABLE;add_child(field)
  sound=AudioStreamPlayer.new();add_child(sound)
  if "--story-demo" in args:
   if game.enroll_story(): persist()
@@ -108,6 +117,11 @@ func _ready():
  if game.story_active() and game.campaign.story.phase in ["intro","outro","ending"] and game.battle.is_empty(): page="story"
  mission=mini(game.campaign.unlocked,game.level()-1)
  show_page()
+ if OS.has_feature("web"):
+  if not OS.is_userfs_persistent():
+   game.save_error="Browser storage is unavailable. This session will not survive a reload."
+   show_page()
+  JavaScriptBridge.get_interface("window").warChestReady(OS.is_userfs_persistent())
 
 func load_local_company():
  # Separate local slots: restoring any original company never enrolls it.
@@ -167,7 +181,7 @@ func show_page():
  var focused=get_viewport().gui_get_focus_owner()
  var keep_focus=focused.get_meta("focus_key",focused.text) if focused is Button else ""
  if hud: remove_child(hud);hud.queue_free()
- hud=Control.new();hud.size=Vector2(1440,900);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(hud)
+ hud=Control.new();hud.process_mode=Node.PROCESS_MODE_PAUSABLE;hud.size=Vector2(1440,900);hud.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(hud)
  inspection=null;card_buttons=[];actor_controls=[]
  field.battle_view=page=="battle";field.selected=selected;field.card=chosen;field.highlighted=target;field.reduced_motion=reduced_motion;field.queue_redraw()
  field.story_scene=page=="story"
@@ -235,8 +249,31 @@ func show_page():
    panel(Rect2(20,824,1400,71),PAPER,10)
    text("SAVING DISABLED — this session will not be kept. "+game.save_error,Rect2(34,829,1360,62),18,CORAL,true)
 
+func setup_web():
+ process_mode=Node.PROCESS_MODE_ALWAYS
+ web_pause_callback=JavaScriptBridge.create_callback(func(args):
+  get_tree().paused=bool(args[0])
+  if is_instance_valid(sound): sound.stream_paused=bool(args[0])
+  if is_instance_valid(field): field.process_mode=Node.PROCESS_MODE_PAUSABLE
+  if is_instance_valid(hud): hud.process_mode=Node.PROCESS_MODE_PAUSABLE)
+ web_storage_callback=JavaScriptBridge.create_callback(func(_args):
+  web_storage_failed=true
+  game.save_error="Browser storage could not be synchronized. Keep this tab open and export your save before reloading."
+  show_page())
+ var browser=JavaScriptBridge.get_interface("window")
+ browser.warChestPause=web_pause_callback
+ browser.warChestStorageError=web_storage_callback
+ web_export_callback=JavaScriptBridge.create_callback(func(_args):
+  JavaScriptBridge.get_interface("window").warChestSaveSnapshot(JSON.stringify(game.snapshot())))
+ browser.warChestExport=web_export_callback
+
 func persist():
- if not demo: game.save_to(save_path)
+ if not demo:
+  if OS.has_feature("web") and (web_storage_failed or not OS.is_userfs_persistent()):
+   game.save_error="Browser storage is unavailable. Keep this tab open and export your company before reloading."
+   return
+  if game.save_to(save_path) and OS.has_feature("web"):
+   JavaScriptBridge.eval("window.warChestSaveChanged && window.warChestSaveChanged()")
 
 func navigate(to: String):
  cancel_combat_animation()
@@ -765,7 +802,7 @@ func hold_final_impact():
  if game.battle.phase=="playing" or reduced_motion or not field.motion.active(): return
  finishing_impact=true
  if finish_tween: finish_tween.kill()
- finish_tween=create_tween()
+ finish_tween=create_tween();finish_tween.set_pause_mode(Tween.TWEEN_PAUSE_STOP)
  finish_tween.tween_interval(maxf(0.39,field.motion.last_impact())+0.18)
  finish_tween.tween_callback(finish_combat_animation)
 
@@ -1041,7 +1078,7 @@ func tone(frequency: float):
  var wave=AudioStreamWAV.new();wave.format=AudioStreamWAV.FORMAT_16_BITS;wave.mix_rate=22050;wave.data=data;sound.stop();sound.stream=wave;sound.play()
 
 func _process(_delta):
- if not is_instance_valid(field): return
+ if get_tree().paused or not is_instance_valid(field): return
  var active=field.motion.active()
  if active or motion_was_active:
   for entry in actor_controls:
@@ -1049,6 +1086,7 @@ func _process(_delta):
  motion_was_active=active
 
 func _input(event):
+ if get_tree().paused: return
  if not event is InputEventKey or not event.pressed or event.echo: return
  if finishing_impact and event.keycode in [KEY_SPACE,KEY_ENTER]:
   finish_combat_animation();get_viewport().set_input_as_handled();return

@@ -41,3 +41,8 @@ The runtime never downloads assets or calls online services. Media is ignored by
 | Georgia, Avenir Next | System fonts resolved locally; font files are not bundled | Fallback Times New Roman / Arial |
 
 Copied license notices are retained in assets/licenses. No paid packs or game-ripped assets were used. Godot is MIT licensed; distribution requires the engine notice (see https://godotengine.org/license/). No distributable build has been released.
+
+## Browser font substitutes (2026-11-14)
+
+The browser has no access to the native Avenir Next/Georgia files. Bundled Public Sans and Lora preserve the original sans/serif roles without external font requests. Both are SIL Open Font License 1.1; the license files accompany the fonts under assets/fonts/. Original sources: https://github.com/google/fonts/tree/main/ofl/publicsans and https://github.com/google/fonts/tree/main/ofl/lora. Native builds retain their system fonts.
+Noto Sans Symbols 2 supplies arrow glyphs in the browser, also under SIL OFL 1.1, from https://github.com/google/fonts/tree/main/ofl/notosanssymbols2.
