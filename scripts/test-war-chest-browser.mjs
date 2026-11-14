@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -87,9 +87,23 @@ try {
   await clickGame(870, 755);
   await page.locator("#canvas").focus();
   await page.keyboard.press("t");
+  const capture = await context.newCDPSession(page);
+  const animationFrames = [];
+  capture.on("Page.screencastFrame", (frame) => {
+    animationFrames.push(frame.data);
+    void capture.send("Page.screencastFrameAck", { sessionId: frame.sessionId });
+  });
+  await capture.send("Page.startScreencast", {
+    format: "jpeg",
+    quality: 50,
+    maxWidth: 720,
+    maxHeight: 450,
+    everyNthFrame: 1,
+  });
   await page.keyboard.press("f");
-  await page.waitForTimeout(100);
-  const impactFrame = await page.locator("#canvas").screenshot();
+  await page.waitForTimeout(1100);
+  await capture.send("Page.stopScreencast");
+  await capture.detach();
   const attacked = await snapshot();
   assert(attacked.battle.commands < initial.battle.commands, "The attack spends real orders");
   assert(
@@ -97,9 +111,12 @@ try {
       initial.battle.enemies.reduce((sum, enemy) => sum + enemy.hp, 0),
     "The attack damages actual enemies",
   );
-  await page.waitForTimeout(700);
-  const settledFrame = await page.locator("#canvas").screenshot();
-  assert(!impactFrame.equals(settledFrame), "Combat visibly animates between impact and rest");
+  assert(
+    new Set(animationFrames).size >= 3,
+    "Combat produces multiple rendered intermediate frames before rest",
+  );
+  await writeFile(join(evidence, "attack-first.jpg"), Buffer.from(animationFrames[0], "base64"));
+  await writeFile(join(evidence, "attack-last.jpg"), Buffer.from(animationFrames.at(-1), "base64"));
   if (await page.locator("#pause-cover").isVisible()) await page.locator("#resume").click();
   await page.locator("#pause").click();
   assert(await page.locator("#pause-cover").isVisible());

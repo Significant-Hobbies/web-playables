@@ -154,9 +154,9 @@ static func reward(s):
  _heading(s,"A promise kept" if won else "The company withdrew",node.title)
  _company(s,Vector2(101,315),0.81)
  var line=s.game.story_line() if won else {}
- s.panel(Rect2(48,174,747,165),Color(s.PAPER,0.96))
- s.text(line.get("speaker","THE COMPANY").to_upper(),Rect2(66,187,710,25),16,s.BLUE)
- s.text("“"+line.text+"”" if won else "The people and wages still need a way home.",Rect2(64,221,711,106),23,s.NAVY,true)
+ s.panel(Rect2(48,150,747,165),Color(s.PAPER,0.96))
+ s.text(line.get("speaker","THE COMPANY").to_upper(),Rect2(66,163,710,25),16,s.BLUE)
+ s.text("“"+line.text+"”" if won else "The people and wages still need a way home.",Rect2(64,197,711,106),23,s.NAVY,true)
  s.panel(Rect2(48,570,747,259),Color(s.PAPER,0.94))
  s.text(node.journal if won else "Your companions, equipment and gold are kept.",Rect2(67,591,708,98),24 if not won else 22,s.NAVY,not won)
  if won:

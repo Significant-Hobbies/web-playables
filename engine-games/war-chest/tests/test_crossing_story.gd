@@ -122,7 +122,7 @@ func recruitment(s):
 func label_layout(s,case_name: String):
  # Font metrics come from Godot's actual configured desktop fonts. They detect
  # overflow; they do not establish visual quality or replace a native capture.
- var overflow=[];var outside=[];var covered=[];var button_width=[]
+ var overflow=[];var outside=[];var covered=[];var button_width=[];var portrait_overlap=[]
  for child in s.hud.get_children():
   if child is Label and child.has_meta("layout_rect"):
    var frame: Rect2=child.get_meta("layout_rect")
@@ -131,6 +131,8 @@ func label_layout(s,case_name: String):
    if not Rect2(0,0,1440,900).encloses(child.get_rect()): outside.append(child.text.left(55))
    var content=Rect2(child.position,Vector2(child.size.x,minimum.y))
    for action in s.hud.get_children():
+    if child.text.begins_with("“") and action.has_meta("story_companion") and content.intersects(action.get_rect()):
+     portrait_overlap.append(child.text.left(45)+" / "+str(action.get_meta("story_companion")))
     if action is Button and child.get_meta("label_for",0)!=action.get_instance_id():
      if content.intersects(action.get_rect()): covered.append(child.text.left(45)+" / "+action.text)
   elif child is Button:
@@ -141,6 +143,7 @@ func label_layout(s,case_name: String):
  check(outside.is_empty(),"Actual text remains in the canvas: "+case_name+" / "+str(outside))
  check(covered.is_empty(),"Text leaves native actions uncovered: "+case_name+" / "+str(covered))
  check(button_width.is_empty(),"Actual button text fits: "+case_name+" / "+str(button_width))
+ check(portrait_overlap.is_empty(),"Dialogue leaves companion portraits uncovered: "+case_name+" / "+str(portrait_overlap))
 
 func battle_chest_layout(s,dimensions: Vector2i):
  for index in [0,11]:
