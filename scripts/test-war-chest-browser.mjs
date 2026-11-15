@@ -33,9 +33,26 @@ page.on("console", (message) => {
   if (message.type() === "error" && /SCRIPT ERROR|Parse Error|ERROR:/.test(message.text()))
     errors.push(message.text());
 });
+const optionalAccountURL = "https://historia.aliveville.com/api/player";
+await page.route(optionalAccountURL, (route) =>
+  route.fulfill({
+    status: route.request().method() === "OPTIONS" ? 204 : 401,
+    headers: {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Headers": "Content-Type, X-CSRF-Token",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+    },
+    body: route.request().method() === "OPTIONS" ? "" : "{}",
+  }),
+);
 const external = [];
 page.on("request", (request) => {
-  if (!request.url().startsWith(origin) && !/^(data|blob):/.test(request.url()))
+  if (
+    !request.url().startsWith(origin) &&
+    request.url() !== optionalAccountURL &&
+    !/^(data|blob):/.test(request.url())
+  )
     external.push(request.url());
 });
 async function launch() {
@@ -213,7 +230,11 @@ try {
     );
     await page.screenshot({ path: join(evidence, `battle-${viewport.width}.png`) });
   }
-  assert.deepEqual(external, [], "The game makes no external network requests");
+  assert.deepEqual(
+    external,
+    [],
+    "The web host requests only its optional guest account endpoint; gameplay makes no external requests",
+  );
   assert.deepEqual(errors, [], "No engine or JavaScript errors");
   const failedStorage = await browser.newContext();
   await failedStorage.addInitScript(() => {

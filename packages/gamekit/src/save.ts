@@ -19,6 +19,8 @@ export interface SaveManagerOptions<T> {
   /** migrations[v] upgrades v → v+1; must exist for every v below `version`. */
   migrations?: Record<number, Migration>;
   initial: () => T;
+  /** Current model, including object replacements since the last autosave. */
+  getState?: () => T;
 }
 
 export interface LoadResult<T> {
@@ -102,7 +104,8 @@ export function createSaveManager<T>(opts: SaveManagerOptions<T>): SaveManager<T
     },
   };
   platform.onSaveRequest?.(async () => {
-    if (loaded && snapshotRequestsAllowed && latest !== null) await manager.save(latest);
+    if (loaded && snapshotRequestsAllowed && latest !== null)
+      await manager.save(opts.getState ? opts.getState() : latest);
   });
   return manager;
 }

@@ -124,12 +124,20 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
     await page.keyboard.press("Escape");
     await page.addInitScript(() => {
       if (window.name.startsWith("idle-fixture:")) {
+        for (const key of Object.keys(localStorage))
+          if (
+            key.startsWith("playables:v1:idle-startup:guest:") ||
+            key.startsWith("playables:v1:resume:idle-startup:")
+          )
+            localStorage.removeItem(key);
         localStorage.setItem("save:idle-startup", window.name.slice("idle-fixture:".length));
         window.name = "";
       }
     });
     const companySeed = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("save:idle-startup")),
+      JSON.parse(
+        window.playablesCloud?.exportLocal()?.data ?? localStorage.getItem("save:idle-startup"),
+      ),
     );
     async function companyFixture(cash, age, office, questIndex = 0) {
       const envelope = structuredClone(companySeed);
@@ -140,7 +148,7 @@ test("Idle Startup office and management modals fit every viewport", { timeout: 
       envelope.state.questIndex = questIndex;
       envelope.savedAt = Date.now();
       await page.evaluate((raw) => {
-        window.name = "idle-fixture:" + JSON.stringify(raw);
+        window.name = `idle-fixture:${JSON.stringify(raw)}`;
       }, envelope);
       await page.reload();
       await page.getByRole("button", { name: "Team", exact: true }).click();

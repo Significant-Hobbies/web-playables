@@ -94,7 +94,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
     if (state.conflict && !(await run(() => cloud.resolveConflict("offline")))) return;
     setOpen(false);
   }
-  async function choose(choice: "cloud" | "local" | "keep-both" | "offline") {
+  async function choose(choice: "cloud" | "local" | "cached" | "keep-both" | "offline") {
     if (await run(() => cloud.resolveConflict(choice))) {
       if (!cloud.getState().reloadRequired) setOpen(false);
     }
@@ -201,6 +201,11 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
               </div>
             </div>
             <div className="account-actions">
+              {conflict.cached && (
+                <Button onClick={() => void choose("cached")} disabled={busy}>
+                  Use cached account journey · {when(conflict.cached.savedAt)}
+                </Button>
+              )}
               {conflict.cloud && (
                 <Button disabled={busy} onClick={() => void choose("cloud")}>
                   Continue cloud journey

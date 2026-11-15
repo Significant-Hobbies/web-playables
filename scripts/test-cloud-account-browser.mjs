@@ -197,3 +197,168 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await new Promise((done) => server.close(done));
   }
 });
+
+test("War account cross-mode restores retain arbitrary slots, fresh engine checkpoints and guest saves", {
+  timeout: 120000,
+}, async () => {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+  const require = createRequire(join(root, "networked-games/open-historia/package.json"));
+  const { chromium } = require("@playwright/test");
+  const server = createSiteServer(join(root, "apps/hub/dist"));
+  await new Promise((done) => server.listen(0, "127.0.0.1", done));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath:
+      process.env.PLAYWRIGHT_EXECUTABLE_PATH ||
+      (existsSync("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
+        ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        : undefined),
+  });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+    let owner = null;
+    const heads = new Map();
+    const errors = [];
+    await context.route("https://historia.aliveville.com/**", async (route) => {
+      const request = route.request();
+      const path = new URL(request.url()).pathname;
+      const headers = {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Credentials": "true",
+        "Access-Control-Allow-Headers": "Content-Type, X-CSRF-Token",
+        "Access-Control-Allow-Methods": "GET,PUT,POST,OPTIONS",
+      };
+      const reply = (status, body) =>
+        route.fulfill({
+          status,
+          headers,
+          contentType: "application/json",
+          body: JSON.stringify(body),
+        });
+      if (request.method() === "OPTIONS") return route.fulfill({ status: 204, headers });
+      if (path === "/api/auth/sign-out") {
+        owner = null;
+        return reply(200, { success: true });
+      }
+      if (!owner) return reply(401, {});
+      if (path === "/api/player")
+        return reply(200, {
+          user: { id: owner, name: "Fixture player", email: "fixture@example.test" },
+          csrfToken: "fixture",
+        });
+      const slot = decodeURIComponent(path.split("/").at(-1));
+      const current = heads.get(slot);
+      if (request.method() === "PUT") {
+        const body = request.postDataJSON();
+        if (body.expectedRevision !== (current?.revision || 0)) return reply(409, {});
+        const data = body.envelope.data;
+        const head = {
+          gameId: "war-chest",
+          slotId: slot,
+          revision: (current?.revision || 0) + 1,
+          checksum: createHash("sha256").update(data).digest("hex"),
+          bytes: Buffer.byteLength(data),
+          schemaVersion: "2",
+          metadata: { title: "Fixture company" },
+          updatedAt: Date.now(),
+          deleted: false,
+          source: "cloud",
+          data,
+        };
+        heads.set(slot, head);
+        return reply(200, { head });
+      }
+      return current ? reply(200, { save: current }) : reply(404, {});
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(30000);
+    page.on("pageerror", (error) => errors.push(error.message));
+    const launch = async () => {
+      await page.goto(`${origin}/play/war-chest/`);
+      await page.locator("#play").click();
+    };
+    const capture = () =>
+      page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const previous = window.warChestCloudSnapshot;
+            window.warChestCloudSnapshot = (data, mode) => {
+              window.warChestCloudSnapshot = previous;
+              previous(data, mode);
+              resolve(JSON.parse(data));
+            };
+            window.warChestCapture();
+          }),
+      );
+    await launch();
+    await page.waitForFunction(
+      () =>
+        window.playablesCloud?.getState().phase === "guest" && window.playablesCloud.exportLocal(),
+    );
+    const guest = await capture();
+    assert(guest.campaign.story, "Fixture begins in authored story mode");
+    owner = "fixture-alice";
+    await page.evaluate(() => window.playablesCloud.refreshSession());
+    await page.evaluate(() => window.playablesCloud.resolveConflict("local"));
+    const original = structuredClone(guest);
+    delete original.campaign.story;
+    original.battle = {};
+    original.campaign.gold += 3;
+    const slot = "journey-original-arbitrary-copy-id";
+    const data = JSON.stringify(original);
+    heads.set(slot, {
+      ...heads.get("story"),
+      slotId: slot,
+      revision: 7,
+      data,
+      checksum: createHash("sha256").update(data).digest("hex"),
+    });
+    await page.evaluate((slot) => window.playablesCloud.restore(slot), slot);
+    await page.evaluate(() => window.playablesCloud.resolveConflict("cloud"));
+    assert.equal(
+      (await capture()).campaign.story,
+      undefined,
+      "Actual Godot model changes to original mode",
+    );
+    const latest = structuredClone(original);
+    latest.campaign.gold += 5;
+    const storageId = `${createHash("sha256").update(owner).digest("hex")}-${slot}`;
+    // Model replacement through the validated engine boundary must be captured by checkpoint,
+    // rather than reverting to the host's earlier restore-time snapshot.
+    await page.evaluate(
+      ({ data, storageId }) =>
+        new Promise((resolve, reject) => {
+          const previous = window.warChestImported;
+          window.warChestImported = (ok, mode) => {
+            window.warChestImported = previous;
+            previous?.(ok, mode);
+            ok ? resolve() : reject(new Error("Fixture import rejected"));
+          };
+          window.warChestImport(data, storageId);
+        }),
+      { data: JSON.stringify(latest), storageId },
+    );
+    await page.evaluate(() => window.playablesCloud.checkpoint());
+    assert.equal(JSON.parse(heads.get(slot).data).campaign.gold, latest.campaign.gold);
+    assert.equal(await page.evaluate(() => window.playablesCloud.getSlotId()), slot);
+    await page.reload();
+    await page.locator("#play").click();
+    await page.waitForFunction(() => window.playablesCloud?.getState().phase === "saved");
+    const resumed = await capture();
+    assert.equal(resumed.campaign.gold, latest.campaign.gold);
+    assert.equal(resumed.campaign.story, undefined);
+    assert.equal(await page.evaluate(() => window.playablesCloud.getSlotId()), slot);
+    await page.evaluate(() => window.playablesCloud.signOut());
+    await page.reload();
+    await page.locator("#play").click();
+    await page.waitForFunction(() => window.playablesCloud?.getState().phase === "guest");
+    const preserved = await capture();
+    assert.equal(preserved.campaign.gold, guest.campaign.gold);
+    assert.deepEqual(preserved.campaign.story, guest.campaign.story);
+    assert.deepEqual(errors, []);
+  } finally {
+    await browser.close();
+    await new Promise((done) => server.close(done));
+  }
+});

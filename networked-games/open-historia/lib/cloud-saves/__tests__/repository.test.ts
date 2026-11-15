@@ -165,6 +165,44 @@ describe('transactional player snapshots', () => {
       'legacy'
     );
   });
+  it('frees active capacity after delete and bounds retained tombstones', async () => {
+    const { repository, sqlite } = setup();
+    for (let index = 0; index < MAX_SLOTS; index++)
+      await repository.write('alice', 'ember-road', `active-${index}`, input());
+    await repository.write('alice', 'ember-road', 'active-0', input(1), true);
+    expect((await repository.write('alice', 'ember-road', 'replacement', input())).ok).toBe(true);
+    const seed = sqlite.prepare(
+      `INSERT INTO account_game_slot(user_id,game_id,slot_id,revision,write_id,checksum,byte_count,schema_version,metadata_json,deleted,created_at,updated_at) VALUES('bob','ember-road',?,1,'write','hash',0,'1','{"title":"Deleted"}',1,1,1)`
+    );
+    sqlite.exec('BEGIN');
+    for (let index = 0; index < 4096; index++) seed.run(`deleted-${index}`);
+    sqlite.exec('COMMIT');
+    expect(await repository.write('bob', 'ember-road', 'new-over-limit', input())).toMatchObject({
+      ok: false,
+      reason: 'quota',
+    });
+  });
+  it('grandfathers canonical upgrades of more than thirty legacy campaigns', async () => {
+    const { repository, sqlite } = setup();
+    const insert = sqlite.prepare(
+      `INSERT INTO saved_game(id,user_id,timestamp,version,game_state_json,game_config_json,cloud_revision) VALUES(?,'alice',1,'3.2.0','{"turn":1}','{}',1)`
+    );
+    for (let index = 0; index < 31; index++) {
+      const slot = `legacy-${index}`;
+      insert.run(slot);
+      const prior = await repository.read('alice', 'open-historia', slot);
+      expect(
+        (
+          await repository.write('alice', 'open-historia', slot, {
+            ...input(),
+            expectedChecksum: prior!.checksum,
+            envelope: { schemaVersion: '3.2.0', data: prior!.data, metadata: { title: slot } },
+          })
+        ).ok
+      ).toBe(true);
+    }
+    expect(await repository.list('alice', 'open-historia')).toHaveLength(31);
+  });
   it('preserves existing Historia rows, unknown game fields, and requires the read checksum to adopt them', async () => {
     const { repository, sqlite } = setup();
     sqlite

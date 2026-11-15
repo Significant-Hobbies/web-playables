@@ -19,6 +19,7 @@ export interface CloudConflict {
   reason: "import" | "diverged" | "cloud-available" | "account-changed";
   local: { bytes: number; savedAt: number; owner: string | null } | null;
   cloud: SaveHead | null;
+  cached: { bytes: number; savedAt: number; owner: string } | null;
 }
 export interface CloudState {
   gameId: GameId | null;
@@ -86,6 +87,8 @@ export class PlayablesCloud implements PersistenceHost {
   #owner: string | null = null;
   #copy: LocalCopy | null = null;
   #cloud: CloudSave | null = null;
+  #cached: LocalCopy | null = null;
+  #cachedKey: string | null = null;
   #pending: SaveWrite | null = null;
   #inFlight: number | null = null;
   #timer: ReturnType<typeof setTimeout> | null = null;
@@ -95,7 +98,9 @@ export class PlayablesCloud implements PersistenceHost {
   #panelOpen = false;
   #runtimePaused = false;
   #recoveryKey: string | null = null;
-  #restoreRequest: ((data: string, owner: string, slot: string) => Promise<void>) | null = null;
+  #restoreRequest:
+    | ((data: string, owner: string, slot: string) => Promise<"story" | "original">)
+    | null = null;
   constructor(options: RuntimeOptions) {
     this.#options = options;
     this.#state = {
@@ -144,7 +149,9 @@ export class PlayablesCloud implements PersistenceHost {
       this.#saveRequests.delete(callback);
     };
   }
-  registerRestoreRequest(callback: (data: string, owner: string, slot: string) => Promise<void>) {
+  registerRestoreRequest(
+    callback: (data: string, owner: string, slot: string) => Promise<"story" | "original">,
+  ) {
     this.#restoreRequest = callback;
     return () => {
       this.#restoreRequest = null;
@@ -153,6 +160,8 @@ export class PlayablesCloud implements PersistenceHost {
   async captureExternal(data: string, slot: "story" | "original") {
     const key = `save:war-chest:${slot}`;
     if (this.#storageKey !== key) {
+      const initial = !this.#started;
+      if (!initial) this.#options.storage.removeItem(this.#resumeKey());
       ++this.#generation;
       this.#storageKey = key;
       this.#owner = null;
@@ -160,12 +169,12 @@ export class PlayablesCloud implements PersistenceHost {
       this.#pending = null;
       this.#persist({ data, slot, owner: null, revision: 0, checksum: "", savedAt: this.#now() });
       this.#started = true;
-      if (this.#options.storage.getItem(this.#resumeKey())) {
+      if (initial && this.#options.storage.getItem(this.#resumeKey())) {
         this.#update({ paused: true });
         await this.#resume();
         const resumed = this.#copy as LocalCopy | null;
         if (this.#owner && resumed && this.#restoreRequest)
-          await this.#restoreRequest(resumed.data, this.#owner, resumed.slot);
+          await this.#applyRestore(resumed.data, this.#owner, resumed.slot);
         this.#update({ paused: false });
       }
       void this.refreshSession();
@@ -179,11 +188,11 @@ export class PlayablesCloud implements PersistenceHost {
   #now() {
     return (this.#options.now || Date.now)();
   }
-  #key(owner = this.#owner) {
-    return `${KEY}${this.#options.gameId}:${owner || "guest"}:${this.#storageKey}`;
+  #key(owner = this.#owner, storageKey = this.#storageKey) {
+    return `${KEY}${this.#options.gameId}:${owner || "guest"}:${storageKey}`;
   }
-  #read(owner: string | null): LocalCopy | null {
-    const raw = this.#options.storage.getItem(this.#key(owner));
+  #read(owner: string | null, storageKey = this.#storageKey): LocalCopy | null {
+    const raw = this.#options.storage.getItem(this.#key(owner, storageKey));
     if (raw) {
       try {
         const copy = JSON.parse(raw);
@@ -214,9 +223,9 @@ export class PlayablesCloud implements PersistenceHost {
     this.#copy = copy;
     this.#update({ localSavedAt: copy.savedAt });
   }
-  #backup(copy = this.#copy) {
+  #backup(copy = this.#copy, storageKey = this.#storageKey) {
     if (!copy) return;
-    const key = `${this.#key(copy.owner)}:recovery`;
+    const key = `${this.#key(copy.owner, storageKey)}:recovery`;
     this.#recoveryKey = key;
     const raw = JSON.stringify({ createdAt: this.#now(), ...copy });
     this.#options.storage.setItem(key, raw);
@@ -224,18 +233,30 @@ export class PlayablesCloud implements PersistenceHost {
       throw new Error("Recovery copy did not persist");
   }
   #resumeKey() {
-    return `${KEY}resume:${this.#options.gameId}:${this.#storageKey}`;
+    return this.#options.gameId === "war-chest"
+      ? `${KEY}resume:war-chest`
+      : `${KEY}resume:${this.#options.gameId}:${this.#storageKey}`;
   }
   #rememberOwner() {
     if (this.#owner)
-      this.#options.storage.setItem(this.#resumeKey(), JSON.stringify({ owner: this.#owner }));
+      this.#options.storage.setItem(
+        this.#resumeKey(),
+        JSON.stringify({ owner: this.#owner, storageKey: this.#storageKey }),
+      );
   }
   async #resume() {
     const raw = this.#options.storage.getItem(this.#resumeKey());
     if (!raw) return;
     let owner: string;
+    let storageKey = this.#storageKey;
     try {
-      owner = JSON.parse(raw).owner;
+      const hint = JSON.parse(raw);
+      owner = hint.owner;
+      if (
+        this.#options.gameId === "war-chest" &&
+        ["save:war-chest:story", "save:war-chest:original"].includes(hint.storageKey)
+      )
+        storageKey = hint.storageKey;
       if (typeof owner !== "string") return;
     } catch {
       return;
@@ -254,8 +275,9 @@ export class PlayablesCloud implements PersistenceHost {
         this.#options.storage.removeItem(this.#resumeKey());
         return;
       }
-      const copy = this.#read(owner);
+      const copy = this.#read(owner, storageKey);
       if (!copy) return;
+      this.#storageKey = storageKey;
       this.#owner = owner;
       this.#csrf = session.csrfToken;
       this.#copy = copy;
@@ -283,7 +305,7 @@ export class PlayablesCloud implements PersistenceHost {
       });
     }
     this.#update({ localSavedAt: this.#copy?.savedAt || null });
-    // Never await the account service in the game's local boot path.
+    // Anonymous boot is immediate; a prior account choice gets only the bounded identity check above.
     if (!this.#started) {
       this.#started = true;
       queueMicrotask(() => {
@@ -362,6 +384,8 @@ export class PlayablesCloud implements PersistenceHost {
     const generation = ++this.#generation;
     this.#pending = null;
     this.#cloud = null;
+    this.#cached = null;
+    this.#cachedKey = null;
     this.#csrf = "";
     this.#offlineChoice = false;
     try {
@@ -398,7 +422,25 @@ export class PlayablesCloud implements PersistenceHost {
       }
       await this.#requestSnapshot();
       if (generation !== this.#generation) return;
-      const cached = this.#read(session.user.id);
+      let candidateKey = this.#storageKey;
+      if (this.#options.gameId === "war-chest") {
+        const raw = this.#options.storage.getItem(this.#resumeKey());
+        if (raw) {
+          try {
+            const hint = JSON.parse(raw);
+            if (
+              hint.owner === session.user.id &&
+              ["save:war-chest:story", "save:war-chest:original"].includes(hint.storageKey)
+            )
+              candidateKey = hint.storageKey;
+          } catch {
+            /* retain invalid hint */
+          }
+        }
+      }
+      const cached = this.#read(session.user.id, candidateKey);
+      this.#cached = cached;
+      this.#cachedKey = candidateKey;
       const slot = this.#owner === session.user.id ? this.#copy?.slot : cached?.slot;
       const cloudResponse = await this.#fetch(this.#slotPath(slot || this.#copy?.slot || "main"));
       if (generation !== this.#generation) return;
@@ -419,7 +461,23 @@ export class PlayablesCloud implements PersistenceHost {
         return;
       }
       const local = this.#owner === session.user.id ? this.#copy : cached;
-      // A receipt is meaningful only for bytes we actually acknowledged for this account.
+      // Identical verified account bytes can adopt a server receipt lost during tab exit.
+      if (
+        local &&
+        cloud &&
+        this.#owner === session.user.id &&
+        comparable(local.data) === comparable(cloud.data)
+      ) {
+        this.#persist({ ...local, revision: cloud.revision, checksum: cloud.checksum });
+        this.#update({
+          phase: "saved",
+          paused: false,
+          conflict: null,
+          cloudAcknowledgedAt: cloud.updatedAt,
+        });
+        return;
+      }
+      // An unchanged acknowledged base permits publishing pending local progress.
       if (
         local &&
         cloud &&
@@ -483,7 +541,19 @@ export class PlayablesCloud implements PersistenceHost {
     this.#update({
       phase: "conflict",
       paused: true,
-      conflict: { reason, local: this.#localSummary(), cloud: metadata },
+      conflict: {
+        reason,
+        local: this.#localSummary(),
+        cloud: metadata,
+        cached:
+          this.#cached?.owner && this.#cached.data !== this.#copy?.data
+            ? {
+                bytes: byteLength(this.#cached.data),
+                savedAt: this.#cached.savedAt,
+                owner: this.#cached.owner,
+              }
+            : null,
+      },
       message: "Choose which journey to continue. Both versions are preserved until you choose.",
     });
   }
@@ -648,13 +718,27 @@ export class PlayablesCloud implements PersistenceHost {
       return { title: "Saved journey" };
     }
   }
-  async resolveConflict(choice: "cloud" | "local" | "keep-both" | "offline") {
+  async #applyRestore(data: string, owner: string, slot: string) {
+    const generation = this.#generation;
+    const mode = await this.#restoreRequest?.(data, owner, slot);
+    if (generation !== this.#generation)
+      throw new Error("Account changed during restore; recovery is kept.");
+    if (this.#options.gameId === "war-chest" && (mode === "story" || mode === "original"))
+      this.#storageKey = `save:war-chest:${mode}`;
+  }
+  #protectTarget(owner: string, data: string) {
+    const existing = this.#read(owner);
+    if (existing && existing.data !== data) this.#backup(existing);
+  }
+  async resolveConflict(choice: "cloud" | "local" | "cached" | "keep-both" | "offline") {
     if (!this.#state.conflict || !this.#state.user) return;
     const generation = this.#generation;
     await this.#requestSnapshot();
     if (generation !== this.#generation)
       throw new Error("Account changed. Review the journeys again.");
     this.#backup();
+    if (this.#cached && this.#cached.data !== this.#copy?.data)
+      this.#backup(this.#cached, this.#cachedKey);
     if (choice === "offline") {
       this.#offlineChoice = true;
       this.#update({
@@ -670,9 +754,10 @@ export class PlayablesCloud implements PersistenceHost {
     if (choice === "cloud") {
       if (!cloud) throw new Error("No cloud save to restore");
       this.#pending = null;
-      if (this.#restoreRequest) await this.#restoreRequest(cloud.data, user.id, cloud.slotId);
+      if (this.#restoreRequest) await this.#applyRestore(cloud.data, user.id, cloud.slotId);
       if (generation !== this.#generation)
         throw new Error("Account changed during restore. Recovery is kept.");
+      this.#protectTarget(user.id, cloud.data);
       this.#owner = user.id;
       this.#persist({
         data: cloud.data,
@@ -701,13 +786,14 @@ export class PlayablesCloud implements PersistenceHost {
         });
       return;
     }
-    if (!this.#copy) throw new Error("No local save to import");
-    const source = this.#copy;
+    const source = choice === "cached" ? this.#cached : this.#copy;
+    if (!source) throw new Error("No local save to import");
     const slot =
       choice === "keep-both" ? `journey-${crypto.randomUUID()}` : cloud?.slotId || source.slot;
-    if (this.#restoreRequest) await this.#restoreRequest(source.data, user.id, slot);
+    if (this.#restoreRequest) await this.#applyRestore(source.data, user.id, slot);
     if (generation !== this.#generation)
       throw new Error("Account changed during restore. Recovery is kept.");
+    this.#protectTarget(user.id, source.data);
     this.#owner = user.id;
     // Local explicitly replaces only the revision shown by this conflict. CAS still protects a subsequent device write.
     this.#persist({
@@ -719,6 +805,16 @@ export class PlayablesCloud implements PersistenceHost {
     });
     this.#rememberOwner();
     this.#pending = null;
+    if (choice === "cached" && !this.#restoreRequest) {
+      this.#update({
+        conflict: null,
+        paused: true,
+        reloadRequired: true,
+        phase: "local",
+        message: "Cached account journey restored. Reload to continue it.",
+      });
+      return;
+    }
     this.#update({ conflict: null, paused: false, phase: "local", message: null });
     await this.#flush();
   }

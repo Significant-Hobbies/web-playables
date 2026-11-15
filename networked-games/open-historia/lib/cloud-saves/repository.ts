@@ -5,6 +5,7 @@ import {
   MAX_RETAINED_BYTES,
   MAX_SAVE_BYTES,
   MAX_SLOTS,
+  MAX_SLOT_RECORDS,
   normalizePayload,
   parseMetadata,
   type CloudSave,
@@ -239,7 +240,9 @@ export class SaveRepository {
       return { ok: false, reason: 'conflict', current: legacy };
     if (!existing && !legacy) {
       const count = await store
-        .prepare('SELECT COUNT(*) AS n FROM account_game_slot WHERE user_id=? AND game_id=?')
+        .prepare(
+          'SELECT COUNT(*) AS n FROM account_game_slot WHERE user_id=? AND game_id=? AND deleted=0'
+        )
         .bind(user, game)
         .first<{ n: number }>();
       if ((count?.n ?? 0) >= MAX_SLOTS) return { ok: false, reason: 'quota', current: null };
@@ -255,8 +258,12 @@ export class SaveRepository {
       INSERT INTO account_game_slot(user_id,game_id,slot_id,revision,write_id,checksum,byte_count,schema_version,metadata_json,deleted,created_at,updated_at)
       SELECT ?,?,?,?,?,?,?,?,?,?,?,?
       WHERE (?=0 OR EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=? AND revision=?))
-      AND (?=1 OR EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=?)
-        OR (SELECT COUNT(*) FROM account_game_slot WHERE user_id=? AND game_id=?)<?)
+      AND (?=1 OR EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=? AND deleted=0)
+        OR (?='open-historia' AND EXISTS(SELECT 1 FROM saved_game WHERE user_id=? AND id=?))
+        OR (SELECT COUNT(*) FROM account_game_slot WHERE user_id=? AND game_id=? AND deleted=0)<?)
+      AND (EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=?)
+        OR (?='open-historia' AND EXISTS(SELECT 1 FROM saved_game WHERE user_id=? AND id=?))
+        OR (SELECT COUNT(*) FROM account_game_slot WHERE user_id=?)<?)
       AND COALESCE((SELECT SUM(byte_count) FROM account_game_version WHERE user_id=?
         AND NOT(game_id=? AND slot_id=? AND revision<=?)),0)
         + COALESCE((SELECT SUM(LENGTH(CAST(game_state_json AS BLOB))+LENGTH(CAST(game_config_json AS BLOB))
@@ -289,9 +296,20 @@ export class SaveRepository {
           user,
           game,
           slot,
+          game,
+          user,
+          slot,
           user,
           game,
           MAX_SLOTS,
+          user,
+          game,
+          slot,
+          game,
+          user,
+          slot,
+          user,
+          MAX_SLOT_RECORDS,
           user,
           game,
           slot,

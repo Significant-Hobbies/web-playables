@@ -49,7 +49,7 @@ export function connectWarChest(cloud: PlayablesCloud) {
       Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("") +
       "-" +
       slot;
-    await new Promise<void>((resolve, reject) => {
+    return await new Promise<"story" | "original">((resolve, reject) => {
       if (!window.warChestImport) {
         reject(new Error("Game is still loading"));
         return;
@@ -59,10 +59,12 @@ export function connectWarChest(cloud: PlayablesCloud) {
         applying = false;
         reject(new Error("Game restore timed out; local recovery is kept"));
       }, 5000);
-      window.warChestImported = (ok) => {
+      window.warChestImported = (ok, mode) => {
         clearTimeout(timeout);
         applying = false;
-        ok ? resolve() : reject(new Error("Game rejected this save; recovery is kept"));
+        ok && (mode === "story" || mode === "original")
+          ? resolve(mode)
+          : reject(new Error("Game rejected this save; recovery is kept"));
       };
       window.warChestImport(data, storageId);
     });
@@ -75,6 +77,6 @@ declare global {
     warChestCapture?: () => void;
     warChestCloudPause?: (paused: boolean) => void;
     warChestImport?: (data: string, storageId: string) => void;
-    warChestImported?: (ok: boolean) => void;
+    warChestImported?: (ok: boolean, mode: "story" | "original") => void;
   }
 }

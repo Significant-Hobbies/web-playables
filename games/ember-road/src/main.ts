@@ -92,6 +92,7 @@ const savePlatform: Platform = {
   onSaveRequest: (cb) => platform.onSaveRequest?.(cb) ?? (() => {}),
 };
 const saves = createSaveManager<GameState>({
+  getState: () => state,
   platform: savePlatform,
   version: 2,
   migrations: { 1: migrateV1State },

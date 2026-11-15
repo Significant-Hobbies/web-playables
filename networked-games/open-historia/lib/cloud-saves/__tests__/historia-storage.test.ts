@@ -36,6 +36,77 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe('Historia account compatibility', () => {
+  it('deletes after fresh login using a freshly read conditional head and preserves local bytes on cloud failure', async () => {
+    const client = await import('../../game-storage');
+    client.setAuthenticated(true, 'alice');
+    client.startAccountCampaign();
+    client.localSaveGame(state(4), config, [], 'delete-me');
+    let fail = true;
+    let deleted: Record<string, unknown> | null = null;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/player')
+          return Response.json({ user: { id: 'alice' }, csrfToken: 'csrf' });
+        if (init?.method === 'DELETE') {
+          deleted = JSON.parse(String(init.body));
+          return Response.json({}, { status: fail ? 409 : 200 });
+        }
+        return Response.json({
+          save: { id: 'delete-me', cloudRevision: 7, cloudChecksum: 'c'.repeat(64) },
+        });
+      })
+    );
+    await expect(client.deleteGame('delete-me')).rejects.toThrow('local campaign kept');
+    expect(client.localLoadGame('delete-me')).not.toBeNull();
+    expect(deleted).toMatchObject({ expectedRevision: 7, expectedChecksum: 'c'.repeat(64) });
+    fail = false;
+    await client.deleteGame('delete-me');
+    expect(client.localLoadGame('delete-me')).toBeNull();
+  });
+  it('discards delayed account-A JSON responses instead of returning them or A fallbacks under B', async () => {
+    const client = await import('../../game-storage');
+    client.setAuthenticated(true, 'alice');
+    client.startAccountCampaign();
+    client.localSaveGame(state(8), config, [], 'campaign');
+    let release!: (value: unknown) => void;
+    const body = new Promise<unknown>((resolve) => {
+      release = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: () => body }))
+    );
+    const loading = client.loadGame('campaign');
+    await Promise.resolve();
+    await Promise.resolve();
+    client.setAuthenticated(true, 'bob');
+    release({
+      save: {
+        id: 'campaign',
+        version: '3.2.0',
+        gameState: state(1),
+        gameConfig: config,
+        logs: [],
+        events: [],
+      },
+    });
+    expect(await loading).toBeNull();
+    expect(localStorage.getItem('open_historia_saves:account:bob')).toBeNull();
+    let releaseList!: (value: unknown) => void;
+    const listBody = new Promise<unknown>((resolve) => {
+      releaseList = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: () => listBody }))
+    );
+    const listing = client.listSavedGames();
+    await Promise.resolve();
+    client.setAuthenticated(true, 'carol');
+    releaseList({ saves: [{ id: 'bob-cloud', timestamp: 1, version: '3.2.0' }] });
+    expect(await listing).toEqual([]);
+  });
   it('requires guest import and never writes account A progress under account B', async () => {
     const requests: { owner: string; body: Record<string, unknown> }[] = [];
     let owner = 'alice';
@@ -106,6 +177,7 @@ describe('Historia account compatibility', () => {
     expect(client.getCampaignCloudStatus().phase).toBe('conflict');
     expect((await client.resolveCampaignConflict('campaign', 'cloud'))?.gameState.turn).toBe(1);
     expect(client.getCampaignCloudStatus().phase).toBe('saved');
+    await client.loadGame('campaign');
     expect(localStorage.getItem('open_historia_saves:account:alice:recovery')).toContain(
       '"turn":9'
     );

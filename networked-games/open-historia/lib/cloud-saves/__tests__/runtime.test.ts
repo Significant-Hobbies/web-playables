@@ -113,6 +113,160 @@ describe('optional web account host', () => {
     expect(f.runtime.exportLocal()?.data).toBe(data(3));
     expect(f.runtime.getState().phase).toBe('offline');
   });
+  it('offers the verified cached candidate after resume timeout and preserves all displaced copies', async () => {
+    for (const choice of ['cloud', 'local', 'cached'] as const) {
+      const f = setup({ save: cloud(2, 2) });
+      const key = 'playables:v1:ember-road:alice:save:game';
+      f.storage.setItem(
+        key,
+        JSON.stringify({
+          data: data(9),
+          owner: 'alice',
+          slot: 'main',
+          savedAt: 9,
+          revision: 1,
+          checksum: 'previous',
+        })
+      );
+      f.storage.setItem(
+        'playables:v1:resume:ember-road:save:game',
+        JSON.stringify({ owner: 'alice' })
+      );
+      f.fetcher.mockRejectedValueOnce(new Error('identity timeout'));
+      await boot(f);
+      await vi.waitFor(() => expect(f.runtime.getState().phase).toBe('conflict'));
+      expect(f.runtime.getState().conflict?.cached).toMatchObject({ owner: 'alice', savedAt: 9 });
+      expect(JSON.parse(f.storage.getItem(key)!).data).toBe(data(9));
+      await f.runtime.resolveConflict(choice);
+      expect(JSON.parse(f.storage.getItem(key + ':recovery')!).data).toBe(data(9));
+      expect(
+        JSON.parse(f.storage.getItem('playables:v1:ember-road:guest:save:game:recovery')!).data
+      ).toBe(data());
+      if (choice === 'cached') {
+        expect(f.runtime.exportLocal()?.data).toBe(data(9));
+        expect(f.runtime.getState().reloadRequired).toBe(true);
+        expect(f.writes).toHaveLength(0);
+        const next = new PlayablesCloud({
+          gameId: 'ember-road',
+          maxSchemaVersion: 1,
+          storage: f.storage,
+          fetch: f.fetcher as typeof fetch,
+          location: { href: 'https://idle.aliveville.com/play/ember-road/', assign: vi.fn() },
+        });
+        runtimes.push(next);
+        expect(await next.loadData('save:game')).toBe(data(9));
+        await vi.waitFor(() => expect(next.getState().paused).toBe(false));
+        await next.checkpoint();
+        expect(f.getRemote()?.data).toBe(data(9));
+      }
+    }
+  });
+  it('adopts the verified cloud receipt for identical account bytes after a lost acknowledgement', async () => {
+    const f = setup({ save: cloud(3, 8) });
+    const key = 'playables:v1:ember-road:alice:save:game';
+    f.storage.setItem(
+      key,
+      JSON.stringify({
+        data: data(3),
+        owner: 'alice',
+        slot: 'main',
+        savedAt: 3,
+        revision: 7,
+        checksum: 'old-receipt',
+      })
+    );
+    f.storage.setItem(
+      'playables:v1:resume:ember-road:save:game',
+      JSON.stringify({ owner: 'alice' })
+    );
+    expect(await f.runtime.loadData('save:game')).toBe(data(3));
+    await vi.waitFor(() => expect(f.runtime.getState().phase).toBe('saved'));
+    expect(f.runtime.getState().conflict).toBeNull();
+    expect(JSON.parse(f.storage.getItem(key)!).revision).toBe(8);
+    expect(f.writes).toHaveLength(0);
+  });
+  it('keeps War account scope and arbitrary cloud slot across a validated cross-mode restore and reload', async () => {
+    const storage = new MemoryStorage();
+    const war = (mode: string, gold: number) =>
+      JSON.stringify({ version: 2, campaign: { mode, gold }, battle: {} });
+    const guest = war('story', 1);
+    const remoteData = war('original', 40);
+    const slot = 'journey-copy-arbitrary-uuid';
+    const remote = new Map<string, CloudSave>([
+      [
+        slot,
+        { ...cloud(), gameId: 'war-chest', slotId: slot, schemaVersion: '2', data: remoteData },
+      ],
+    ]);
+    const fetcher = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === '/api/player')
+        return Response.json({
+          user: { id: 'alice', name: 'Alice', email: 'alice@example.test' },
+          csrfToken: 'csrf',
+        });
+      const id = url.pathname.split('/').at(-1)!;
+      if (init?.method === 'PUT') {
+        const body = JSON.parse(String(init.body));
+        const prior = remote.get(id);
+        if (body.expectedRevision !== (prior?.revision || 0))
+          return Response.json({}, { status: 409 });
+        const head = {
+          ...cloud(),
+          gameId: 'war-chest' as const,
+          slotId: id,
+          schemaVersion: '2',
+          data: body.envelope.data,
+          revision: (prior?.revision || 0) + 1,
+        };
+        remote.set(id, head);
+        return Response.json({ head });
+      }
+      return remote.has(id)
+        ? Response.json({ save: remote.get(id) })
+        : Response.json({}, { status: 404 });
+    });
+    const make = () => {
+      const runtime = new PlayablesCloud({
+        gameId: 'war-chest',
+        maxSchemaVersion: 2,
+        storage,
+        fetch: fetcher as typeof fetch,
+        location: { href: 'https://idle.aliveville.com/play/war-chest/', assign: vi.fn() },
+      });
+      runtimes.push(runtime);
+      return runtime;
+    };
+    const first = make();
+    first.registerRestoreRequest(async (data) => JSON.parse(data).campaign.mode);
+    await first.captureExternal(guest, 'story');
+    await vi.waitFor(() => expect(first.getState().phase).toBe('conflict'));
+    await first.resolveConflict('local');
+    await first.restore(slot);
+    await first.resolveConflict('cloud');
+    const latest = war('original', 55);
+    await first.captureExternal(latest, 'original');
+    await first.checkpoint();
+    expect(first.getState().user?.id).toBe('alice');
+    expect(first.getSlotId()).toBe(slot);
+    expect(remote.get(slot)?.data).toBe(latest);
+    first.dispose();
+    const next = make();
+    const applied: string[] = [];
+    next.registerRestoreRequest(async (data) => {
+      applied.push(data);
+      return JSON.parse(data).campaign.mode;
+    });
+    await next.captureExternal(guest, 'story');
+    await vi.waitFor(() => expect(next.getState().phase).toBe('saved'));
+    expect(applied.at(-1)).toBe(latest);
+    expect(next.getSlotId()).toBe(slot);
+    expect(next.exportLocal()?.data).toBe(latest);
+    expect(
+      JSON.parse(storage.getItem('playables:v1:war-chest:guest:save:war-chest:story')!).data
+    ).toBe(guest);
+    expect(storage.getItem('playables:v1:war-chest:guest:save:war-chest:original')).toBeNull();
+  });
   it('requires explicit import and uses a safe revision; keeps recovery bytes', async () => {
     const f = setup();
     await boot(f);

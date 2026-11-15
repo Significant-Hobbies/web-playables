@@ -291,7 +291,7 @@ func setup_web():
     page="battle" if not game.battle.is_empty() else "story" if game.story_active() and game.campaign.story.phase in ["intro","outro","ending"] else "chest"
     mission=mini(game.campaign.unlocked,game.level()-1)
     show_page()
-  JavaScriptBridge.get_interface("window").warChestImported(accepted))
+  JavaScriptBridge.get_interface("window").warChestImported(accepted,cloud_slot))
  browser.warChestImport=web_import_callback
 
 func persist():

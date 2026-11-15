@@ -3,6 +3,7 @@ export type GameId = (typeof GAME_IDS)[number];
 export const MAX_SAVE_BYTES = 4 * 1024 * 1024;
 export const CHUNK_BYTES = 256 * 1024;
 export const MAX_SLOTS = 30;
+export const MAX_SLOT_RECORDS = 4096;
 export const HISTORY_LIMIT = 20;
 export const MAX_RETAINED_BYTES = 128 * 1024 * 1024;
 

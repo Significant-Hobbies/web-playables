@@ -109,7 +109,7 @@ test('cloud URL restore waits for account identity and exposes conflict recovery
   delete saved.cloudChecksum;
   delete saved.gameConfig.apiKey;
   const checksum = createHash('sha256').update(JSON.stringify(saved)).digest('hex');
-  const cloudSave = { ...saved, cloudRevision: 3, cloudChecksum: checksum };
+  let cloudSave = { ...saved, cloudRevision: 3, cloudChecksum: checksum };
   await page.evaluate(() => localStorage.removeItem('open_historia_saves'));
   let release!: () => void;
   const identity = new Promise<void>((resolve) => {
@@ -145,15 +145,26 @@ test('cloud URL restore waits for account identity and exposes conflict recovery
   await page.route('**/api/player', (route) =>
     route.fulfill({ json: { user: { id: 'fixture-alice' }, csrfToken: 'fixture-csrf' } })
   );
-  await page.route('**/api/saves', (route) =>
-    route.fulfill({
-      status: route.request().method() === 'POST' && conflict ? 409 : 200,
-      json:
-        route.request().method() === 'POST'
-          ? { cloudRevision: 4, cloudChecksum: checksum }
-          : { saves: [] },
-    })
-  );
+  await page.route('**/api/saves', async (route) => {
+    if (route.request().method() === 'POST') {
+      if (conflict) return route.fulfill({ status: 409, json: { reason: 'conflict' } });
+      const {
+        expectedRevision: _r,
+        expectedChecksum: _c,
+        writeId: _w,
+        ...payload
+      } = route.request().postDataJSON();
+      cloudSave = {
+        ...payload,
+        cloudRevision: cloudSave.cloudRevision + 1,
+        cloudChecksum: createHash('sha256').update(JSON.stringify(payload)).digest('hex'),
+      };
+      return route.fulfill({
+        json: { cloudRevision: cloudSave.cloudRevision, cloudChecksum: cloudSave.cloudChecksum },
+      });
+    }
+    return route.fulfill({ json: { saves: [] } });
+  });
   await page.route(`**/api/saves/${saved.id}`, (route) => {
     reads++;
     return route.fulfill({ json: { save: cloudSave } });
@@ -167,8 +178,8 @@ test('cloud URL restore waits for account identity and exposes conflict recovery
   expect(reads).toBeGreaterThan(0);
   await showPanel(page, 'Orders');
   await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
-  conflict = true;
   await showPanel(page, 'Menu');
+  conflict = true;
   await page.getByRole('button', { name: /^save$/i }).click();
   const panel = page.getByRole('dialog', { name: 'Account & campaign saves' });
   await expect(panel).toBeVisible();
