@@ -117,8 +117,12 @@ test("web account controls preserve guest saves, restore real game checkpoints a
         JSON.stringify(
           {
             fixtureAccountOnly: true,
-            host: await page.evaluate(() => window.playablesCloud?.getState()),
-            local: await page.evaluate(() => window.playablesCloud?.exportLocal()),
+            host: await page
+              .evaluate(() => window.playablesCloud?.getState())
+              .catch((captureError) => ({ captureError: String(captureError) })),
+            local: await page
+              .evaluate(() => window.playablesCloud?.exportLocal())
+              .catch((captureError) => ({ captureError: String(captureError) })),
             head,
             writes,
             errors,
@@ -126,6 +130,8 @@ test("web account controls preserve guest saves, restore real game checkpoints a
           null,
           2,
         ),
+      ).catch((captureError) =>
+        console.error("Could not retain restore diagnostics:", String(captureError)),
       );
       throw error;
     }
