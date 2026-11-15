@@ -1,4 +1,5 @@
 import CouncilDispatch from './CouncilDispatch';
+import CampaignCloudPanel from './CampaignCloudPanel';
 import { storyProgress } from '@/lib/story-progress';
 import type React from 'react';
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
@@ -88,6 +89,7 @@ function CampaignPanel({
 }
 
 function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
+  const [accountOpen, setAccountOpen] = useState(false);
   const [panel, setPanel] = useState<string | null>(null);
   captureMeasurementTraffic();
   // ── Core game state + initialization ──
@@ -378,6 +380,14 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
 
   return (
     <main className="campaign-shell relative w-screen h-screen overflow-hidden bg-slate-950 text-slate-100">
+      <CampaignCloudPanel
+        open={accountOpen}
+        setOpen={setAccountOpen}
+        user={game.authSession?.user}
+        processing={turn.processingTurn}
+        onSave={save.handleSaveGame}
+        onLoad={handleLoadSavedGame}
+      />
       {gameState && (
         <>
           <header className="campaign-hud">
@@ -471,6 +481,16 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
                 }
               >
                 Save
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  closePanel();
+                  setAccountOpen(true);
+                }}
+                className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1 rounded"
+              >
+                Account & saves
               </button>
               <button
                 type="button"

@@ -16,7 +16,7 @@ import {
   startAccountCampaign,
 } from '@/lib/game-storage';
 import { INITIAL_PLAYERS } from '@/lib/map-generator';
-import { GameConfig } from '@/lib/types';
+import type { GameConfig } from '@/lib/types';
 import type {
   DiplomaticRelation,
   GameEvent,
@@ -55,7 +55,8 @@ export function useGameState(initialGameId?: string) {
   }, []);
 
   // Auth
-  const { data: authSession } = authClient.useSession();
+  const { data: authSession, isPending: authPending } = authClient.useSession();
+  const awaitingInitialAccount = Boolean(initialGameId) && authPending;
 
   const refreshSavedGames = useCallback(async () => {
     if (typeof window === 'undefined') return;
@@ -86,6 +87,7 @@ export function useGameState(initialGameId?: string) {
 
   useEffect(() => {
     async function load() {
+      if (awaitingInitialAccount) return;
       const shouldTrackInitialRestore = isNewInitialRestoreAttempt(
         initialGameId,
         worldLoadRequest,
@@ -146,7 +148,7 @@ export function useGameState(initialGameId?: string) {
       }
     }
     load();
-  }, [refreshSavedGames, initialGameId, worldLoadRequest]);
+  }, [refreshSavedGames, initialGameId, worldLoadRequest, awaitingInitialAccount]);
 
   // Preset selection
   const handleSelectPreset = useCallback((preset: Preset) => {

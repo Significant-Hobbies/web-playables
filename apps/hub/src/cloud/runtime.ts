@@ -92,6 +92,8 @@ export class PlayablesCloud implements PersistenceHost {
   #lastAttempt = 0;
   #offlineChoice = false;
   #started = false;
+  #panelOpen = false;
+  #runtimePaused = false;
   #recoveryKey: string | null = null;
   #restoreRequest: ((data: string, owner: string, slot: string) => Promise<void>) | null = null;
   constructor(options: RuntimeOptions) {
@@ -109,6 +111,11 @@ export class PlayablesCloud implements PersistenceHost {
     };
   }
   getState = (): CloudState => structuredClone(this.#state);
+  getSlotId = () => this.#copy?.slot ?? null;
+  setPanelOpen(open: boolean) {
+    this.#panelOpen = open;
+    this.#update({});
+  }
   subscribe = (callback: (state: CloudState) => void) => {
     this.#listeners.add(callback);
     callback(this.getState());
@@ -118,7 +125,8 @@ export class PlayablesCloud implements PersistenceHost {
   };
   #update(patch: Partial<CloudState>) {
     const wasPaused = this.#state.paused;
-    this.#state = { ...this.#state, ...patch };
+    if (patch.paused !== undefined) this.#runtimePaused = patch.paused;
+    this.#state = { ...this.#state, ...patch, paused: this.#runtimePaused || this.#panelOpen };
     if (wasPaused !== this.#state.paused)
       for (const callback of this.#pauseListeners) callback(this.#state.paused);
     for (const callback of this.#listeners) callback(this.getState());
@@ -507,13 +515,17 @@ export class PlayablesCloud implements PersistenceHost {
     }
   }
   async signOut() {
+    const before = this.#generation;
     await this.#requestSnapshot();
+    if (before !== this.#generation)
+      throw new Error("Account changed. Refresh before signing out.");
     this.#backup();
-    ++this.#generation;
+    const generation = ++this.#generation;
     this.#csrf = "";
     this.#pending = null;
     this.#cloud = null;
     const response = await this.#fetch("/api/auth/sign-out", { method: "POST", body: "{}" });
+    if (generation !== this.#generation) return;
     if (!response.ok) {
       await this.refreshSession();
       return;
@@ -539,7 +551,7 @@ export class PlayablesCloud implements PersistenceHost {
       this.#owner !== user.id ||
       !this.#copy ||
       this.#offlineChoice ||
-      this.#state.paused ||
+      this.#runtimePaused ||
       this.#state.conflict ||
       this.#inFlight === this.#generation
     )
@@ -638,7 +650,10 @@ export class PlayablesCloud implements PersistenceHost {
   }
   async resolveConflict(choice: "cloud" | "local" | "keep-both" | "offline") {
     if (!this.#state.conflict || !this.#state.user) return;
+    const generation = this.#generation;
     await this.#requestSnapshot();
+    if (generation !== this.#generation)
+      throw new Error("Account changed. Review the journeys again.");
     this.#backup();
     if (choice === "offline") {
       this.#offlineChoice = true;
@@ -654,7 +669,10 @@ export class PlayablesCloud implements PersistenceHost {
     const cloud = this.#cloud;
     if (choice === "cloud") {
       if (!cloud) throw new Error("No cloud save to restore");
+      this.#pending = null;
       if (this.#restoreRequest) await this.#restoreRequest(cloud.data, user.id, cloud.slotId);
+      if (generation !== this.#generation)
+        throw new Error("Account changed during restore. Recovery is kept.");
       this.#owner = user.id;
       this.#persist({
         data: cloud.data,
@@ -688,6 +706,8 @@ export class PlayablesCloud implements PersistenceHost {
     const slot =
       choice === "keep-both" ? `journey-${crypto.randomUUID()}` : cloud?.slotId || source.slot;
     if (this.#restoreRequest) await this.#restoreRequest(source.data, user.id, slot);
+    if (generation !== this.#generation)
+      throw new Error("Account changed during restore. Recovery is kept.");
     this.#owner = user.id;
     // Local explicitly replaces only the revision shown by this conflict. CAS still protects a subsequent device write.
     this.#persist({
@@ -734,6 +754,7 @@ export class PlayablesCloud implements PersistenceHost {
     const response = await this.#fetch(this.#slotPath(slot));
     if (generation !== this.#generation || !response.ok) return;
     const cloud = ((await response.json()) as { save: CloudSave }).save;
+    if (generation !== this.#generation) return;
     if (Number(cloud.schemaVersion) > (this.#options.maxSchemaVersion ?? Infinity)) {
       this.#update({
         phase: "update-required",
@@ -743,6 +764,45 @@ export class PlayablesCloud implements PersistenceHost {
       return;
     }
     this.#conflict("cloud-available", cloud);
+  }
+  async restoreVersion(slot: string, revision: number) {
+    const generation = this.#generation;
+    await this.#requestSnapshot();
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    this.#backup();
+    const versionsResponse = await this.#fetch(`${this.#slotPath(slot)}/history`);
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    if (!versionsResponse.ok) throw new Error("Version history is unavailable.");
+    const versions = (await versionsResponse.json()) as { history: SaveHead[] };
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    const selected = versions.history.find((item) => item.revision === revision && !item.deleted);
+    if (!selected) throw new Error("This version is no longer available. Refresh the history.");
+    if (Number(selected.schemaVersion) > (this.#options.maxSchemaVersion ?? Infinity))
+      throw new Error("Update the game before restoring this newer save.");
+    const current = await this.#fetch(this.#slotPath(slot));
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    if (!current.ok) throw new Error("Cloud journey is unavailable. Refresh and try again.");
+    const { save } = (await current.json()) as { save: CloudSave };
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    const response = await this.#fetch(`${this.#slotPath(slot)}/restore`, {
+      method: "POST",
+      body: JSON.stringify({
+        revision,
+        expectedRevision: save.revision,
+        expectedChecksum: save.checksum,
+        writeId: crypto.randomUUID(),
+      }),
+    });
+    if (generation !== this.#generation) throw new Error("Account changed; recovery is kept.");
+    if (!response.ok)
+      throw new Error(
+        response.status === 409
+          ? "Another device saved again. Refresh before restoring."
+          : "This version could not be restored. Your current journey is kept.",
+      );
+    await this.restore(slot);
+    if (generation === this.#generation && this.#state.conflict?.cloud)
+      await this.resolveConflict("cloud");
   }
   dispose() {
     ++this.#generation;

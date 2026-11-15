@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { gunzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/*', async (route) => {
@@ -93,6 +94,100 @@ test('retry restores a URL save that becomes available', async ({ page }) => {
   expect(
     await page.evaluate(() => JSON.parse(localStorage.getItem('open_historia_saves')!)[0])
   ).toEqual(save);
+});
+
+test('cloud URL restore waits for account identity and exposes conflict recovery', async ({
+  page,
+}, testInfo) => {
+  await startCampaign(page);
+  await saveCampaign(page);
+  await expect(page.getByText('Game saved.', { exact: true })).toBeVisible();
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('open_historia_saves')!)[0]
+  );
+  delete saved.cloudRevision;
+  delete saved.cloudChecksum;
+  delete saved.gameConfig.apiKey;
+  const checksum = createHash('sha256').update(JSON.stringify(saved)).digest('hex');
+  const cloudSave = { ...saved, cloudRevision: 3, cloudChecksum: checksum };
+  await page.evaluate(() => localStorage.removeItem('open_historia_saves'));
+  let release!: () => void;
+  const identity = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let requested!: () => void;
+  const identityRequested = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  let reads = 0;
+  let conflict = false;
+  await page.route('**/api/auth/get-session', async (route) => {
+    requested();
+    await identity;
+    await route.fulfill({
+      json: {
+        user: {
+          id: 'fixture-alice',
+          name: 'Fixture player',
+          email: 'fixture@example.test',
+          emailVerified: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        session: {
+          id: 'fixture-session',
+          userId: 'fixture-alice',
+          expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        },
+      },
+    });
+  });
+  await page.route('**/api/player', (route) =>
+    route.fulfill({ json: { user: { id: 'fixture-alice' }, csrfToken: 'fixture-csrf' } })
+  );
+  await page.route('**/api/saves', (route) =>
+    route.fulfill({
+      status: route.request().method() === 'POST' && conflict ? 409 : 200,
+      json:
+        route.request().method() === 'POST'
+          ? { cloudRevision: 4, cloudChecksum: checksum }
+          : { saves: [] },
+    })
+  );
+  await page.route(`**/api/saves/${saved.id}`, (route) => {
+    reads++;
+    return route.fulfill({ json: { save: cloudSave } });
+  });
+  await page.goto(`/play/${saved.id}`, { waitUntil: 'domcontentloaded' });
+  await identityRequested;
+  expect(reads).toBe(0);
+  await expect(page.getByRole('heading', { name: 'Saved game is unavailable' })).toHaveCount(0);
+  release();
+  await expect(page.getByRole('button', { name: /^Orders$/ })).toBeVisible({ timeout: 30000 });
+  expect(reads).toBeGreaterThan(0);
+  await showPanel(page, 'Orders');
+  await expect(page.getByRole('textbox', { name: /Enter orders/ })).toBeVisible();
+  conflict = true;
+  await showPanel(page, 'Menu');
+  await page.getByRole('button', { name: /^save$/i }).click();
+  const panel = page.getByRole('dialog', { name: 'Account & campaign saves' });
+  await expect(panel).toBeVisible();
+  await expect(
+    panel.getByRole('button', { name: 'Keep both campaigns', exact: true })
+  ).toBeVisible();
+  await panel.getByRole('button', { name: 'Continue locally', exact: true }).click();
+  await showPanel(page, 'Menu');
+  await page.getByRole('button', { name: 'Account & saves', exact: true }).click();
+  await expect(panel).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('account-conflict.png') });
+  conflict = false;
+  await panel.getByRole('button', { name: 'Continue cloud campaign', exact: true }).click();
+  await expect(panel).not.toBeVisible();
+  expect(
+    await page.evaluate(() =>
+      localStorage.getItem('open_historia_saves:account:fixture-alice:recovery')
+    )
+  ).toBeTruthy();
 });
 
 test('PostHog before_send sanitizes generated play-route metadata', async ({ page }) => {

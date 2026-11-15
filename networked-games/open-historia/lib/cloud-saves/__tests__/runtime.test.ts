@@ -272,3 +272,83 @@ describe('optional web account host', () => {
     expect(pauses).toEqual([true, false]);
   });
 });
+
+describe('account panel and recovery operations', () => {
+  it('pauses game motion without blocking an explicit checkpoint, and preserves a conflict pause on close', async () => {
+    const f = setup();
+    await boot(f);
+    await f.runtime.resolveConflict('local');
+    f.runtime.setPanelOpen(true);
+    expect(f.runtime.getState().paused).toBe(true);
+    await f.runtime.saveData('save:game', data(4));
+    await f.runtime.checkpoint();
+    expect(f.writes).toHaveLength(2);
+    expect(JSON.parse(f.writes[1].body.envelope.data).state.chapter).toBe(4);
+    expect(f.runtime.getState().paused).toBe(true);
+    f.runtime.setPanelOpen(false);
+    expect(f.runtime.getState().paused).toBe(false);
+    f.setRemote(cloud(8, 9));
+    await f.runtime.restore('main');
+    f.runtime.setPanelOpen(true);
+    f.runtime.setPanelOpen(false);
+    expect(f.runtime.getState()).toMatchObject({ phase: 'conflict', paused: true });
+  });
+  it('rejects an old account choice if the account changes while its fresh checkpoint is pending', async () => {
+    const f = setup();
+    await boot(f);
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let snapshots = 0;
+    f.runtime.registerSaveRequest(async () => {
+      if (++snapshots === 1) await pending;
+    });
+    const choice = f.runtime.resolveConflict('local');
+    await vi.waitFor(() => expect(snapshots).toBe(1));
+    f.setOwner('bob');
+    await f.runtime.refreshSession();
+    release();
+    await expect(choice).rejects.toThrow('Account changed');
+    expect(f.writes).toHaveLength(0);
+    expect(f.runtime.getState().user?.id).toBe('bob');
+  });
+  it('restores a historical checkpoint through a new conditional cloud revision and retains local recovery', async () => {
+    const f = setup();
+    await boot(f);
+    await f.runtime.resolveConflict('local');
+    const old = f.getRemote()!;
+    f.setRemote(cloud(4, 2));
+    const original = f.fetcher.getMockImplementation()!;
+    f.fetcher.mockImplementation(async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/history')) return Response.json({ history: [old] });
+      if (path.endsWith('/restore')) {
+        expect(JSON.parse(String(init?.body))).toMatchObject({ revision: 1, expectedRevision: 2 });
+        f.setRemote({ ...old, revision: 3 });
+        return Response.json({ ok: true });
+      }
+      return original(input, init);
+    });
+    await f.runtime.restoreVersion('main', 1);
+    expect(f.runtime.getState()).toMatchObject({ reloadRequired: true, paused: true });
+    expect(f.runtime.exportLocal()?.data).toBe(old.data);
+    expect(f.runtime.exportRecovery()?.data).toBe(data());
+  });
+  it('does not publish a history version that needs a newer game', async () => {
+    const f = setup();
+    await boot(f);
+    await f.runtime.resolveConflict('local');
+    const original = f.fetcher.getMockImplementation()!;
+    const restore = vi.fn();
+    f.fetcher.mockImplementation(async (input, init) => {
+      const path = new URL(String(input)).pathname;
+      if (path.endsWith('/history'))
+        return Response.json({ history: [{ ...cloud(), schemaVersion: '2' }] });
+      if (path.endsWith('/restore')) restore();
+      return original(input, init);
+    });
+    await expect(f.runtime.restoreVersion('main', 1)).rejects.toThrow('Update the game');
+    expect(restore).not.toHaveBeenCalled();
+  });
+});

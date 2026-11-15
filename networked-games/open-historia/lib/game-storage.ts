@@ -125,6 +125,15 @@ let cloudStatus: CampaignCloudStatus = { phase: 'local' };
 export function getCampaignCloudStatus() {
   return { ...cloudStatus };
 }
+export function exportCampaignCopy(recovery = false): { filename: string; data: string } | null {
+  const raw = localStorage.getItem(`${storageKey()}${recovery ? ':recovery' : ''}`);
+  return raw
+    ? {
+        filename: `historia-${recovery ? 'recovery' : 'local'}-${Date.now()}.json`,
+        data: JSON.stringify(redactConfig(JSON.parse(raw))),
+      }
+    : null;
+}
 function status(next: CampaignCloudStatus) {
   cloudStatus = next;
   if (typeof window !== 'undefined')

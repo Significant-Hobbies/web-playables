@@ -5,6 +5,7 @@ import {
   beginBattle,
   buyUpgrade,
   COMPANIONS,
+  useSkill as castSkill,
   choosePerk,
   ENCOUNTERS_PER_CHAPTER,
   encounter,
@@ -26,7 +27,6 @@ import {
   skipPerk,
   startRun,
   stepGame,
-  useSkill,
   validLegacyState,
   validState,
   WEAPONS,
@@ -99,7 +99,7 @@ function completeRun(state: GameState) {
         throw Error("An offered choice must resume the road.");
     } else if (state.phase.kind === "victory" || state.phase.kind === "defeat") return;
     else {
-      useSkill(state);
+      castSkill(state);
       stepGame(state, 1 / 30);
     }
     if (!validState(state)) throw Error("Invalid runtime state during campaign.");
@@ -323,7 +323,7 @@ describe("a company on the old road", () => {
     s.run.skillCooldown = 4;
     const frozen = structuredClone(s);
     expect(choosePerk(s, "blood")).toBe(false);
-    expect(useSkill(s)).toEqual([]);
+    expect(castSkill(s)).toEqual([]);
     advance(s, 5);
     expect(s).toEqual(frozen);
     expect(choosePerk(s, "edge")).toBe(true);
@@ -336,13 +336,13 @@ describe("a company on the old road", () => {
     equip(s, "skill", "volley");
     const b = battle(s);
     enemyAt(b, 1).pendingHit = { remaining: 0.1, damage: 3, critical: false };
-    const events = useSkill(s);
+    const events = castSkill(s);
     expect(events).toContainEqual({ type: "skill", skill: "volley" });
     expect(enemyAt(b, 0).hp).toBe(enemyAt(b, 0).maxHp);
     expect(enemyAt(b, 1).hp).toBe(0);
     expect(enemyAt(b, 1).pendingHit).toBeNull();
     expect(s.run.skillCooldown).toBe(10);
-    expect(useSkill(s)).toEqual([]);
+    expect(castSkill(s)).toEqual([]);
     advance(s, 0.5);
     expect(s.run.skillCooldown).toBeCloseTo(9.5);
   });
@@ -353,7 +353,7 @@ describe("a company on the old road", () => {
     const b = battle(s);
     for (const e of b.enemies)
       e.pendingHit = { remaining: 0.01, damage: e.damage, critical: false };
-    useSkill(s);
+    castSkill(s);
     expect(s.run.shield).toBe(54);
     expect(b.enemies.every((e) => e.pendingHit === null)).toBe(true);
     const front = enemyAt(b, 0);
