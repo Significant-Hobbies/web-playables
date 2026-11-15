@@ -649,12 +649,12 @@ async function cloudDeleteGame(
     if (generation !== _generation) throw new Error('Account changed; local campaign kept');
     if (response.status === 404) return false;
     if (!response.ok) throw new Error('Cloud delete unavailable; local campaign kept');
+    onVerifiedHead();
     const { save } = (await response.json()) as { save: SavedGame };
     if (generation !== _generation) throw new Error('Account changed; local campaign kept');
     if (save.cloudRevision === undefined || !save.cloudChecksum)
       throw new Error('Cloud revision unavailable; local campaign kept');
     base = { revision: save.cloudRevision, checksum: save.cloudChecksum };
-    onVerifiedHead();
   }
   const headers = await writeHeaders();
   if (generation !== _generation) throw new Error('Account changed');

@@ -14,6 +14,7 @@ import {
   type GameState,
   initialState,
   migrateV1State,
+  migrateV2State,
   PERKS,
   retreatToCamp,
   returnToCamp,
@@ -22,7 +23,9 @@ import {
   stepGame,
   validLegacyState,
   validState,
+  validV2State,
 } from "./model";
+import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
 import { WorldRenderer } from "./renderer";
 import { mountUi, type UiActions, type UiSnapshot } from "./ui";
 import "./style.css";
@@ -69,7 +72,8 @@ const savePlatform: Platform = {
         !("state" in envelope) ||
         !(
           (envelope.version === 1 && validLegacyState(envelope.state)) ||
-          (envelope.version === 2 && validState(envelope.state))
+          (envelope.version === 2 && validV2State(envelope.state)) ||
+          (envelope.version === 3 && validState(envelope.state))
         )
       )
         throw new Error("Unsupported save");
@@ -94,8 +98,8 @@ const savePlatform: Platform = {
 const saves = createSaveManager<GameState>({
   getState: () => state,
   platform: savePlatform,
-  version: 2,
-  migrations: { 1: migrateV1State },
+  version: 3,
+  migrations: { 1: migrateV1State, 2: migrateV2State },
   initial: initialState,
 });
 function snapshot(): UiSnapshot {
@@ -155,6 +159,14 @@ function changed(clear = false) {
 function events(events: GameEvent[]) {
   renderer?.handle(events, state);
   for (const event of events) {
+    if (event.type === "kill" || event.type === "skill")
+      recordQuestProgress(state.quests, event, Date.now());
+    if (event.type === "victory")
+      recordQuestProgress(
+        state.quests,
+        { type: "victory", chapter: state.run.chapter },
+        Date.now(),
+      );
     if (event.type === "kill") note = `Enemy defeated · +${event.gold} gold kept.`;
     if (event.type === "level") note = `Level ${event.level}. Choose an oath.`;
     if (event.type === "skill") note = "Your skill changes the fight.";
@@ -199,6 +211,7 @@ const actions: UiActions = {
   start: launch,
   choose(id) {
     if (loaded && !renderer?.settling && choosePerk(state, id)) {
+      recordQuestProgress(state.quests, { type: "oath" }, Date.now());
       note = `${PERKS.find((p) => p.id === id)!.title} joins your build.`;
       changed(true);
     }
@@ -235,6 +248,24 @@ const actions: UiActions = {
     draw();
     publish();
   },
+  refreshMissions() {
+    if (!loaded) return;
+    const previousDay = state.quests.daily.period;
+    advanceQuests(state.quests, Date.now());
+    if (previousDay !== state.quests.daily.period) changed();
+    else publish();
+  },
+  claim(scope, id, period) {
+    if (!loaded || saveLocked) return;
+    if (state.meta.earnedGold > 1e12 - 150) return;
+    const reward = claimQuest(state.quests, scope, id, period, Date.now());
+    if (reward > 0) {
+      state.meta.gold += reward;
+      state.meta.earnedGold += reward;
+      note = `Mission reward claimed · +${reward} gold for the company.`;
+    } else note = "This objective has changed or its reward is already claimed.";
+    changed();
+  },
   reduce(value) {
     reducedMotion = value;
     draw();
@@ -244,6 +275,9 @@ const actions: UiActions = {
 renderUi = mountUi(app, snapshot(), actions);
 loop = createLoop(
   (dt) => {
+    const day = state.quests.daily.period;
+    advanceQuests(state.quests, Date.now());
+    if (day !== state.quests.daily.period) void persist();
     time += dt;
     renderer?.advance(dt);
     renderer?.capture(state);
@@ -316,6 +350,7 @@ try {
   state = initialState();
 }
 loaded = true;
+advanceQuests(state.quests, Date.now());
 campStage = state.phase.kind === "camp";
 if (!saveLocked) saveMessage = "Progress stays on this device";
 draw();

@@ -36,6 +36,17 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe('Historia account compatibility', () => {
+  it('preserves a same-id guest when a legacy remote head cannot provide a safe deletion receipt', async () => {
+    const client = await import('../../game-storage');
+    client.localSaveGame(state(9), config, [], 'same-id');
+    const guest = localStorage.getItem('open_historia_saves');
+    client.setAuthenticated(true, 'alice');
+    const recovery = localStorage.getItem('open_historia_saves:recovery');
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({save:{id:'same-id'}})));
+    await expect(client.deleteGame('same-id')).rejects.toThrow('Cloud revision unavailable');
+    expect(localStorage.getItem('open_historia_saves')).toBe(guest);
+    expect(localStorage.getItem('open_historia_saves:recovery')).toBe(recovery);
+  });
   it('deletes a visible authenticated guest-only save after online404 or offline local-only confirmation', async () => {
     for (const offline of [false, true]) {
       vi.resetModules();

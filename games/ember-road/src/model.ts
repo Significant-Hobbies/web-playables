@@ -1,3 +1,5 @@
+import { initialQuests, type QuestLedger, validQuestLedger } from "./quests";
+
 export type PerkId =
   | "edge"
   | "tempo"
@@ -379,6 +381,7 @@ export type Phase =
   | { kind: "defeat"; enemy: string }
   | { kind: "victory"; reward: number };
 export interface GameState {
+  quests: QuestLedger;
   meta: {
     gold: number;
     earnedGold: number;
@@ -447,6 +450,7 @@ export const DEFAULT_LOADOUT: Loadout = {
 };
 export function initialState(seed = 927113): GameState {
   return {
+    quests: initialQuests(),
     meta: {
       gold: 0,
       earnedGold: 0,
@@ -1192,6 +1196,10 @@ export function migrateV1State(value: unknown): GameState {
     };
   } else phase = old.phase;
   const state: GameState = {
+    quests: initialQuests(
+      0,
+      knownStoryChapters(old.meta.unlockedChapter, phase.kind, old.run.chapter),
+    ),
     meta: { ...old.meta, loadout: { ...DEFAULT_LOADOUT } },
     run: { ...old.run, skillCooldown: 0, shield: 0 },
     phase,
@@ -1218,6 +1226,34 @@ function validAllyHit(value: unknown, battle: BattlePhase) {
   );
 }
 export function validState(value: unknown): value is GameState {
+  if (!record(value)) return false;
+  const quests = value.quests;
+  if (!validQuestLedger(quests) || !validV2State(value)) return false;
+  return quests.story.completed.every(
+    (chapter) =>
+      chapter < value.meta.unlockedChapter ||
+      (chapter === CHAPTERS.length && value.meta.unlockedChapter === CHAPTERS.length),
+  );
+}
+function knownStoryChapters(unlocked: number, phase: string, chapter: number) {
+  const chapters = Array.from({ length: unlocked - 1 }, (_, i) => i + 1);
+  if (phase === "victory" && !chapters.includes(chapter)) chapters.push(chapter);
+  return chapters;
+}
+export function migrateV2State(value: unknown): GameState {
+  if (!validV2State(value)) throw new Error("The existing version-two journey is invalid.");
+  const state = {
+    ...structuredClone(value),
+    quests: initialQuests(
+      0,
+      knownStoryChapters(value.meta.unlockedChapter, value.phase.kind, value.run.chapter),
+    ),
+  };
+  if (!validState(state))
+    throw new Error("The journey's mission progress could not be initialized safely.");
+  return state;
+}
+export function validV2State(value: unknown): value is Omit<GameState, "quests"> {
   if (!record(value) || !record(value.meta) || !record(value.run) || !record(value.phase))
     return false;
   const m = value.meta,

@@ -13,6 +13,7 @@ import {
   startRun,
   validState,
 } from "../games/ember-road/src/model.ts";
+import { questBoard } from "../games/ember-road/src/quests.ts";
 import { createSiteServer } from "./serve-site.mjs";
 
 const storageKey = "save:ember-road:v1";
@@ -109,7 +110,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
   }
   async function fixture(state) {
     assert(validState(state), "Fixture uses the real state validator");
-    return JSON.stringify({ version: 2, savedAt: Date.now(), state });
+    return JSON.stringify({ version: 3, savedAt: Date.now(), state });
   }
   async function depart(page) {
     await page.locator("#start").click();
@@ -233,6 +234,68 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.equal(retreated.state.meta.gold, afterSkip.state.meta.gold);
     assert.deepEqual(retreated.state.run.perks, {});
     await c.close();
+
+    const questContext = await context();
+    const questPage = await questContext.newPage();
+    await ready(questPage);
+    await depart(questPage);
+    const questDeadline = Date.now() + 45000;
+    let earned;
+    while (Date.now() < questDeadline) {
+      earned = await stored(questPage);
+      if (questBoard(earned.state.quests).daily.every((q) => q.ready)) break;
+      if (await questPage.locator(".decision--choice[open]").count())
+        await questPage.locator("[data-perk]").first().click();
+      else if (await questPage.locator(".cast-skill").isEnabled())
+        await questPage.locator(".cast-skill").click();
+      await questPage.waitForTimeout(150);
+    }
+    assert(
+      questBoard(earned.state.quests).daily.every((q) => q.ready),
+      "Real combat, skill casts and oath choices earn all daily goals",
+    );
+    if (await questPage.locator(".decision--choice[open]").count())
+      await questPage.locator("[data-perk]").first().click();
+    await questPage.getByRole("button", { name: "Camp", exact: true }).click();
+    await questPage
+      .getByRole("button", { name: "Return to camp and change build", exact: true })
+      .click();
+    await questPage.getByRole("button", { name: "Return to camp", exact: true }).click();
+    await questPage.getByRole("button", { name: /Missions and quests/ }).click();
+    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    const goldBeforeClaims = (await stored(questPage)).state.meta.gold;
+    for (const quest of questBoard((await stored(questPage)).state.quests).daily)
+      await questPage.locator(`[data-claim-quest="${quest.id}"]`).click();
+    await questPage.waitForFunction(
+      (key) => JSON.parse(localStorage.getItem(key)).state.quests.daily.claimed.length === 3,
+      storageKey,
+    );
+    const claimed = await stored(questPage);
+    assert.equal(claimed.version, 3);
+    assert.equal(
+      claimed.state.meta.gold,
+      goldBeforeClaims + 45,
+      "Daily rewards pay their exact gold once",
+    );
+    await questPage.screenshot({ path: join(evidence, "daily-quests-1440.png") });
+    await ready(questPage);
+    await questPage.getByRole("button", { name: /Missions and quests/ }).click();
+    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    assert.equal(
+      await questPage.locator("[data-claim-quest]").count(),
+      0,
+      "Claimed rewards do not reappear after reload",
+    );
+    assert.equal((await stored(questPage)).state.meta.gold, claimed.state.meta.gold);
+    await questPage.getByRole("button", { name: /Weekly quests/ }).click();
+    assert.equal(await questPage.locator("[data-quest]").count(), 3);
+    await questPage.screenshot({ path: join(evidence, "weekly-quests-1440.png") });
+    await questPage.getByRole("button", { name: /Story missions/ }).click();
+    assert.equal(await questPage.locator("[data-quest]").count(), 5);
+    await questPage.screenshot({ path: join(evidence, "story-missions-1440.png") });
+    result.earnedDailyWeeklyAndStoryBoard = true;
+    result.questRewardsPersistOnce = true;
+    await questContext.close();
 
     const build = initialState();
     build.meta.gold = 200;

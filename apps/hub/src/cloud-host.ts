@@ -23,7 +23,7 @@ const storage = (() => {
 })();
 const cloud = new PlayablesCloud({
   gameId: gameId || null,
-  maxSchemaVersion: gameId === "idle-startup" ? 3 : 2,
+  maxSchemaVersion: gameId === "war-chest" ? 2 : 3,
   storage,
   fetch: window.fetch.bind(window),
   location,

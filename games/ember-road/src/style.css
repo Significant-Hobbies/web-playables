@@ -23,6 +23,7 @@
   --ring: #b46e49;
   --radius: 0.55rem;
   --font-sans: "Geist Variable", "Avenir Next", sans-serif;
+  --font-serif: "Newsreader Variable", Georgia, serif;
   --ui-case: none;
   --display-case: none;
   font-family: var(--font-sans);
@@ -1187,6 +1188,153 @@ kbd {
 }
 .choice-card [data-slot="card-title"] {
   color: color-mix(in srgb, var(--rarity-color) 48%, #29251d);
+}
+
+.quest-ready-count {
+  color: #8a561d;
+  background: #f7edda;
+  font-size: 10px;
+  padding: 1px 5px;
+}
+.mission-board {
+  margin-bottom: 24px;
+}
+.mission-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.mission-tab-count {
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.mission-schedule {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  margin: 18px 0;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.mission-schedule p {
+  margin: 0;
+}
+.mission-schedule > span {
+  font-size: 11px;
+}
+.mission-list {
+  display: grid;
+  gap: 12px;
+}
+.mission-list .mission-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 160px;
+  align-items: center;
+  gap: 20px;
+  padding: 22px;
+}
+.mission-row.is-ready {
+  border-color: #c7a56a;
+  background: linear-gradient(110deg, #faf5e9, var(--card) 70%);
+}
+.mission-row.is-locked .mission-marker {
+  color: var(--muted-foreground);
+}
+.mission-marker {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--primary);
+  font: 22px var(--font-serif);
+}
+.mission-marker svg {
+  width: 18px;
+  height: 18px;
+}
+.mission-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+.mission-title h2 {
+  margin: 0;
+  font: 22px / 1.25 var(--font-serif);
+}
+.mission-copy > p {
+  margin: 7px 0 12px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.mission-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 420px;
+}
+.mission-progress progress {
+  flex: 1;
+  min-width: 0;
+}
+.mission-progress small {
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.mission-reward {
+  display: grid;
+  justify-items: stretch;
+  gap: 10px;
+}
+.mission-reward > span {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  color: #84612d;
+  font-size: 12px;
+}
+.mission-reward svg {
+  width: 14px;
+  height: 14px;
+}
+.mission-feedback {
+  color: var(--muted-foreground);
+  font-size: 12px;
+  margin: 16px 0 0;
+}
+@media (max-width: 700px) {
+  .mission-list .mission-row {
+    grid-template-columns: 30px minmax(0, 1fr);
+    padding: 16px;
+    gap: 12px;
+  }
+  .mission-marker {
+    width: 30px;
+    height: 30px;
+  }
+  .mission-reward {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .mission-title h2 {
+    font-size: 20px;
+  }
+  .mission-tabs button {
+    padding-inline: 9px;
+    font-size: 12px;
+  }
 }
 
 /* Keep the departure controls on screen; collections remain in their detail panels. */

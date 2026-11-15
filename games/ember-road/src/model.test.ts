@@ -17,6 +17,7 @@ import {
   type LegacyState,
   livingEnemies,
   migrateV1State,
+  migrateV2State,
   PERKS,
   PETS,
   type PerkId,
@@ -29,6 +30,7 @@ import {
   stepGame,
   validLegacyState,
   validState,
+  validV2State,
   WEAPONS,
 } from "./model";
 
@@ -108,6 +110,44 @@ function completeRun(state: GameState) {
 }
 
 describe("a company on the old road", () => {
+  it("migrates version-two battles without crediting old totals to daily or weekly quests", () => {
+    const original = initialState();
+    original.meta.unlockedChapter = 3;
+    original.meta.victories = 91;
+    original.meta.earnedGold = 1000;
+    original.meta.gold = 700;
+    original.run.strikes = 500;
+    battle(original);
+    const { quests: _quests, ...old } = structuredClone(original);
+    const before = JSON.stringify(old);
+    expect(validV2State(old)).toBe(true);
+    expect(validState(old)).toBe(false);
+    const next = migrateV2State(old);
+    expect(JSON.stringify(old)).toBe(before);
+    expect(next.meta).toEqual(original.meta);
+    expect(next.run).toEqual(original.run);
+    expect(next.phase).toEqual(original.phase);
+    expect(next.quests.daily.progress).toEqual({ kills: 0, skills: 0, oaths: 0, victories: 0 });
+    expect(next.quests.weekly.progress).toEqual(next.quests.daily.progress);
+    expect(next.quests.story).toEqual({ completed: [1, 2], claimed: [] });
+    expect(validState(next)).toBe(true);
+    expect(
+      new TextEncoder().encode(JSON.stringify({ version: 3, savedAt: 0, state: next })).byteLength,
+    ).toBeLessThan(64 * 1024);
+  });
+  it("preserves final-chapter completion on migration and rejects invalid quest saves", () => {
+    const state = initialState();
+    state.meta.unlockedChapter = 5;
+    state.run.chapter = 5;
+    state.run.cleared = ENCOUNTERS_PER_CHAPTER;
+    state.phase = { kind: "victory", reward: 110 };
+    const { quests: _quests, ...old } = state;
+    const next = migrateV2State(old);
+    expect(next.quests.story.completed).toEqual([1, 2, 3, 4, 5]);
+    next.quests.daily.progress.kills = -1;
+    expect(validState(next)).toBe(false);
+    expect(() => migrateV2State({ ...old, meta: { ...old.meta, gold: -1 } })).toThrow();
+  });
   it("begins immediately with front melee and a rear archer that attack independently", () => {
     const s = initialState();
     const b = battle(s);
