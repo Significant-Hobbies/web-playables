@@ -8,6 +8,11 @@ name: Deploy Open Historia Worker
 # version if promotion fails; do not remove the database fences.
 on:
   workflow_dispatch:
+    inputs:
+      stage_only:
+        description: Upload a Worker version without database migrations or live promotion
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -53,6 +58,7 @@ jobs:
           test -n "$version_id" || { echo "::error::Could not read Worker Version ID from wrangler output"; exit 1; }
           echo "version_id=$version_id" >> "$GITHUB_OUTPUT"
       - name: Record recovery bookmark and apply reviewed D1 migrations
+        if: ${{ !inputs.stage_only }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -64,6 +70,7 @@ jobs:
       # roll forward with this uploaded version; do not drop the fences or claim
       # that deploying an older Worker restores its cloud-write capability.
       - name: Promote uploaded Worker version
+        if: ${{ !inputs.stage_only }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -73,5 +80,13 @@ jobs:
             echo "::error::Promotion failed after migration. Preserve the database and retry promotion of uploaded version $VERSION_ID; old Worker cloud writes are intentionally fenced."
             exit 1
           fi
+      - name: Report staged-only version
+        if: ${{ inputs.stage_only }}
+        env:
+          VERSION_ID: ${{ steps.upload.outputs.version_id }}
+        run: |
+          echo "::notice::Worker version $VERSION_ID is staged only, NOT live. Database migrations, promotion and production smoke checks were skipped."
+          echo "Staged Worker version: $VERSION_ID (not live; no database migration or promotion performed)." >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke check production worker
+        if: ${{ !inputs.stage_only }}
         run: curl --fail --silent --show-error --location --max-time 30 https://historia.aliveville.com >/dev/null

@@ -26,16 +26,27 @@ export async function accountCors(c: Context<{ Bindings: WorkerEnv }>, next: Nex
   const origin = c.req.header('Origin');
   if (origin && !allowedOrigin(origin, c.env.NODE_ENV))
     return c.json({ error: 'Origin is not allowed' }, 403);
-  if (origin) {
-    c.header('Access-Control-Allow-Origin', origin);
-    c.header('Access-Control-Allow-Credentials', 'true');
-    c.header('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token');
-    c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    c.header('Vary', 'Origin');
+  const finalizeHeaders = () => {
+    if (origin) {
+      c.header('Access-Control-Allow-Origin', origin);
+      c.header('Access-Control-Allow-Credentials', 'true');
+      c.header('Access-Control-Allow-Headers', 'Content-Type, X-CSRF-Token');
+      c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      const vary = c.res.headers.get('Vary');
+      if (!vary?.split(',').some((value) => ['origin', '*'].includes(value.trim().toLowerCase())))
+        c.header('Vary', vary ? `${vary}, Origin` : 'Origin');
+    }
+    c.header('Cache-Control', 'no-store');
+  };
+  if (c.req.method === 'OPTIONS') {
+    finalizeHeaders();
+    return c.body(null, 204);
   }
-  c.header('Cache-Control', 'no-store');
-  if (c.req.method === 'OPTIONS') return c.body(null, 204);
   await next();
+  // Auth returns raw Responses rather than c.json(). Finalize only after Hono
+  // installs that response; prepared headers can otherwise be discarded.
+  // c.header clones immutable responses while retaining body/status/cookies.
+  finalizeHeaders();
 }
 export async function csrfToken(session: AccountSession, secret: string): Promise<string> {
   const key = await crypto.subtle.importKey(
