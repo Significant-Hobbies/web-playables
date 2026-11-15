@@ -86,7 +86,9 @@ jobs:
           VERSION_ID: ${{ steps.upload.outputs.version_id }}
         run: |
           echo "::notice::Worker version $VERSION_ID is staged only, NOT live. Database migrations, promotion and production smoke checks were skipped."
+          echo "::notice::Before manual promotion, record a D1 recovery bookmark and verify or apply all pending reviewed migrations; smoke-check production after promotion."
           echo "Staged Worker version: $VERSION_ID (not live; no database migration or promotion performed)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Before manual promotion: record a D1 recovery bookmark, verify or apply pending reviewed migrations, then smoke-check production after promotion." >> "$GITHUB_STEP_SUMMARY"
       - name: Smoke check production worker
         if: ${{ !inputs.stage_only }}
         run: curl --fail --silent --show-error --location --max-time 30 https://historia.aliveville.com >/dev/null
