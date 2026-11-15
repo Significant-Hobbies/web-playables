@@ -362,6 +362,7 @@ function deleteLocalForOwner(id: string, owner: string | null) {
   const saves = JSON.parse(raw) as unknown;
   if (!Array.isArray(saves) || saves.some((save) => !save || typeof save.id !== 'string'))
     throw new Error('Saved games are unreadable; existing data kept.');
+  if (!saves.some((save) => save.id === id)) return;
   const next = JSON.stringify(saves.filter((save) => save.id !== id));
   backupLocal(owner);
   localStorage.setItem(key, next);
@@ -636,9 +637,13 @@ async function cloudListSavedGames(): Promise<SavedGame[]> {
   );
 }
 
-async function cloudDeleteGame(id: string): Promise<boolean> {
+async function cloudDeleteGame(
+  id: string,
+  onVerifiedHead: () => void = () => {}
+): Promise<boolean> {
   const generation = _generation;
   let base = bases.get(id);
+  if (base) onVerifiedHead();
   if (!base) {
     const response = await cloudRequest(`/api/saves/${encodeURIComponent(id)}`);
     if (generation !== _generation) throw new Error('Account changed; local campaign kept');
@@ -649,6 +654,7 @@ async function cloudDeleteGame(id: string): Promise<boolean> {
     if (save.cloudRevision === undefined || !save.cloudChecksum)
       throw new Error('Cloud revision unavailable; local campaign kept');
     base = { revision: save.cloudRevision, checksum: save.cloudChecksum };
+    onVerifiedHead();
   }
   const headers = await writeHeaders();
   if (generation !== _generation) throw new Error('Account changed');
@@ -776,11 +782,32 @@ export async function deleteGame(id: string): Promise<void> {
       });
       return;
     }
+    const guest =
+      _playingOwner === null && !candidate
+        ? guestSavedGames().find((save) => save.id === id)
+        : undefined;
+    const guestOnlyWithoutReceipt = Boolean(
+      guest && guest.cloudRevision === undefined && !guest.cloudChecksum && !bases.has(id)
+    );
+    let verifiedHead = false;
     try {
-      await cloudDeleteGame(id);
+      const hadCloud = await cloudDeleteGame(id, () => {
+        verifiedHead = true;
+      });
       if (generation !== _generation) throw new Error('Account changed; local campaign kept');
-      deleteLocalForOwner(id, account);
+      if (!hadCloud && guest) deleteLocalForOwner(id, null);
+      else deleteLocalForOwner(id, account);
     } catch (error) {
+      if (generation !== _generation) throw error;
+      if (guestOnlyWithoutReceipt && !verifiedHead) {
+        deleteLocalForOwner(id, null);
+        status({
+          phase: 'local',
+          id,
+          message: 'Local guest copy deleted. Cloud saves were not changed.',
+        });
+        return;
+      }
       status({
         phase: 'offline',
         id,

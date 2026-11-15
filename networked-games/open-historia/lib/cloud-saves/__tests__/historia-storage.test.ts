@@ -36,6 +36,75 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe('Historia account compatibility', () => {
+  it('deletes a visible authenticated guest-only save after online404 or offline local-only confirmation', async () => {
+    for (const offline of [false, true]) {
+      vi.resetModules();
+      vi.stubGlobal('localStorage', new MemoryStorage());
+      const client = await import('../../game-storage');
+      client.localSaveGame(state(3), config, [], 'guest-only');
+      const original = localStorage.getItem('open_historia_saves');
+      client.setAuthenticated(true, 'alice');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          if (offline) throw new Error('offline');
+          return Response.json({}, { status: 404 });
+        })
+      );
+      await client.deleteGame('guest-only');
+      expect(JSON.parse(localStorage.getItem('open_historia_saves')!)).toEqual([]);
+      expect(localStorage.getItem('open_historia_saves:recovery')).toBe(original);
+      expect(localStorage.getItem('open_historia_saves:account:alice')).toBeNull();
+      if (offline)
+        expect(client.getCampaignCloudStatus().message).toContain('Cloud saves were not changed');
+    }
+  });
+  it('preserves a same-id guest when a remote head exists, even if conditional cloud deletion fails', async () => {
+    const client = await import('../../game-storage');
+    client.localSaveGame(state(9), config, [], 'same-id');
+    const guest = localStorage.getItem('open_historia_saves');
+    client.setAuthenticated(true, 'alice');
+    let fail = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/player')
+          return Response.json({ user: { id: 'alice' }, csrfToken: 'csrf' });
+        if (init?.method === 'DELETE') return Response.json({}, { status: fail ? 503 : 200 });
+        return Response.json({
+          save: { id: 'same-id', cloudRevision: 4, cloudChecksum: 'd'.repeat(64) },
+        });
+      })
+    );
+    await expect(client.deleteGame('same-id')).rejects.toThrow();
+    expect(localStorage.getItem('open_historia_saves')).toBe(guest);
+    fail = false;
+    await client.deleteGame('same-id');
+    expect(localStorage.getItem('open_historia_saves')).toBe(guest);
+    expect(localStorage.getItem('open_historia_saves:account:alice')).toBeNull();
+  });
+  it('does not overwrite previous recovery on missing-id local or authenticated404 deletion', async () => {
+    const client = await import('../../game-storage');
+    client.localSaveGame(state(), config, [], 'kept');
+    const collection = localStorage.getItem('open_historia_saves')!;
+    const previous = '[{"id":"previous-recovery"}]';
+    localStorage.setItem('open_historia_saves:recovery', previous);
+    client.localDeleteGame('missing');
+    expect(localStorage.getItem('open_historia_saves')).toBe(collection);
+    expect(localStorage.getItem('open_historia_saves:recovery')).toBe(previous);
+    client.setAuthenticated(true, 'alice');
+    localStorage.setItem('open_historia_saves:account:alice', collection);
+    localStorage.setItem('open_historia_saves:account:alice:recovery', previous);
+    const guestRecovery = localStorage.getItem('open_historia_saves:recovery');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({}, { status: 404 }))
+    );
+    await client.deleteGame('missing');
+    expect(localStorage.getItem('open_historia_saves:account:alice')).toBe(collection);
+    expect(localStorage.getItem('open_historia_saves:account:alice:recovery')).toBe(previous);
+    expect(localStorage.getItem('open_historia_saves:recovery')).toBe(guestRecovery);
+  });
   it('deletes the account cache before account play mode without touching a same-id guest', async () => {
     const client = await import('../../game-storage');
     client.localSaveGame(state(9), config, [], 'same-id');
