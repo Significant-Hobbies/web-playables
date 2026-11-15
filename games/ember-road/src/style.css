@@ -1136,3 +1136,179 @@ kbd {
     animation-duration: 0s !important;
   }
 }
+
+.loadout-portrait {
+  display: block;
+  width: 148px;
+  height: 148px;
+  margin: 8px auto;
+  background-repeat: no-repeat;
+}
+.chapter-opening {
+  width: min(740px, calc(100vw - 28px));
+  max-width: 740px;
+}
+.story-letter {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 24px;
+  align-items: center;
+  margin: 12px 0 20px;
+}
+.story-letter img {
+  width: 150px;
+  height: 220px;
+  object-fit: contain;
+}
+.story-letter blockquote {
+  margin: 12px 0 18px;
+  font:
+    20px / 1.5 Georgia,
+    serif;
+}
+.story-goal {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.story-goal svg {
+  flex: none;
+  width: 17px;
+  margin-top: 2px;
+}
+.choice-card {
+  background: linear-gradient(
+    150deg,
+    color-mix(in srgb, var(--rarity-color) 9%, var(--card)),
+    var(--card) 75%
+  );
+}
+.choice-card [data-slot="card-title"] {
+  color: color-mix(in srgb, var(--rarity-color) 48%, #29251d);
+}
+
+/* Keep the departure controls on screen; collections remain in their detail panels. */
+@media (min-width: 1000px) {
+  .dashboard[data-section="Camp"] {
+    overflow: hidden;
+    padding-top: 18px;
+  }
+  .dashboard[data-section="Camp"] .page-heading {
+    margin-bottom: 14px;
+  }
+  .dashboard[data-section="Camp"] .page-heading h1 {
+    font-size: 32px;
+    line-height: 1.12;
+    margin: 5px 0;
+  }
+  .dashboard[data-section="Camp"] .page-heading > p {
+    margin-bottom: 0;
+  }
+  .dashboard[data-section="Camp"] [data-slot="card-header"] {
+    padding: 12px 18px 10px;
+    gap: 4px;
+  }
+  .dashboard[data-section="Camp"] .card-heading [data-slot="card-title"] {
+    margin-top: 4px;
+  }
+  .dashboard[data-section="Camp"] [data-slot="card-title"] {
+    font-size: 24px;
+  }
+  .dashboard[data-section="Camp"] .world-stage {
+    height: clamp(160px, 23vh, 260px);
+  }
+  .dashboard[data-section="Camp"] .company-foot {
+    padding: 7px 12px;
+  }
+  .dashboard[data-section="Camp"] .company-foot > button {
+    height: 30px;
+  }
+  .dashboard[data-section="Camp"] .gear-card [data-slot="card-content"] {
+    padding-bottom: 12px;
+  }
+  .dashboard[data-section="Camp"] .gear-row {
+    padding-block: 7px;
+  }
+  .dashboard[data-section="Camp"] .gear-note {
+    margin: 8px 0;
+  }
+  .dashboard[data-section="Camp"] .gear-card [data-slot="card-content"] > button {
+    height: 32px;
+  }
+  .dashboard[data-section="Camp"] .skill-overview {
+    margin-top: 12px;
+  }
+  .dashboard[data-section="Camp"] .skill-summary {
+    padding: 12px 16px;
+  }
+  .dashboard[data-section="Camp"] .skill-summary-top .gear-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .dashboard[data-section="Camp"] .camp-footer {
+    margin: 12px 0 0;
+  }
+  .dashboard[data-section="Camp"] .save-status {
+    margin-top: 5px;
+  }
+}
+@media (max-width: 999px), (max-height: 820px) {
+  .dashboard[data-section="Camp"] .skill-overview {
+    display: none;
+  }
+}
+@media (max-width: 999px) {
+  .dashboard[data-section="Camp"] .gear-card {
+    display: none;
+  }
+  .dashboard[data-section="Camp"] .company-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-height: 650px) {
+  .dashboard[data-section="Camp"] .gear-card,
+  .dashboard[data-section="Camp"] .page-heading,
+  .dashboard[data-section="Camp"] .company-card > [data-slot="card-header"],
+  .dashboard[data-section="Camp"] .company-foot,
+  .dashboard[data-section="Camp"] .camp-footer > div:first-child {
+    display: none;
+  }
+  .dashboard[data-section="Camp"] .company-layout {
+    grid-template-columns: 1fr;
+  }
+  .dashboard[data-section="Camp"] .world-stage {
+    height: clamp(92px, 40vh, 200px);
+  }
+  .dashboard[data-section="Camp"] .camp-footer {
+    margin: 12px 0 0;
+  }
+}
+@media (max-width: 600px) {
+  .story-letter {
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .story-letter img {
+    width: 90px;
+    height: 170px;
+  }
+  .story-letter blockquote {
+    font-size: 16px;
+  }
+}
+@media (max-height: 650px) {
+  .dashboard[data-section="Camp"] .page-heading:has([data-save-warning]) {
+    display: block;
+    margin: 0 0 8px;
+  }
+  .dashboard[data-section="Camp"]
+    .page-heading:has([data-save-warning])
+    > :not([data-save-warning]) {
+    display: none;
+  }
+  .dashboard[data-section="Camp"]:has([data-save-warning]) .world-stage {
+    height: clamp(80px, calc(40vh - 40px), 160px);
+  }
+}

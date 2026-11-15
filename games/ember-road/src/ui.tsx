@@ -42,6 +42,7 @@ import {
   type Loadout,
   PERKS,
   PETS,
+  type Perk,
   type PerkId,
   type Rarity,
   rank,
@@ -53,6 +54,13 @@ import {
   xpNeeded,
 } from "./model";
 import { journeyStory } from "./story";
+
+const miraPortrait = new URL("../assets/mira.png", import.meta.url).href;
+const partyAtlas = new URL("../assets/party-atlas.png", import.meta.url).href;
+const petAtlas = new URL("../assets/pet-atlas.png", import.meta.url).href;
+function PerkSymbol({ family }: { family: Perk["family"] }) {
+  return family === "steel" ? <Sword /> : family === "vitality" ? <Heart /> : <Flame />;
+}
 
 export interface UiSnapshot {
   state: GameState;
@@ -193,7 +201,7 @@ function Powers({ state }: { state: GameState }) {
       {powers.length ? (
         powers.map((p) => (
           <div className="power-row" key={p.id}>
-            <Flame />
+            <PerkSymbol family={p.family} />
             <div>
               <strong>
                 {p.title}{" "}
@@ -223,6 +231,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [settings, setSettings] = useState(false);
   const [detail, setDetail] = useState<"stats" | "powers" | null>(null);
   const [retreat, setRetreat] = useState(false);
+  const [introChapter, setIntroChapter] = useState<number | null>(null);
   const [chapter, setChapter] = useState(state.run.chapter);
   const inCamp = state.phase.kind === "camp";
   const dashboard = inCamp || campOpen;
@@ -237,8 +246,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const place = CHAPTERS[state.run.chapter - 1]!;
   const story = journeyStory(state.run.chapter);
   useEffect(
-    () => a.inspect(settings || detail !== null || campOpen || retreat),
-    [a, settings, detail, campOpen, retreat],
+    () => a.inspect(settings || detail !== null || campOpen || retreat || introChapter !== null),
+    [a, settings, detail, campOpen, retreat, introChapter],
   );
   useEffect(() => {
     if (inCamp) {
@@ -251,8 +260,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (!inCamp) setCampOpen(true);
   };
   function launch() {
-    setCampOpen(false);
-    a.start(chapter);
+    setIntroChapter(chapter);
   }
   const gear = [
     [
@@ -273,7 +281,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   ) {
     return (
       <div className="selection-grid">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const locked = item.chapter > state.meta.unlockedChapter,
             selected = state.meta.loadout[slot] === item.id;
           return (
@@ -294,6 +302,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     )}
                   </Badge>
                 </div>
+                {(slot === "companion" || slot === "pet") && (
+                  <span
+                    role="img"
+                    aria-label={`${item.name} portrait`}
+                    className="loadout-portrait"
+                    style={{
+                      backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
+                      backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
+                      backgroundPosition: `0 ${(index / (slot === "pet" ? 2 : 3)) * 100}%`,
+                    }}
+                  />
+                )}
                 <CardTitle>{item.name}</CardTitle>
               </CardHeader>
               <CardContent>
@@ -380,7 +400,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </div>
           </aside>
         )}
-        <main className={`main-content ${dashboard ? "dashboard" : "battle-layout"}`}>
+        <main
+          data-section={section}
+          className={`main-content ${dashboard ? "dashboard" : "battle-layout"}`}
+        >
           {dashboard && (
             <div className="page-heading">
               <span className="eyebrow">
@@ -399,10 +422,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                           ? "Make the next fight yours."
                           : "One light leads to another."}
               </h1>
-              <p>
-                {inCamp
-                  ? "Choose who travels beside you and how you fight."
-                  : "Your journey is paused. Inspect your company, or return to camp to change it."}
+              <p
+                className={v.saveWarning && section === "Camp" ? "warning" : undefined}
+                data-save-warning={v.saveWarning && section === "Camp" ? true : undefined}
+                role={v.saveWarning && section === "Camp" ? "status" : undefined}
+              >
+                {v.saveWarning && section === "Camp"
+                  ? v.saveMessage
+                  : inCamp
+                    ? "Choose who travels beside you and how you fight."
+                    : "Your journey is paused. Inspect your company, or return to camp to change it."}
               </p>
               {!inCamp && (
                 <div className="inspection-actions">
@@ -417,7 +446,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               )}
             </div>
           )}
-          {saveWarning}
+          {(!dashboard || section !== "Camp") && saveWarning}
           <div
             className={
               dashboard && section !== "Camp" ? "company-layout hidden-company" : "company-layout"
@@ -813,6 +842,43 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
+      <Modal
+        open={introChapter !== null}
+        title={journeyStory(introChapter ?? chapter).title}
+        close={() => setIntroChapter(null)}
+        className="chapter-opening"
+      >
+        <div className="story-letter">
+          <img src={miraPortrait} alt="Mira carrying her journal and lantern" />
+          <div>
+            <span className="eyebrow">FROM MIRA’S JOURNAL · CHAPTER {introChapter ?? chapter}</span>
+            <blockquote>{journeyStory(introChapter ?? chapter).opening}</blockquote>
+            <p className="story-goal">
+              <BookOpen />
+              {journeyStory(introChapter ?? chapter).goal}
+            </p>
+          </div>
+        </div>
+        {introChapter !== null && saveWarning}
+        <div className="dialog-actions">
+          <Button variant="outline" onClick={() => setIntroChapter(null)}>
+            Back
+          </Button>
+          <Button
+            id="depart"
+            onClick={() => {
+              if (introChapter === null) return;
+              const next = introChapter;
+              setIntroChapter(null);
+              setCampOpen(false);
+              a.start(next);
+            }}
+          >
+            Begin chapter {introChapter ?? chapter}
+            <ArrowRight />
+          </Button>
+        </div>
+      </Modal>
       <Modal open={settings} title="A quieter road." close={() => setSettings(false)}>
         <p>Gentler movement. The same combat timing.</p>
         <label className="motion-control" htmlFor="reduce-motion">
@@ -891,7 +957,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <Card key={id} className={`choice-card rarity-${p.rarity}`}>
                   <CardHeader>
                     <div className="card-heading">
-                      <Flame />
+                      <PerkSymbol family={p.family} />
                       <RarityBadge rarity={p.rarity} />
                     </div>
                     <CardTitle>{p.title}</CardTitle>
@@ -948,7 +1014,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <Tent />
             Return to the forge
           </Button>
-          <Button variant="outline" onClick={() => a.start(state.run.chapter)}>
+          <Button variant="outline" onClick={() => setIntroChapter(state.run.chapter)}>
             Try this chapter again
           </Button>
         </div>

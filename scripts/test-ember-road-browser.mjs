@@ -110,6 +110,10 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert(validState(state), "Fixture uses the real state validator");
     return JSON.stringify({ version: 2, savedAt: Date.now(), state });
   }
+  async function depart(page) {
+    await page.locator("#start").click();
+    await page.locator("#depart").click();
+  }
   try {
     const c = await context();
     const page = await c.newPage();
@@ -124,6 +128,8 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     for (const viewport of [
       { width: 1440, height: 1000 },
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
       { width: 768, height: 1024 },
       { width: 390, height: 844 },
       { width: 844, height: 390 },
@@ -137,6 +143,13 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         ),
         `No document overflow at ${viewport.width}`,
       );
+      assert(
+        await page.locator("#start").evaluate((button) => {
+          const r = button.getBoundingClientRect();
+          return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+        }),
+        `Begin action is visible without scrolling at ${viewport.width}x${viewport.height}`,
+      );
       await page.screenshot({ path: join(evidence, `camp-${viewport.width}.png`) });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -146,7 +159,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Chapter-locked pets cannot equip",
     );
     await page.getByRole("button", { name: "Camp", exact: true }).click();
-    await page.locator("#start").click();
+    await depart(page);
     await page.locator("#pause").click();
     const paused = await page.locator("#world").screenshot();
     await page.waitForTimeout(400);
@@ -358,7 +371,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await ready(protectedPage);
     assert.match(await protectedPage.locator("#save-status").innerText(), /untouched/);
     assert(await protectedPage.locator("[data-save-warning]").isVisible());
-    await protectedPage.locator("#start").click();
+    await depart(protectedPage);
     await protectedPage.locator("#pause").click();
     assert.equal(
       await protectedPage.evaluate((key) => localStorage.getItem(key), storageKey),
@@ -377,7 +390,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await unavailable.waitForFunction(() =>
       document.getElementById("save-status").textContent.includes("unavailable"),
     );
-    await unavailable.locator("#start").click();
+    await depart(unavailable);
     await unavailable.waitForFunction(() => window.__draws.group);
     assert(await unavailable.locator("[data-save-warning]").isVisible());
     result.storageFailureKeepsPlayable = true;
