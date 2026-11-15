@@ -106,6 +106,30 @@ test("web account controls preserve guest saves, restore real game checkpoints a
   page.setDefaultTimeout(10000);
   page.on("pageerror", (error) => errors.push(error.message));
   const account = page.getByRole("button", { name: "Account and saves", exact: true });
+  async function restoredCheckpointReady() {
+    try {
+      await page.waitForFunction(() => window.playablesCloud?.getState().phase === "saved", null, {
+        timeout: 20000,
+      });
+    } catch (error) {
+      await writeFile(
+        join(evidence, "restore-failure.json"),
+        JSON.stringify(
+          {
+            fixtureAccountOnly: true,
+            host: await page.evaluate(() => window.playablesCloud?.getState()),
+            local: await page.evaluate(() => window.playablesCloud?.exportLocal()),
+            head,
+            writes,
+            errors,
+          },
+          null,
+          2,
+        ),
+      );
+      throw error;
+    }
+  }
   try {
     await page.goto(`${origin}/play/ember-road/`);
     await page.waitForFunction(
@@ -135,7 +159,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.evaluate(() => window.playablesCloud.restore("main"));
     await page.getByRole("button", { name: "Continue cloud journey", exact: true }).click();
     await page.getByRole("button", { name: "Reload game", exact: true }).click();
-    await page.waitForFunction(() => window.playablesCloud?.getState().phase === "saved");
+    await restoredCheckpointReady();
     assert.equal(
       await page.evaluate(
         () => JSON.parse(window.playablesCloud.exportLocal().data).state.meta.gold,
@@ -151,7 +175,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
       .click();
     await page.getByRole("button", { name: "Restore this version", exact: true }).click();
     await page.getByRole("button", { name: "Reload game", exact: true }).click();
-    await page.waitForFunction(() => window.playablesCloud?.getState().phase === "saved");
+    await restoredCheckpointReady();
     assert.equal(
       await page.evaluate(
         () => JSON.parse(window.playablesCloud.exportLocal().data).state.meta.gold,

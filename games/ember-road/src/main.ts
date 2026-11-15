@@ -96,7 +96,10 @@ const savePlatform: Platform = {
   onSaveRequest: (cb) => platform.onSaveRequest?.(cb) ?? (() => {}),
 };
 const saves = createSaveManager<GameState>({
-  getState: () => state,
+  getState: () => {
+    if (!loaded) throw new Error("The journey is still loading.");
+    return state;
+  },
   platform: savePlatform,
   version: 3,
   migrations: { 1: migrateV1State, 2: migrateV2State },
