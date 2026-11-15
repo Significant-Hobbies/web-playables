@@ -1,4 +1,4 @@
-import { initialQuests, type QuestLedger, validQuestLedger } from "./quests";
+import { initialQuests, type QuestLedger, validQuestLedger } from "./quests.ts";
 
 export type PerkId =
   | "edge"

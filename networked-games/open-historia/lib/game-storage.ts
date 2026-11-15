@@ -637,19 +637,14 @@ async function cloudListSavedGames(): Promise<SavedGame[]> {
   );
 }
 
-async function cloudDeleteGame(
-  id: string,
-  onVerifiedHead: () => void = () => {}
-): Promise<boolean> {
+async function cloudDeleteGame(id: string): Promise<boolean> {
   const generation = _generation;
   let base = bases.get(id);
-  if (base) onVerifiedHead();
   if (!base) {
     const response = await cloudRequest(`/api/saves/${encodeURIComponent(id)}`);
     if (generation !== _generation) throw new Error('Account changed; local campaign kept');
     if (response.status === 404) return false;
     if (!response.ok) throw new Error('Cloud delete unavailable; local campaign kept');
-    onVerifiedHead();
     const { save } = (await response.json()) as { save: SavedGame };
     if (generation !== _generation) throw new Error('Account changed; local campaign kept');
     if (save.cloudRevision === undefined || !save.cloudChecksum)
@@ -786,28 +781,13 @@ export async function deleteGame(id: string): Promise<void> {
       _playingOwner === null && !candidate
         ? guestSavedGames().find((save) => save.id === id)
         : undefined;
-    const guestOnlyWithoutReceipt = Boolean(
-      guest && guest.cloudRevision === undefined && !guest.cloudChecksum && !bases.has(id)
-    );
-    let verifiedHead = false;
     try {
-      const hadCloud = await cloudDeleteGame(id, () => {
-        verifiedHead = true;
-      });
+      const hadCloud = await cloudDeleteGame(id);
       if (generation !== _generation) throw new Error('Account changed; local campaign kept');
       if (!hadCloud && guest) deleteLocalForOwner(id, null);
       else deleteLocalForOwner(id, account);
     } catch (error) {
       if (generation !== _generation) throw error;
-      if (guestOnlyWithoutReceipt && !verifiedHead) {
-        deleteLocalForOwner(id, null);
-        status({
-          phase: 'local',
-          id,
-          message: 'Local guest copy deleted. Cloud saves were not changed.',
-        });
-        return;
-      }
       status({
         phase: 'offline',
         id,
