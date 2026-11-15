@@ -355,14 +355,21 @@ export function localListSavedGames(strict = false): SavedGame[] {
   }
 }
 
+function deleteLocalForOwner(id: string, owner: string | null) {
+  const key = storageKey(owner);
+  const raw = localStorage.getItem(key);
+  if (raw === null) return;
+  const saves = JSON.parse(raw) as unknown;
+  if (!Array.isArray(saves) || saves.some((save) => !save || typeof save.id !== 'string'))
+    throw new Error('Saved games are unreadable; existing data kept.');
+  const next = JSON.stringify(saves.filter((save) => save.id !== id));
+  backupLocal(owner);
+  localStorage.setItem(key, next);
+  if (localStorage.getItem(key) !== next)
+    throw new Error('Local deletion did not persist; recovery is kept.');
+}
 export function localDeleteGame(id: string): void {
-  try {
-    const saves = localListSavedGames(true);
-    const filtered = saves.filter((save) => save.id !== id);
-    localStorage.setItem(storageKey(), JSON.stringify(filtered));
-  } catch (error) {
-    console.error('Failed to delete game:', error);
-  }
+  deleteLocalForOwner(id, _playingOwner);
 }
 
 /**
@@ -747,16 +754,37 @@ export async function listSavedGames(): Promise<SavedGame[]> {
 
 export async function deleteGame(id: string): Promise<void> {
   const generation = _generation;
-  if (_authenticated) {
+  const account = _accountId;
+  if (_authenticated && account) {
+    // A purely local account copy can be removed offline without authorizing any
+    // cloud deletion. Missing receipts never justify deleting a remote head.
+    const raw = localStorage.getItem(storageKey(account));
+    const local = raw ? (JSON.parse(raw) as SavedGame[]) : [];
+    if (!Array.isArray(local)) throw new Error('Saved games are unreadable; existing data kept.');
+    const candidate = local.find((save) => save.id === id);
+    if (
+      candidate &&
+      candidate.cloudRevision === undefined &&
+      !candidate.cloudChecksum &&
+      !bases.has(id)
+    ) {
+      deleteLocalForOwner(id, account);
+      status({
+        phase: 'local',
+        id,
+        message: 'Local campaign copy deleted. Cloud saves were not changed.',
+      });
+      return;
+    }
     try {
-      const hadCloud = await cloudDeleteGame(id);
+      await cloudDeleteGame(id);
       if (generation !== _generation) throw new Error('Account changed; local campaign kept');
-      if (_playingOwner === _accountId || !hadCloud) localDeleteGame(id);
+      deleteLocalForOwner(id, account);
     } catch (error) {
       status({
         phase: 'offline',
         id,
-        message: 'Cloud delete failed. Local campaign kept; refresh and try again.',
+        message: 'Could not finish deletion. Local recovery is kept; refresh and try again.',
       });
       throw error;
     }

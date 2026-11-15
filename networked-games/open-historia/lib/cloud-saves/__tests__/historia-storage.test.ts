@@ -36,11 +36,57 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 describe('Historia account compatibility', () => {
+  it('deletes the account cache before account play mode without touching a same-id guest', async () => {
+    const client = await import('../../game-storage');
+    client.localSaveGame(state(9), config, [], 'same-id');
+    const guest = localStorage.getItem('open_historia_saves');
+    const account = JSON.parse(guest!);
+    account[0].cloudRevision = 4;
+    account[0].cloudChecksum = 'd'.repeat(64);
+    localStorage.setItem('open_historia_saves:account:alice', JSON.stringify(account));
+    client.setAuthenticated(true, 'alice');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (path: string, init?: RequestInit) => {
+        if (path === '/api/player')
+          return Response.json({ user: { id: 'alice' }, csrfToken: 'csrf' });
+        if (init?.method === 'DELETE') return Response.json({});
+        if (path === '/api/saves') return Response.json({ saves: [] });
+        return Response.json({
+          save: { id: 'same-id', cloudRevision: 4, cloudChecksum: 'd'.repeat(64) },
+        });
+      })
+    );
+    await client.deleteGame('same-id');
+    expect(localStorage.getItem('open_historia_saves')).toBe(guest);
+    client.startAccountCampaign();
+    expect(await client.listSavedGames()).toEqual([]);
+  });
+  it('can delete an account-local-only copy offline without deleting a guest or claiming remote deletion', async () => {
+    const client = await import('../../game-storage');
+    client.localSaveGame(state(), config, [], 'local-only');
+    const guest = localStorage.getItem('open_historia_saves');
+    localStorage.setItem('open_historia_saves:account:alice', guest!);
+    client.setAuthenticated(true, 'alice');
+    const request = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    vi.stubGlobal('fetch', request);
+    await client.deleteGame('local-only');
+    expect(request).not.toHaveBeenCalled();
+    expect(localStorage.getItem('open_historia_saves')).toBe(guest);
+    expect(JSON.parse(localStorage.getItem('open_historia_saves:account:alice')!)).toEqual([]);
+    expect(client.getCampaignCloudStatus().message).toContain('Cloud saves were not changed');
+  });
   it('deletes after fresh login using a freshly read conditional head and preserves local bytes on cloud failure', async () => {
     const client = await import('../../game-storage');
     client.setAuthenticated(true, 'alice');
     client.startAccountCampaign();
     client.localSaveGame(state(4), config, [], 'delete-me');
+    const existing = JSON.parse(localStorage.getItem('open_historia_saves:account:alice')!);
+    existing[0].cloudRevision = 7;
+    existing[0].cloudChecksum = 'c'.repeat(64);
+    localStorage.setItem('open_historia_saves:account:alice', JSON.stringify(existing));
     let fail = true;
     let deleted: Record<string, unknown> | null = null;
     vi.stubGlobal(

@@ -42,10 +42,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const c = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     if (raw)
       await c.addInitScript(
-        ({ key, raw }) => {
+        ({ key, raw, expectedOrigin }) => {
+          if (location.origin !== expectedOrigin) return;
           if (!localStorage.getItem(key)) localStorage.setItem(key, raw);
         },
-        { key: storageKey, raw },
+        { key: storageKey, raw, expectedOrigin: origin },
       );
     await c.addInitScript(() => {
       window.__draws = {

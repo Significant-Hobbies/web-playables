@@ -97,6 +97,7 @@ export class PlayablesCloud implements PersistenceHost {
   #started = false;
   #panelOpen = false;
   #runtimePaused = false;
+  #quarantined = false;
   #recoveryKey: string | null = null;
   #restoreRequest:
     | ((data: string, owner: string, slot: string) => Promise<"story" | "original">)
@@ -158,10 +159,17 @@ export class PlayablesCloud implements PersistenceHost {
     };
   }
   async captureExternal(data: string, slot: "story" | "original") {
+    this.#requireSafeEngine();
     const key = `save:war-chest:${slot}`;
     if (this.#storageKey !== key) {
       const initial = !this.#started;
-      if (!initial) this.#options.storage.removeItem(this.#resumeKey());
+      if (!initial) {
+        // Native mode selection opens the other guest company immediately. Keep the
+        // outgoing account hint discoverable, but never auto-apply it over that choice.
+        const hint = this.#options.storage.getItem(this.#resumeKey());
+        if (hint) this.#options.storage.setItem(`${this.#resumeKey()}:available`, hint);
+        this.#options.storage.removeItem(this.#resumeKey());
+      }
       ++this.#generation;
       this.#storageKey = key;
       this.#owner = null;
@@ -173,8 +181,14 @@ export class PlayablesCloud implements PersistenceHost {
         this.#update({ paused: true });
         await this.#resume();
         const resumed = this.#copy as LocalCopy | null;
-        if (this.#owner && resumed && this.#restoreRequest)
-          await this.#applyRestore(resumed.data, this.#owner, resumed.slot);
+        if (this.#owner && resumed && this.#restoreRequest) {
+          const owner = this.#owner;
+          await this.#applyRestore(resumed.data, owner, resumed.slot, () => {
+            this.#protectTarget(owner, resumed.data);
+            this.#persist(resumed);
+            this.#rememberOwner();
+          });
+        }
         this.#update({ paused: false });
       }
       void this.refreshSession();
@@ -183,6 +197,7 @@ export class PlayablesCloud implements PersistenceHost {
     await this.saveData(key, data);
   }
   async #requestSnapshot() {
+    this.#requireSafeEngine();
     for (const callback of this.#saveRequests) await callback();
   }
   #now() {
@@ -226,11 +241,12 @@ export class PlayablesCloud implements PersistenceHost {
   #backup(copy = this.#copy, storageKey = this.#storageKey) {
     if (!copy) return;
     const key = `${this.#key(copy.owner, storageKey)}:recovery`;
-    this.#recoveryKey = key;
     const raw = JSON.stringify({ createdAt: this.#now(), ...copy });
     this.#options.storage.setItem(key, raw);
     if (this.#options.storage.getItem(key) !== raw)
       throw new Error("Recovery copy did not persist");
+    this.#recoveryKey = key;
+    return key;
   }
   #resumeKey() {
     return this.#options.gameId === "war-chest"
@@ -241,7 +257,11 @@ export class PlayablesCloud implements PersistenceHost {
     if (this.#owner)
       this.#options.storage.setItem(
         this.#resumeKey(),
-        JSON.stringify({ owner: this.#owner, storageKey: this.#storageKey }),
+        JSON.stringify({
+          owner: this.#owner,
+          storageKey: this.#storageKey,
+          recoveryKey: this.#recoveryKey,
+        }),
       );
   }
   async #resume() {
@@ -249,9 +269,11 @@ export class PlayablesCloud implements PersistenceHost {
     if (!raw) return;
     let owner: string;
     let storageKey = this.#storageKey;
+    let recoveryKey: string | null = null;
     try {
       const hint = JSON.parse(raw);
       owner = hint.owner;
+      if (typeof hint.recoveryKey === "string") recoveryKey = hint.recoveryKey;
       if (
         this.#options.gameId === "war-chest" &&
         ["save:war-chest:story", "save:war-chest:original"].includes(hint.storageKey)
@@ -281,6 +303,19 @@ export class PlayablesCloud implements PersistenceHost {
       this.#owner = owner;
       this.#csrf = session.csrfToken;
       this.#copy = copy;
+      const recoveryModes =
+        this.#options.gameId === "war-chest"
+          ? ["save:war-chest:story", "save:war-chest:original"]
+          : [storageKey];
+      if (
+        recoveryKey &&
+        recoveryModes.some((key) =>
+          [owner, null].some(
+            (candidate) => `${this.#key(candidate, key)}:recovery` === recoveryKey,
+          ),
+        )
+      )
+        this.#recoveryKey = recoveryKey;
       this.#update({ user: session.user, phase: "local", localSavedAt: copy.savedAt });
     } catch {
       this.#update({
@@ -315,6 +350,7 @@ export class PlayablesCloud implements PersistenceHost {
     return this.#copy?.data || null;
   }
   async saveData(key: string, data: string): Promise<void> {
+    this.#requireSafeEngine();
     if (!this.#storageKey) await this.loadData(key);
     if (this.#storageKey !== key) throw new Error("Unexpected game storage key");
     if (this.#state.reloadRequired) return;
@@ -381,6 +417,7 @@ export class PlayablesCloud implements PersistenceHost {
     return `/api/player/games/${this.#options.gameId}/saves/${encodeURIComponent(slot)}`;
   }
   async refreshSession() {
+    if (this.#quarantined) return;
     const generation = ++this.#generation;
     this.#pending = null;
     this.#cloud = null;
@@ -424,7 +461,9 @@ export class PlayablesCloud implements PersistenceHost {
       if (generation !== this.#generation) return;
       let candidateKey = this.#storageKey;
       if (this.#options.gameId === "war-chest") {
-        const raw = this.#options.storage.getItem(this.#resumeKey());
+        const raw =
+          this.#options.storage.getItem(this.#resumeKey()) ||
+          this.#options.storage.getItem(`${this.#resumeKey()}:available`);
         if (raw) {
           try {
             const hint = JSON.parse(raw);
@@ -617,6 +656,7 @@ export class PlayablesCloud implements PersistenceHost {
   async #flush() {
     const user = this.#state.user;
     if (
+      this.#quarantined ||
       !user ||
       this.#owner !== user.id ||
       !this.#copy ||
@@ -718,17 +758,67 @@ export class PlayablesCloud implements PersistenceHost {
       return { title: "Saved journey" };
     }
   }
-  async #applyRestore(data: string, owner: string, slot: string) {
+  #requireSafeEngine() {
+    if (this.#quarantined)
+      throw new Error(
+        "Game restore is uncertain. Reload before continuing; all saved copies are kept.",
+      );
+  }
+  #quarantine(owner: string) {
+    this.#quarantined = true;
+    ++this.#generation;
+    this.#pending = null;
+    this.#offlineChoice = true;
+    if (this.#timer) {
+      clearTimeout(this.#timer);
+      this.#timer = null;
+    }
+    try {
+      const raw = this.#options.storage.getItem(this.#resumeKey());
+      if (raw && JSON.parse(raw).owner === owner) {
+        // Keep recovery discoverable after verified identity, without automatically
+        // retrying the ambiguous native apply on the next boot.
+        try {
+          this.#options.storage.setItem(`${this.#resumeKey()}:available`, raw);
+        } catch {
+          /* payload caches remain intact */
+        }
+        this.#options.storage.removeItem(this.#resumeKey());
+      }
+    } catch {
+      /* preserve unreadable hints, never touch saved payloads */
+    }
+    this.#update({
+      phase: "offline",
+      paused: true,
+      reloadRequired: true,
+      conflict: null,
+      message:
+        "The game could not confirm its restored state. Reload before continuing. Guest, account and cloud saves are kept.",
+    });
+  }
+  async #applyRestore(data: string, owner: string, slot: string, commit: () => void = () => {}) {
+    this.#requireSafeEngine();
     const generation = this.#generation;
-    const mode = await this.#restoreRequest?.(data, owner, slot);
-    if (generation !== this.#generation)
-      throw new Error("Account changed during restore; recovery is kept.");
-    if (this.#options.gameId === "war-chest" && (mode === "story" || mode === "original"))
-      this.#storageKey = `save:war-chest:${mode}`;
+    try {
+      const mode = await this.#restoreRequest?.(data, owner, slot);
+      if (generation !== this.#generation)
+        throw new Error("Account changed during restore; recovery is kept.");
+      if (this.#options.gameId === "war-chest") {
+        if (mode !== "story" && mode !== "original")
+          throw new Error("Game restore mode was not confirmed");
+        this.#storageKey = `save:war-chest:${mode}`;
+      }
+      commit();
+    } catch (error) {
+      this.#quarantine(owner);
+      throw error;
+    }
   }
   #protectTarget(owner: string, data: string) {
     const existing = this.#read(owner);
-    if (existing && existing.data !== data) this.#backup(existing);
+    if (existing && existing.data !== data) return this.#backup(existing);
+    return null;
   }
   async resolveConflict(choice: "cloud" | "local" | "cached" | "keep-both" | "offline") {
     if (!this.#state.conflict || !this.#state.user) return;
@@ -736,9 +826,12 @@ export class PlayablesCloud implements PersistenceHost {
     await this.#requestSnapshot();
     if (generation !== this.#generation)
       throw new Error("Account changed. Review the journeys again.");
-    this.#backup();
-    if (this.#cached && this.#cached.data !== this.#copy?.data)
-      this.#backup(this.#cached, this.#cachedKey);
+    const outgoingKey = this.#backup();
+    const cachedKey =
+      this.#cached && this.#cached.data !== this.#copy?.data
+        ? this.#backup(this.#cached, this.#cachedKey)
+        : null;
+    this.#recoveryKey = (choice === "cached" ? outgoingKey : cachedKey || outgoingKey) || null;
     if (choice === "offline") {
       this.#offlineChoice = true;
       this.#update({
@@ -754,20 +847,24 @@ export class PlayablesCloud implements PersistenceHost {
     if (choice === "cloud") {
       if (!cloud) throw new Error("No cloud save to restore");
       this.#pending = null;
-      if (this.#restoreRequest) await this.#applyRestore(cloud.data, user.id, cloud.slotId);
-      if (generation !== this.#generation)
-        throw new Error("Account changed during restore. Recovery is kept.");
-      this.#protectTarget(user.id, cloud.data);
-      this.#owner = user.id;
-      this.#persist({
-        data: cloud.data,
-        savedAt: this.#now(),
-        revision: cloud.revision,
-        checksum: cloud.checksum,
-        owner: user.id,
-        slot: cloud.slotId,
-      });
-      this.#rememberOwner();
+      const commit = () => {
+        if (generation !== this.#generation)
+          throw new Error("Account changed during restore; recovery is kept.");
+        const displaced = this.#protectTarget(user.id, cloud.data);
+        if (displaced) this.#recoveryKey = displaced;
+        this.#owner = user.id;
+        this.#persist({
+          data: cloud.data,
+          savedAt: this.#now(),
+          revision: cloud.revision,
+          checksum: cloud.checksum,
+          owner: user.id,
+          slot: cloud.slotId,
+        });
+        this.#rememberOwner();
+      };
+      if (this.#restoreRequest) await this.#applyRestore(cloud.data, user.id, cloud.slotId, commit);
+      else commit();
       if (this.#restoreRequest) {
         this.#update({
           phase: "saved",
@@ -790,20 +887,25 @@ export class PlayablesCloud implements PersistenceHost {
     if (!source) throw new Error("No local save to import");
     const slot =
       choice === "keep-both" ? `journey-${crypto.randomUUID()}` : cloud?.slotId || source.slot;
-    if (this.#restoreRequest) await this.#applyRestore(source.data, user.id, slot);
-    if (generation !== this.#generation)
-      throw new Error("Account changed during restore. Recovery is kept.");
-    this.#protectTarget(user.id, source.data);
-    this.#owner = user.id;
-    // Local explicitly replaces only the revision shown by this conflict. CAS still protects a subsequent device write.
-    this.#persist({
-      ...source,
-      owner: user.id,
-      slot,
-      revision: choice === "keep-both" ? 0 : cloud?.revision || 0,
-      checksum: choice === "keep-both" ? "" : cloud?.checksum || "",
-    });
-    this.#rememberOwner();
+    const commit = () => {
+      if (generation !== this.#generation)
+        throw new Error("Account changed during restore; recovery is kept.");
+      const displaced = this.#protectTarget(user.id, source.data);
+      if (displaced) this.#recoveryKey = displaced;
+      // Choosing cached bytes must offer the outgoing model as recovery, not itself.
+      if (choice === "cached" && outgoingKey) this.#recoveryKey = outgoingKey;
+      this.#owner = user.id;
+      this.#persist({
+        ...source,
+        owner: user.id,
+        slot,
+        revision: choice === "keep-both" ? 0 : cloud?.revision || 0,
+        checksum: choice === "keep-both" ? "" : cloud?.checksum || "",
+      });
+      this.#rememberOwner();
+    };
+    if (this.#restoreRequest) await this.#applyRestore(source.data, user.id, slot, commit);
+    else commit();
     this.#pending = null;
     if (choice === "cached" && !this.#restoreRequest) {
       this.#update({

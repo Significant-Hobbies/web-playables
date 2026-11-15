@@ -143,6 +143,7 @@ describe('optional web account host', () => {
         JSON.parse(f.storage.getItem('playables:v1:ember-road:guest:save:game:recovery')!).data
       ).toBe(data());
       if (choice === 'cached') {
+        expect(f.runtime.exportRecovery()?.data).toBe(data());
         expect(f.runtime.exportLocal()?.data).toBe(data(9));
         expect(f.runtime.getState().reloadRequired).toBe(true);
         expect(f.writes).toHaveLength(0);
@@ -155,6 +156,7 @@ describe('optional web account host', () => {
         });
         runtimes.push(next);
         expect(await next.loadData('save:game')).toBe(data(9));
+        expect(next.exportRecovery()?.data).toBe(data());
         await vi.waitFor(() => expect(next.getState().paused).toBe(false));
         await next.checkpoint();
         expect(f.getRemote()?.data).toBe(data(9));
@@ -242,8 +244,23 @@ describe('optional web account host', () => {
     await first.captureExternal(guest, 'story');
     await vi.waitFor(() => expect(first.getState().phase).toBe('conflict'));
     await first.resolveConflict('local');
+    const targetKey = 'playables:v1:war-chest:alice:save:war-chest:original';
+    const unsynced = war('original', 99);
+    storage.setItem(
+      targetKey,
+      JSON.stringify({
+        data: unsynced,
+        owner: 'alice',
+        slot: 'other-original-copy',
+        savedAt: 99,
+        revision: 5,
+        checksum: 'base',
+      })
+    );
     await first.restore(slot);
     await first.resolveConflict('cloud');
+    expect(first.exportRecovery()?.data).toBe(unsynced);
+    expect(JSON.parse(storage.getItem(targetKey + ':recovery')!).data).toBe(unsynced);
     const latest = war('original', 55);
     await first.captureExternal(latest, 'original');
     await first.checkpoint();
@@ -266,6 +283,110 @@ describe('optional web account host', () => {
       JSON.parse(storage.getItem('playables:v1:war-chest:guest:save:war-chest:story')!).data
     ).toBe(guest);
     expect(storage.getItem('playables:v1:war-chest:guest:save:war-chest:original')).toBeNull();
+    await next.captureExternal(guest, 'story');
+    await vi.waitFor(() => expect(next.getState().phase).toBe('conflict'));
+    expect(next.getState().conflict?.cached?.owner).toBe('alice');
+    expect(next.exportLocal()?.data).toBe(guest);
+    expect(
+      JSON.parse(storage.getItem('playables:v1:war-chest:alice:save:war-chest:original')!).data
+    ).toBe(latest);
+    expect(JSON.parse(storage.getItem('playables:v1:resume:war-chest:available')!).storageKey).toBe(
+      'save:war-chest:original'
+    );
+  });
+  it('quarantines failed and timed-out War boot applies before any later capture or cloud write', async () => {
+    for (const failure of ['reject', 'timeout']) {
+      const storage = new MemoryStorage();
+      const guest = JSON.stringify({ version: 2, campaign: { gold: 1 }, battle: {} });
+      const account = JSON.stringify({ version: 2, campaign: { gold: 40 }, battle: {} });
+      const accountKey = 'playables:v1:war-chest:alice:save:war-chest:story';
+      storage.setItem(
+        accountKey,
+        JSON.stringify({
+          data: account,
+          owner: 'alice',
+          slot: 'story',
+          savedAt: 4,
+          revision: 7,
+          checksum: 'receipt',
+        })
+      );
+      storage.setItem(
+        'playables:v1:resume:war-chest',
+        JSON.stringify({ owner: 'alice', storageKey: 'save:war-chest:story' })
+      );
+      const request = vi.fn(async () =>
+        Response.json({
+          user: { id: 'alice', name: 'Alice', email: 'alice@example.test' },
+          csrfToken: 'csrf',
+        })
+      );
+      const runtime = new PlayablesCloud({
+        gameId: 'war-chest',
+        maxSchemaVersion: 2,
+        storage,
+        fetch: request as typeof fetch,
+        location: { href: 'https://idle.aliveville.com/play/war-chest/', assign: vi.fn() },
+      });
+      runtimes.push(runtime);
+      runtime.registerRestoreRequest(() =>
+        failure === 'reject'
+          ? Promise.reject(new Error('Game rejected this save'))
+          : new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Game restore timed out')), 2)
+            )
+      );
+      await expect(runtime.captureExternal(guest, 'story')).rejects.toThrow();
+      expect(runtime.getState()).toMatchObject({
+        phase: 'offline',
+        paused: true,
+        reloadRequired: true,
+        conflict: null,
+      });
+      expect(runtime.getState().message).toContain('could not confirm');
+      await expect(runtime.captureExternal(guest, 'story')).rejects.toThrow('Reload');
+      await expect(runtime.checkpoint()).rejects.toThrow('Reload');
+      await runtime.refreshSession();
+      expect(runtime.getState().paused).toBe(true);
+      expect(JSON.parse(storage.getItem(accountKey)!).data).toBe(account);
+      expect(
+        JSON.parse(storage.getItem('playables:v1:war-chest:guest:save:war-chest:story')!).data
+      ).toBe(guest);
+      expect(storage.getItem('playables:v1:resume:war-chest')).toBeNull();
+      expect(JSON.parse(storage.getItem('playables:v1:resume:war-chest:available')!).owner).toBe(
+        'alice'
+      );
+      expect(request.mock.calls.length).toBe(1);
+    }
+  });
+  it('quarantines a failed manual engine apply and a failed account commit after a successful mode acknowledgement', async () => {
+    for (const failCommit of [false, true]) {
+      const f = setup({ save: cloud(2, 2) });
+      await boot(f);
+      f.runtime.registerRestoreRequest(async () => {
+        if (!failCommit) throw new Error('Game restore timed out');
+        return 'original';
+      });
+      if (failCommit) {
+        const set = f.storage.setItem.bind(f.storage);
+        f.storage.setItem = (key, value) => {
+          if (key === 'playables:v1:ember-road:alice:save:game')
+            throw new Error('local account commit failed');
+          set(key, value);
+        };
+      }
+      await expect(f.runtime.resolveConflict('cloud')).rejects.toThrow();
+      await expect(f.runtime.captureExternal(data(1), 'story')).rejects.toThrow('Reload');
+      await expect(f.runtime.checkpoint()).rejects.toThrow('Reload');
+      expect(f.runtime.getState()).toMatchObject({
+        phase: 'offline',
+        paused: true,
+        reloadRequired: true,
+      });
+      expect(f.writes).toHaveLength(0);
+      expect(f.getRemote()?.data).toBe(data(2));
+      expect(f.storage.getItem('save:game')).toBe(data());
+    }
   });
   it('requires explicit import and uses a safe revision; keeps recovery bytes', async () => {
     const f = setup();

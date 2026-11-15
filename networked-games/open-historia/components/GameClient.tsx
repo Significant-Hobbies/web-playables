@@ -90,6 +90,7 @@ function CampaignPanel({
 
 function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
   const [accountOpen, setAccountOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [panel, setPanel] = useState<string | null>(null);
   captureMeasurementTraffic();
   // ── Core game state + initialization ──
@@ -728,6 +729,11 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
                 Close
               </button>
             </div>
+            {deleteError && (
+              <p role="alert" className="px-4 py-2 text-sm text-rose-300">
+                {deleteError}
+              </p>
+            )}
             <div className="max-h-[70vh] overflow-y-auto">
               {game.savedGames.length === 0 && (
                 <div className="px-4 py-6 text-sm text-slate-400">No saves yet.</div>
@@ -760,7 +766,19 @@ function GameClientInner({ initialGameId }: { initialGameId?: string } = {}) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => game.handleDeleteSavedGame(s.id)}
+                      onClick={async () => {
+                        setDeleteError(null);
+                        try {
+                          await game.handleDeleteSavedGame(s.id);
+                        } catch (cause) {
+                          const message =
+                            cause instanceof Error
+                              ? cause.message
+                              : 'Delete failed; local campaign kept.';
+                          setDeleteError(message);
+                          turn.addLog(message, 'error');
+                        }
+                      }}
                       className="bg-rose-700 hover:bg-rose-600 text-white text-xs font-bold px-3 py-1 rounded uppercase"
                     >
                       Delete

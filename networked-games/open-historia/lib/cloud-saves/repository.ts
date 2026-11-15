@@ -261,6 +261,9 @@ export class SaveRepository {
       AND (?=1 OR EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=? AND deleted=0)
         OR (?='open-historia' AND EXISTS(SELECT 1 FROM saved_game WHERE user_id=? AND id=?))
         OR (SELECT COUNT(*) FROM account_game_slot WHERE user_id=? AND game_id=? AND deleted=0)<?)
+      -- Tombstones are never pruned: retaining their fencing revision prevents
+      -- an old expectedRevision=0 client resurrecting a deliberately deleted slot.
+      -- MAX_SLOT_RECORDS bounds this metadata; active-slot deletion still frees MAX_SLOTS.
       AND (EXISTS(SELECT 1 FROM account_game_slot WHERE user_id=? AND game_id=? AND slot_id=?)
         OR (?='open-historia' AND EXISTS(SELECT 1 FROM saved_game WHERE user_id=? AND id=?))
         OR (SELECT COUNT(*) FROM account_game_slot WHERE user_id=?)<?)
