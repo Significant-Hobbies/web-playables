@@ -1,3 +1,4 @@
+import { checksum, normalizePayload, redactConfig } from './cloud-saves/contract';
 import { isTimelineMemory } from './timeline-memory';
 import type { GameConfig, GameEvent, GameState, Province } from './types';
 
@@ -51,6 +52,8 @@ export interface SavedGame {
   storySoFar?: string;
   completedStepIds?: string[];
   version: string;
+  cloudRevision?: number;
+  cloudChecksum?: string;
 }
 
 const STORAGE_KEY = 'open_historia_saves';
@@ -108,9 +111,70 @@ const toSnapshot = (gameState: GameState, completedStepIds?: string[]): GameStat
 // ---------------------------------------------------------------------------
 
 let _authenticated = false;
-
-export function setAuthenticated(value: boolean) {
-  _authenticated = value;
+let _accountId: string | null = null;
+let _playingOwner: string | null = null;
+let _generation = 0;
+let _csrf = '';
+const bases = new Map<string, { revision: number; checksum: string }>();
+export interface CampaignCloudStatus {
+  phase: 'local' | 'saved' | 'offline' | 'conflict';
+  id?: string;
+  message?: string;
+}
+let cloudStatus: CampaignCloudStatus = { phase: 'local' };
+export function getCampaignCloudStatus() {
+  return { ...cloudStatus };
+}
+export function exportCampaignCopy(recovery = false): { filename: string; data: string } | null {
+  const raw = localStorage.getItem(`${storageKey()}${recovery ? ':recovery' : ''}`);
+  return raw
+    ? {
+        filename: `historia-${recovery ? 'recovery' : 'local'}-${Date.now()}.json`,
+        data: JSON.stringify(redactConfig(JSON.parse(raw))),
+      }
+    : null;
+}
+function status(next: CampaignCloudStatus) {
+  cloudStatus = next;
+  if (typeof window !== 'undefined')
+    window.dispatchEvent(new CustomEvent('playables:historia-cloud-state', { detail: next }));
+}
+function storageKey(owner = _playingOwner) {
+  return owner ? `${STORAGE_KEY}:account:${owner}` : STORAGE_KEY;
+}
+function backupLocal(owner = _playingOwner) {
+  const raw = localStorage.getItem(storageKey(owner));
+  if (raw !== null) {
+    const key = `${storageKey(owner)}:recovery`;
+    localStorage.setItem(key, raw);
+    if (localStorage.getItem(key) !== raw)
+      throw new Error('Local campaign recovery did not persist');
+  }
+}
+export function setAuthenticated(value: boolean, accountId?: string) {
+  const next = value && accountId ? accountId : null;
+  if (next !== _accountId) {
+    backupLocal();
+    _generation++;
+    _csrf = '';
+    bases.clear();
+  }
+  _accountId = next;
+  _authenticated = value && Boolean(next);
+}
+/** Only an explicit new-campaign action or cloud load assigns its future progress to this account. */
+export function startAccountCampaign() {
+  backupLocal();
+  _playingOwner = _accountId;
+}
+export function guestSavedGames(): SavedGame[] {
+  const previous = _playingOwner;
+  try {
+    _playingOwner = null;
+    return localListSavedGames();
+  } finally {
+    _playingOwner = previous;
+  }
 }
 
 export function isAuthenticated(): boolean {
@@ -169,7 +233,7 @@ export function getStorageUsage(): {
   estimatedMaxBytes: number;
   percentUsed: number;
 } {
-  const raw = localStorage.getItem(STORAGE_KEY) || '';
+  const raw = localStorage.getItem(storageKey()) || '';
   const usedBytes = JSON.stringify(raw).length * 2; // UTF-16
   const estimatedMaxBytes = 5 * 1024 * 1024; // 5MB
   const percentUsed = (usedBytes / estimatedMaxBytes) * 100;
@@ -194,7 +258,10 @@ export function localSaveGame(
     const id = saveName || createSaveId();
     const filtered = saves.filter((save) => save.id !== id);
 
+    const previous = saves.find((save) => save.id === id);
     const newSave: SavedGame = {
+      cloudRevision: previous?.cloudRevision,
+      cloudChecksum: previous?.cloudChecksum,
       id,
       timestamp: Date.now(),
       gameState: toSnapshot(gameState, completedStepIds),
@@ -207,7 +274,7 @@ export function localSaveGame(
     };
 
     filtered.push(newSave);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    localStorage.setItem(storageKey(), JSON.stringify(filtered));
 
     const usage = getStorageUsage();
     if (usage.percentUsed > 80) {
@@ -237,7 +304,7 @@ export function localLoadGame(id: string): SavedGame | null {
 
 export function localListSavedGames(strict = false): SavedGame[] {
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
+    const data = localStorage.getItem(storageKey());
     if (!data) return [];
 
     const parsed = JSON.parse(data) as Partial<SavedGame>[];
@@ -255,6 +322,7 @@ export function localListSavedGames(strict = false): SavedGame[] {
       })
       .map((save) =>
         migrateSave({
+          ...save,
           id: save.id as string,
           timestamp: typeof save.timestamp === 'number' ? save.timestamp : Date.now(),
           gameState: save.gameState as PersistedGameState,
@@ -287,14 +355,22 @@ export function localListSavedGames(strict = false): SavedGame[] {
   }
 }
 
+function deleteLocalForOwner(id: string, owner: string | null) {
+  const key = storageKey(owner);
+  const raw = localStorage.getItem(key);
+  if (raw === null) return;
+  const saves = JSON.parse(raw) as unknown;
+  if (!Array.isArray(saves) || saves.some((save) => !save || typeof save.id !== 'string'))
+    throw new Error('Saved games are unreadable; existing data kept.');
+  if (!saves.some((save) => save.id === id)) return;
+  const next = JSON.stringify(saves.filter((save) => save.id !== id));
+  backupLocal(owner);
+  localStorage.setItem(key, next);
+  if (localStorage.getItem(key) !== next)
+    throw new Error('Local deletion did not persist; recovery is kept.');
+}
 export function localDeleteGame(id: string): void {
-  try {
-    const saves = localListSavedGames(true);
-    const filtered = saves.filter((save) => save.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-  } catch (error) {
-    console.error('Failed to delete game:', error);
-  }
+  deleteLocalForOwner(id, _playingOwner);
 }
 
 /**
@@ -319,10 +395,7 @@ export function importSavedGame(parsed: unknown): string {
     throw new Error('File is not a valid Open Historia save.');
   }
 
-  const sanitizedConfig = {
-    ...(candidate.gameConfig as Record<string, unknown>),
-    apiKey: '',
-  };
+  const sanitizedConfig = redactConfig(candidate.gameConfig) as Record<string, unknown>;
 
   const save: SavedGame = {
     id: candidate.id,
@@ -338,9 +411,10 @@ export function importSavedGame(parsed: unknown): string {
       : undefined,
   };
 
+  backupLocal();
   const saves = localListSavedGames().filter((s) => s.id !== save.id);
   saves.push(save);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
+  localStorage.setItem(storageKey(), JSON.stringify(saves));
   return save.id;
 }
 
@@ -348,41 +422,153 @@ export function importSavedGame(parsed: unknown): string {
 // Cloud backend (calls API routes)
 // ---------------------------------------------------------------------------
 
-async function cloudSaveGame(
-  gameState: GameState,
-  gameConfig: GameConfig,
-  logs: LogEntry[],
-  saveName?: string,
-  events: GameEvent[] = [],
-  storySoFar?: string,
-  completedStepIds?: string[]
+async function cloudRequest(path: string, init: RequestInit = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    return await fetch(path, {
+      ...init,
+      credentials: 'include',
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function writeHeaders() {
+  const generation = _generation;
+  if (!_csrf) {
+    const response = await cloudRequest('/api/player');
+    if (!response.ok) throw new Error('Sign in again to save to cloud');
+    const session = (await response.json()) as { user: { id: string }; csrfToken: string };
+    if (generation !== _generation || session.user.id !== _accountId)
+      throw new Error('Account changed; local campaign kept');
+    _csrf = session.csrfToken;
+  }
+  return { 'Content-Type': 'application/json', 'X-CSRF-Token': _csrf };
+}
+async function writeCampaign(
+  save: SavedGame,
+  base?: { revision: number; checksum: string }
 ): Promise<string> {
-  const id = saveName || createSaveId();
-  const res = await fetch('/api/saves', {
+  const generation = _generation;
+  const account = _accountId;
+  if (!account || _playingOwner !== account)
+    throw new Error('Import this guest journey explicitly before cloud saving');
+  const currentBase =
+    base ||
+    bases.get(save.id) ||
+    (save.cloudRevision !== undefined && save.cloudChecksum
+      ? { revision: save.cloudRevision, checksum: save.cloudChecksum }
+      : undefined);
+  const headers = await writeHeaders();
+  if (generation !== _generation) throw new Error('Account changed');
+  const { cloudRevision: _revision, cloudChecksum: _checksum, ...payload } = save;
+  const res = await cloudRequest('/api/saves', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
-      id,
-      timestamp: Date.now(),
-      version: VERSION,
-      gameState: toSnapshot(gameState, completedStepIds),
-      gameConfig, // apiKey stripped server-side
-      logs: logs.slice(-50),
-      events: events.slice(-100),
-      storySoFar,
-      completedStepIds,
+      ...payload,
+      gameConfig: redactConfig(save.gameConfig),
+      expectedRevision: currentBase?.revision || 0,
+      expectedChecksum: currentBase?.checksum,
+      writeId: crypto.randomUUID(),
     }),
   });
-  if (!res.ok) throw new Error(`Cloud save failed: ${res.status}`);
-  return id;
+  if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+  if (!res.ok) {
+    status({
+      phase: res.status === 409 ? 'conflict' : 'offline',
+      id: save.id,
+      message:
+        res.status === 409
+          ? 'Cloud campaign changed on another device. Choose cloud, local, or keep both.'
+          : 'Cloud save unavailable; local campaign kept.',
+    });
+    throw new Error(`Cloud save failed: ${res.status}`);
+  }
+  const result = (await res.json()) as { cloudRevision: number; cloudChecksum: string };
+  if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+  bases.set(save.id, { revision: result.cloudRevision, checksum: result.cloudChecksum });
+  const local = localListSavedGames(true);
+  const index = local.findIndex((item) => item.id === save.id);
+  if (index >= 0) {
+    local[index] = {
+      ...local[index],
+      cloudRevision: result.cloudRevision,
+      cloudChecksum: result.cloudChecksum,
+    };
+    localStorage.setItem(storageKey(), JSON.stringify(local));
+  }
+  status({ phase: 'saved', id: save.id });
+  return save.id;
+}
+async function cloudSaveGame(
+  _gameState: GameState,
+  _gameConfig: GameConfig,
+  _logs: LogEntry[],
+  saveName?: string,
+  _events: GameEvent[] = [],
+  _storySoFar?: string,
+  _completedStepIds?: string[]
+): Promise<string> {
+  const local = saveName ? localLoadGame(saveName) : null;
+  if (!local) throw new Error('Local checkpoint is missing');
+  return writeCampaign(local);
 }
 
-async function cloudLoadGame(id: string): Promise<SavedGame | null> {
-  const res = await fetch(`/api/saves/${encodeURIComponent(id)}`);
+function campaignPayload(save: SavedGame) {
+  const { cloudRevision: _r, cloudChecksum: _c, ...payload } = save;
+  return normalizePayload('open-historia', JSON.stringify(payload));
+}
+async function cloudLoadGame(id: string, replaceLocal = false): Promise<SavedGame | null> {
+  const generation = _generation;
+  const account = _accountId;
+  const res = await cloudRequest(`/api/saves/${encodeURIComponent(id)}`);
+  if (generation !== _generation) return null;
   if (!res.ok) return null;
   const data = (await res.json()) as { save?: SavedGame };
   const save = data.save;
-  if (!save) return null;
+  if (generation !== _generation) return null;
+  if (!save || !account) return null;
+  if (save.version && save.version.localeCompare(VERSION, undefined, { numeric: true }) > 0)
+    throw new Error('Update the game to use this newer campaign');
+  const cachedRaw = localStorage.getItem(storageKey(account));
+  let cached: SavedGame | undefined;
+  if (cachedRaw) {
+    const collection = JSON.parse(cachedRaw) as SavedGame[];
+    cached = collection.find((item) => item.id === id);
+  }
+  if (cached && !replaceLocal && campaignPayload(cached) !== campaignPayload(save)) {
+    const { cloudRevision: _revision, cloudChecksum: _checksum, ...cachedPayload } = cached;
+    const normalized = normalizePayload('open-historia', JSON.stringify(cachedPayload));
+    const acknowledged =
+      normalized && cached.cloudChecksum && (await checksum(normalized)) === cached.cloudChecksum;
+    if (generation !== _generation) return null;
+    if (!acknowledged) {
+      _playingOwner = account;
+      status({
+        phase: 'conflict',
+        id,
+        message:
+          'Local campaign has progress not acknowledged by cloud. Choose which version to continue.',
+      });
+      return cached;
+    }
+  }
+  if (generation !== _generation) return null;
+
+  const changed = !cached || campaignPayload(cached) !== campaignPayload(save);
+  if (_playingOwner !== account) backupLocal();
+  _playingOwner = account;
+  if (changed && cached) backupLocal();
+  if (save.cloudRevision !== undefined && save.cloudChecksum)
+    bases.set(id, { revision: save.cloudRevision, checksum: save.cloudChecksum });
+  const local = localListSavedGames(true).filter((item) => item.id !== save.id);
+  local.push(save);
+  localStorage.setItem(storageKey(), JSON.stringify(local));
+  status({ phase: 'saved', id: save.id });
 
   // Re-inject apiKey from localStorage
   if (save.gameConfig && typeof save.gameConfig === 'object') {
@@ -391,6 +577,7 @@ async function cloudLoadGame(id: string): Promise<SavedGame | null> {
       const storageKey = `oh_key_${provider}`;
       try {
         const { decryptKey } = await import('@/lib/crypto');
+        if (generation !== _generation) return null;
         const encrypted = localStorage.getItem(storageKey);
         if (encrypted) {
           const decrypted = decryptKey(encrypted);
@@ -404,7 +591,9 @@ async function cloudLoadGame(id: string): Promise<SavedGame | null> {
     }
   }
 
+  if (generation !== _generation) return null;
   return migrateSave({
+    ...save,
     id: save.id,
     timestamp: save.timestamp,
     gameState: save.gameState,
@@ -418,9 +607,12 @@ async function cloudLoadGame(id: string): Promise<SavedGame | null> {
 }
 
 async function cloudListSavedGames(): Promise<SavedGame[]> {
-  const res = await fetch('/api/saves');
+  const generation = _generation;
+  const res = await cloudRequest('/api/saves');
+  if (generation !== _generation) return [];
   if (!res.ok) return [];
   const data = (await res.json()) as { saves?: Record<string, unknown>[] };
+  if (generation !== _generation) return [];
   // The listing endpoint returns metadata only (no full JSON blobs)
   // Convert to SavedGame-compatible shape for display
   return (data.saves || []).map(
@@ -445,8 +637,35 @@ async function cloudListSavedGames(): Promise<SavedGame[]> {
   );
 }
 
-async function cloudDeleteGame(id: string): Promise<void> {
-  await fetch(`/api/saves/${encodeURIComponent(id)}`, { method: 'DELETE' });
+async function cloudDeleteGame(id: string): Promise<boolean> {
+  const generation = _generation;
+  let base = bases.get(id);
+  if (!base) {
+    const response = await cloudRequest(`/api/saves/${encodeURIComponent(id)}`);
+    if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+    if (response.status === 404) return false;
+    if (!response.ok) throw new Error('Cloud delete unavailable; local campaign kept');
+    const { save } = (await response.json()) as { save: SavedGame };
+    if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+    if (save.cloudRevision === undefined || !save.cloudChecksum)
+      throw new Error('Cloud revision unavailable; local campaign kept');
+    base = { revision: save.cloudRevision, checksum: save.cloudChecksum };
+  }
+  const headers = await writeHeaders();
+  if (generation !== _generation) throw new Error('Account changed');
+  const response = await cloudRequest(`/api/saves/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers,
+    body: JSON.stringify({
+      expectedRevision: base.revision,
+      expectedChecksum: base.checksum,
+      writeId: crypto.randomUUID(),
+    }),
+  });
+  if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+  if (!response.ok) throw new Error('Cloud campaign changed; local campaign kept');
+  bases.delete(id);
+  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -473,8 +692,10 @@ export async function saveGame(
     completedStepIds
   );
 
-  // Also write to cloud if authenticated
-  if (_authenticated) {
+  const unresolved = cloudStatus.phase === 'conflict' && cloudStatus.id === id;
+  if (!unresolved) status({ phase: 'local', id });
+  // Guest or another account's active journey requires an explicit import.
+  if (_authenticated && _playingOwner === _accountId && !unresolved) {
     try {
       await cloudSaveGame(
         gameState,
@@ -485,8 +706,9 @@ export async function saveGame(
         storySoFar,
         completedStepIds
       );
-    } catch (err) {
-      console.error('Cloud save failed, localStorage fallback used:', err);
+    } catch {
+      if (cloudStatus.phase !== 'conflict')
+        status({ phase: 'offline', id, message: 'Cloud save failed; local campaign kept.' });
     }
   }
 
@@ -494,23 +716,28 @@ export async function saveGame(
 }
 
 export async function loadGame(id: string): Promise<SavedGame | null> {
+  const generation = _generation;
   if (_authenticated) {
     try {
       const cloudSave = await cloudLoadGame(id);
+      if (generation !== _generation) return null;
       if (cloudSave) return cloudSave;
     } catch (err) {
       console.error('Cloud load failed, falling back to localStorage:', err);
     }
   }
+  if (generation !== _generation) return null;
   return localLoadGame(id);
 }
 
 export async function listSavedGames(): Promise<SavedGame[]> {
+  const generation = _generation;
   const localSaves = localListSavedGames();
 
   if (_authenticated) {
     try {
       const cloudSaves = await cloudListSavedGames();
+      if (generation !== _generation) return [];
       // Merge: cloud saves take precedence, then add local-only saves
       const cloudIds = new Set(cloudSaves.map((s) => s.id));
       const localOnly = localSaves.filter((s) => !cloudIds.has(s.id));
@@ -522,19 +749,53 @@ export async function listSavedGames(): Promise<SavedGame[]> {
     }
   }
 
+  if (generation !== _generation) return [];
   return localSaves;
 }
 
 export async function deleteGame(id: string): Promise<void> {
-  localDeleteGame(id);
-
-  if (_authenticated) {
-    try {
-      await cloudDeleteGame(id);
-    } catch (err) {
-      console.error('Cloud delete failed:', err);
+  const generation = _generation;
+  const account = _accountId;
+  if (_authenticated && account) {
+    // A purely local account copy can be removed offline without authorizing any
+    // cloud deletion. Missing receipts never justify deleting a remote head.
+    const raw = localStorage.getItem(storageKey(account));
+    const local = raw ? (JSON.parse(raw) as SavedGame[]) : [];
+    if (!Array.isArray(local)) throw new Error('Saved games are unreadable; existing data kept.');
+    const candidate = local.find((save) => save.id === id);
+    if (
+      candidate &&
+      candidate.cloudRevision === undefined &&
+      !candidate.cloudChecksum &&
+      !bases.has(id)
+    ) {
+      deleteLocalForOwner(id, account);
+      status({
+        phase: 'local',
+        id,
+        message: 'Local campaign copy deleted. Cloud saves were not changed.',
+      });
+      return;
     }
-  }
+    const guest =
+      _playingOwner === null && !candidate
+        ? guestSavedGames().find((save) => save.id === id)
+        : undefined;
+    try {
+      const hadCloud = await cloudDeleteGame(id);
+      if (generation !== _generation) throw new Error('Account changed; local campaign kept');
+      if (!hadCloud && guest) deleteLocalForOwner(id, null);
+      else deleteLocalForOwner(id, account);
+    } catch (error) {
+      if (generation !== _generation) throw error;
+      status({
+        phase: 'offline',
+        id,
+        message: 'Could not finish deletion. Local recovery is kept; refresh and try again.',
+      });
+      throw error;
+    }
+  } else localDeleteGame(id);
 }
 
 export function getLatestSave(): SavedGame | null {
@@ -546,19 +807,76 @@ export function getLatestSave(): SavedGame | null {
 // Upload localStorage saves to cloud (migration)
 // ---------------------------------------------------------------------------
 
-export async function uploadLocalSavesToCloud(): Promise<number> {
-  const localSaves = localListSavedGames();
-  if (localSaves.length === 0) return 0;
-
-  const res = await fetch('/api/saves/upload', {
+export async function uploadLocalSavesToCloud(): Promise<{
+  uploaded: number;
+  alreadyPresent: number;
+  conflicts: { id: string }[];
+}> {
+  const localSaves = guestSavedGames();
+  if (!localSaves.length) return { uploaded: 0, alreadyPresent: 0, conflicts: [] };
+  backupLocal(null);
+  const generation = _generation;
+  const headers = await writeHeaders();
+  if (generation !== _generation) throw new Error('Account changed');
+  const res = await cloudRequest('/api/saves/upload', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ saves: localSaves }),
+    headers,
+    body: JSON.stringify({
+      saves: localSaves.map((save) => ({ ...save, gameConfig: redactConfig(save.gameConfig) })),
+    }),
   });
+  if (generation !== _generation) throw new Error('Account changed; guest copies kept');
+  if (!res.ok) throw new Error(`Upload failed: ${res.status}; guest copies kept`);
+  return (await res.json()) as {
+    uploaded: number;
+    alreadyPresent: number;
+    conflicts: { id: string }[];
+  };
+}
 
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
-  const data = (await res.json()) as { uploaded?: number };
-  return data.uploaded || 0;
+/** Called by account UI only after the player explicitly chooses the local conflict copy. */
+export async function resolveCampaignConflict(
+  id: string,
+  choice: 'local' | 'keep-both' | 'cloud'
+): Promise<SavedGame | null> {
+  if (choice === 'cloud') return cloudLoadGame(id, true);
+  const save = localLoadGame(id);
+  if (!save) throw new Error('Local campaign is missing');
+  backupLocal();
+  if (choice === 'keep-both') {
+    const copy = {
+      ...save,
+      id: createSaveId(),
+      cloudRevision: undefined,
+      cloudChecksum: undefined,
+    };
+    const local = localListSavedGames(true);
+    local.push(copy);
+    localStorage.setItem(storageKey(), JSON.stringify(local));
+    await writeCampaign(copy, { revision: 0, checksum: '' });
+    return copy;
+  }
+  const generation = _generation;
+  const response = await cloudRequest(
+    `/api/player/games/open-historia/saves/${encodeURIComponent(id)}`
+  );
+  if (generation !== _generation) throw new Error('Account changed');
+  if (!response.ok && response.status !== 404)
+    throw new Error('Cloud unavailable; local campaign kept');
+  const current = response.ok
+    ? (
+        (await response.json()) as {
+          save: { revision: number; checksum: string; schemaVersion: string };
+        }
+      ).save
+    : null;
+  if (current && current.schemaVersion.localeCompare(VERSION, undefined, { numeric: true }) > 0)
+    throw new Error('Update the game before replacing this newer campaign');
+  await writeCampaign(save, {
+    revision: current?.revision || 0,
+    checksum: current?.checksum || '',
+  });
+  return save;
 }
 
 // ---------------------------------------------------------------------------

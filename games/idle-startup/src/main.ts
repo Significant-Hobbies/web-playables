@@ -14,7 +14,12 @@ import { createUI } from "./ui";
 // loop tick, so the platform pause signal freezes the whole company.
 async function boot() {
   const platform = createPlatform({ storageKey: "save:idle-startup" });
+  let currentState: GameState | null = null;
   const saves = createSaveManager<GameState>({
+    getState: () => {
+      if (!currentState) throw new Error("Company is still loading");
+      return currentState;
+    },
     platform,
     version: SAVE_VERSION,
     migrations,
@@ -24,6 +29,7 @@ async function boot() {
   // "?new" starts a clean company (the first save overwrites the old one)
   const loaded = await saves.load();
   const state = new URLSearchParams(location.search).has("new") ? initialState() : loaded.state;
+  currentState = state;
 
   const persist = async () => {
     try {

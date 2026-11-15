@@ -5,7 +5,7 @@ import { importSavedGame, loadGame, type SavedGame } from '@/lib/game-storage';
 interface SavedGamesListProps {
   savedGames: SavedGame[];
   onLoad: (saveId: string) => void;
-  onDelete: (saveId: string) => void;
+  onDelete: (saveId: string) => void | Promise<void>;
   /** Called after a successful file import so the parent can refresh
    *  its saved-games list. Receives the imported save's id. */
   onImport?: (saveId: string) => void;
@@ -190,7 +190,15 @@ export default function SavedGamesList({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onDelete(save.id);
+                    void Promise.resolve()
+                      .then(() => onDelete(save.id))
+                      .catch((error) =>
+                        setImportError(
+                          error instanceof Error
+                            ? error.message
+                            : 'Delete failed; local campaign kept.'
+                        )
+                      );
                   }}
                   className="text-xs text-slate-700 hover:text-rose-400 px-2 py-1 rounded-lg hover:bg-slate-800/60"
                   title="Delete save"

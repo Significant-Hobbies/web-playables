@@ -1,17 +1,20 @@
 export type ArtDirection = "ember" | "moon" | "tabletop";
+
+import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
+import { rank } from "./model";
+
+interface ActorMotion {
+  attack: number;
+  contact: number;
+  hurt: number;
+  death: number;
+  target: ActorId;
+  projectile: boolean;
+}
 export interface Scene {
   time: number;
   distance: number;
   walking: boolean;
-  heroAttack: number;
-  enemyAttack: number;
-  heroHurt: number;
-  enemyHurt: number;
-  enemyDeath: number;
-  heroDeath: number;
-  enemyKind: string;
-  enemyHealth: number;
-  enemyMaxHealth: number;
   chapter: number;
   beacons?: number;
   upgrades?: { blade: number; mail: number; charm: number };
@@ -19,6 +22,10 @@ export interface Scene {
   thorns?: number;
   reducedMotion: boolean;
   direction?: ArtDirection;
+  companion: CompanionId;
+  pet: PetId;
+  shield: number;
+  enemies: EnemyFighter[];
 }
 
 export interface Spark {
@@ -42,6 +49,14 @@ export class WorldRenderer {
   private ctx: CanvasRenderingContext2D;
   private heroImage = new Image();
   private enemyImage = new Image();
+  private partyImage = new Image();
+  private petImage = new Image();
+  private walkImage = new Image();
+  private motions = new Map<ActorId, ActorMotion>();
+  private foes: EnemyFighter[] = [];
+  private campView = true;
+  private scene: Scene | null = null;
+  private effects: { actor: ActorId; target: ActorId; age: number; kind: string }[] = [];
   private backdrops = new Map<number, HTMLImageElement>();
   private lightningAge = 1;
   private readonly places = [
@@ -64,56 +79,199 @@ export class WorldRenderer {
     this.ctx = ctx;
     this.heroImage.src = new URL("../assets/hero-knight.png", import.meta.url).href;
     this.enemyImage.src = new URL("../assets/enemies.png", import.meta.url).href;
+    this.partyImage.src = new URL("../assets/party-atlas.png", import.meta.url).href;
+    this.petImage.src = new URL("../assets/pet-atlas.png", import.meta.url).href;
+    this.walkImage.src = new URL("../assets/party-walk-atlas.png", import.meta.url).href;
     this.backdrop(1);
   }
 
   resize() {
     const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = Math.round(rect.width * ratio);
     this.canvas.height = Math.round(rect.height * ratio);
     this.width = 1000;
     this.height = (rect.height / Math.max(1, rect.width)) * this.width;
-    const pixels = Math.min(300, Math.max(120, Math.min(rect.width * 0.35, rect.height * 0.36)));
-    this.actorScale = pixels / (200 * Math.max(0.1, rect.width / this.width));
+    this.actorScale = Math.min(1.03, Math.max(0.45, this.height / 420));
   }
 
-  impact(
-    side: "hero" | "enemy",
+  clear() {
+    this.motions.clear();
+    this.foes = [];
+    this.effects = [];
+    this.sparks.length = 0;
+  }
+
+  capture(state: GameState) {
+    if (state.phase.kind === "battle") {
+      if (state.phase.enemies !== this.foes) {
+        this.motions.clear();
+        this.effects = [];
+      }
+      this.foes = state.phase.enemies;
+    }
+  }
+
+  private motion(id: ActorId) {
+    let motion = this.motions.get(id);
+    if (!motion) {
+      motion = { attack: -1, contact: 0.22, hurt: -1, death: 0, target: "hero", projectile: false };
+      this.motions.set(id, motion);
+    }
+    return motion;
+  }
+
+  get settling() {
+    return [...this.motions.values()].some((m) => m.death > 0 && m.death < 1);
+  }
+
+  handle(events: GameEvent[], state: GameState) {
+    for (const event of events) {
+      if (event.type === "swing") {
+        Object.assign(this.motion(event.actor), {
+          attack: 0,
+          target: event.target,
+          projectile: event.projectile,
+          contact:
+            event.actor === "hero"
+              ? 0.22
+              : event.actor === "pet"
+                ? 0.3
+                : event.actor === "companion"
+                  ? event.projectile
+                    ? 0.5
+                    : 0.25
+                  : event.projectile
+                    ? 0.65
+                    : 0.29,
+        });
+      } else if (event.type === "hit") {
+        this.motion(event.target).hurt = 0;
+        this.impact(event.target, event.damage, event.critical, false, event.lightning);
+        if (
+          event.lightning ||
+          (event.actor === "hero" && event.target !== this.motion("hero").target)
+        )
+          this.effects.push({
+            actor: event.actor,
+            target: event.target,
+            age: 0,
+            kind: event.lightning ? "lightning" : "cleave",
+          });
+      } else if (event.type === "heal") this.impact("hero", event.amount, false, true);
+      else if (event.type === "kill") {
+        this.motion(event.target).death = 0.001;
+        this.motion(event.target).attack = -1;
+      } else if (event.type === "defeat") this.motion("hero").death = 0.001;
+      else if (event.type === "interrupt") {
+        this.motion(event.target).attack = -1;
+        this.effects.push({ actor: event.actor, target: event.target, age: 0, kind: "interrupt" });
+      } else if (event.type === "shield")
+        this.effects.push({ actor: "hero", target: "hero", age: 0, kind: "shield" });
+      else if (event.type === "skill")
+        this.effects.push({ actor: "hero", target: "hero", age: 0, kind: event.skill });
+    }
+    this.capture(state);
+  }
+
+  frame(
+    state: GameState,
+    time: number,
+    reducedMotion: boolean,
+    camp = state.phase.kind === "camp",
+  ) {
+    this.campView = camp;
+    this.capture(state);
+    const enemies = !camp && (state.phase.kind === "battle" || this.settling) ? this.foes : [];
+    this.draw({
+      time,
+      distance: state.run.distance,
+      walking: state.phase.kind === "travel",
+      chapter: state.run.chapter,
+      beacons: state.run.cleared,
+      upgrades: state.meta.upgrades,
+      storm: rank(state, "storm"),
+      thorns: rank(state, "thorns"),
+      reducedMotion,
+      companion: state.meta.loadout.companion,
+      pet: state.meta.loadout.pet,
+      shield: state.run.shield,
+      enemies,
+    });
+  }
+
+  private position(id: ActorId) {
+    const ground = this.height * 0.76;
+    if (this.campView) {
+      if (id === "hero") return { x: 200, y: ground, scale: this.actorScale };
+      if (id === "companion") return { x: 535, y: ground, scale: this.actorScale * 0.92 };
+      if (id === "pet") return { x: 850, y: ground, scale: this.actorScale * 0.5 };
+    }
+    if (id === "hero") return { x: 355, y: ground, scale: this.actorScale };
+    if (id === "companion") return { x: 155, y: ground - 18, scale: this.actorScale * 0.88 };
+    if (id === "pet") return { x: 270, y: ground + 14, scale: this.actorScale * 0.5 };
+    const foe = this.foes.find((e) => e.id === id);
+    const slot = foe?.slot ?? 0;
+    const back = foe?.row === "back";
+    return {
+      x: back ? 795 + (slot % 2) * 120 : 540 + (slot % 2) * 125,
+      y: ground - (back ? 30 : 0) + (slot % 2) * 15,
+      scale: this.actorScale * (back ? 0.77 : 0.89),
+    };
+  }
+
+  private posedPosition(id: ActorId, scene = this.scene) {
+    const p = this.position(id);
+    if (!scene || scene.reducedMotion) return p;
+    const m = this.motion(id);
+    if (m.attack < 0 || m.projectile || m.death > 0) return p;
+    const target = this.position(m.target);
+    const t =
+      m.attack <= m.contact ? m.attack / m.contact : 1 - Math.min(1, (m.attack - m.contact) / 0.3);
+    const reach = id === "pet" ? 35 : 80;
+    p.x += (target.x - p.x - Math.sign(target.x - p.x) * reach) * Math.max(0, t);
+    if (id === "pet" && scene.pet === "owl") p.y -= Math.sin(Math.max(0, t) * Math.PI) * 90;
+    return p;
+  }
+
+  private impact(
+    target: ActorId,
     value: number,
     critical: boolean,
     heal = false,
     lightning = false,
   ) {
+    if (!value) return;
     if (lightning) this.lightningAge = 0;
-    const x = side === "hero" ? 295 : 480;
-    const y = this.height * 0.73 - 160 * this.actorScale;
+    const { x, y, scale } = this.posedPosition(target);
     this.sparks.push({
       x,
-      y,
+      y: y - 170 * scale,
       age: 0,
-      life: 1,
+      life: 0.8,
       vx: critical ? -10 : 4,
       vy: -25,
       color: heal ? "#bee09c" : critical ? "#ffe1a0" : PAPER,
       text: `${heal ? "+" : "−"}${Math.ceil(value)}${critical ? "!" : ""}`,
     });
-    for (let i = 0; i < (critical ? 14 : 8); i++) {
-      const a = (i / 8) * Math.PI * 2;
-      this.sparks.push({
-        x: x + (side === "hero" ? 38 : -20),
-        y: y + 65,
-        age: 0,
-        life: 0.3 + (i % 3) * 0.08,
-        vx: Math.cos(a) * (55 + (i % 4) * 20),
-        vy: Math.sin(a) * 80 - 20,
-        color: heal ? "#bee09c" : i % 2 ? GOLD : "#fff2ca",
-      });
-    }
   }
 
   advance(dt: number) {
     this.lightningAge += dt;
+    for (const m of this.motions.values()) {
+      if (m.attack >= 0) {
+        m.attack += dt;
+        if (m.attack > m.contact + 0.35) m.attack = -1;
+      }
+      if (m.hurt >= 0) {
+        m.hurt += dt;
+        if (m.hurt > 0.24) m.hurt = -1;
+      }
+      if (m.death > 0) m.death = Math.min(1, m.death + dt / 0.48);
+    }
+    for (const effect of this.effects) effect.age += dt;
+    this.effects = this.effects.filter((e) => e.age < 0.6);
     for (let i = this.sparks.length - 1; i >= 0; i--) {
       const p = this.sparks[i];
       if (!p) continue;
@@ -136,50 +294,9 @@ export class WorldRenderer {
     else if (direction === "tabletop") this.tableWorld(s);
     else this.emberWorld(s);
     this.roadLights(s);
-    const ground = h * 0.73;
-    const scale = this.actorScale;
-    const moving = s.walking && !s.reducedMotion;
-    const gait = moving ? Math.sin(s.time * 10) : 0;
-    const heroX = 292 + (s.heroAttack > 0 ? Math.sin(s.heroAttack * Math.PI) * 18 : 0);
-    const heroBob = moving ? Math.abs(Math.sin(s.time * 10)) * 3 : Math.sin(s.time * 2.5) * 1.2;
-    this.character(
-      heroX,
-      ground - heroBob,
-      scale,
-      "hero",
-      gait,
-      s.heroAttack,
-      s.heroHurt,
-      s.heroDeath,
-      s,
-      false,
-    );
-    if (s.enemyDeath < 1) {
-      const approach = s.walking ? 70 * (1 - Math.min(1, s.time % 1.2)) : 0;
-      this.character(
-        480 + approach,
-        ground,
-        scale,
-        s.enemyKind,
-        0,
-        s.enemyAttack,
-        s.enemyHurt,
-        s.enemyDeath,
-        s,
-        true,
-      );
-      if (!s.walking && s.heroDeath === 0 && s.enemyDeath === 0)
-        this.healthBar(480, ground - 206 * scale, 88, s.enemyHealth, s.enemyMaxHealth);
-    }
-    if (s.enemyDeath === 0 && s.heroDeath === 0) {
-      c.save();
-      c.globalAlpha = 0.8;
-      this.character(735, ground - 8, scale * 0.72, "raider", 0, 0, 0, 0, s, true);
-      c.globalAlpha = 0.65;
-      this.character(915, ground - 15, scale * 0.6, "sentinel", 0, 0, 0, 0, s, true);
-      c.restore();
-    }
-    this.equipment(s, heroX, ground, scale);
+    this.scene = s;
+    this.drawActors(s);
+    this.drawEffects(s);
     if (!s.reducedMotion) {
       this.particles(s);
       this.weather(s);
@@ -211,6 +328,195 @@ export class WorldRenderer {
     vignette.addColorStop(1, direction === "moon" ? "#0c112966" : "#1f352e55");
     c.fillStyle = vignette;
     c.fillRect(0, 0, w, h);
+  }
+
+  private drawActors(s: Scene) {
+    const ids: ActorId[] = [
+      "companion",
+      ...s.enemies.filter((e) => e.row === "back").map((e) => e.id),
+      "hero",
+      ...s.enemies.filter((e) => e.row === "front").map((e) => e.id),
+      "pet",
+    ];
+    for (const id of ids) {
+      const m = this.motion(id);
+      const foe = s.enemies.find((e) => e.id === id);
+      if (foe && foe.hp <= 0 && m.death === 0) continue;
+      if (m.death >= 1) continue;
+      const { x, y, scale } = this.posedPosition(id, s);
+      const attack = m.attack < 0 ? 0 : Math.min(0.99, m.attack / (m.contact * 2));
+      const hurt = m.hurt < 0 ? 0 : m.hurt / 0.24;
+      if (id === "hero" || (foe && foe.kind !== "archer")) {
+        this.character(
+          x,
+          y,
+          scale,
+          id === "hero" ? "hero" : foe!.kind,
+          s.walking && !s.reducedMotion ? Math.sin(s.time * 10) : 0,
+          attack,
+          hurt,
+          m.death,
+          s,
+          id !== "hero",
+        );
+        if (id === "hero") this.equipment(s, x, y, scale);
+      } else {
+        const pet = id === "pet";
+        const walking = id === "companion" && s.walking && !s.reducedMotion;
+        const image = pet ? this.petImage : walking ? this.walkImage : this.partyImage;
+        const rows = pet || walking ? 3 : 4;
+        const row = pet
+          ? { fox: 0, hound: 1, owl: 2 }[s.pet]
+          : id === "companion"
+            ? { mira: 0, bram: 1, sable: 2 }[s.companion]
+            : 3;
+        const column = walking
+          ? Math.floor(s.time * 7) % 4
+          : m.attack < 0
+            ? 0
+            : m.attack < (m.projectile ? Math.min(0.2, m.contact * 0.35) : m.contact * 0.75)
+              ? 1
+              : m.attack < m.contact + 0.08
+                ? 2
+                : 3;
+        this.atlas(
+          image,
+          4,
+          rows,
+          column,
+          row,
+          x,
+          y,
+          (pet ? 250 : 210) * scale,
+          m.death,
+          hurt,
+          s.reducedMotion,
+        );
+      }
+      if (foe && foe.hp > 0) this.healthBar(x, y - 205 * scale, 74, foe.hp, foe.maxHp);
+    }
+    if (s.shield > 0) {
+      const p = this.posedPosition("hero", s);
+      this.ctx.strokeStyle = "#9cdee8";
+      this.ctx.lineWidth = 3;
+      this.ctx.beginPath();
+      this.ctx.ellipse(p.x, p.y - 85 * p.scale, 78 * p.scale, 112 * p.scale, 0, 0, Math.PI * 2);
+      this.ctx.stroke();
+    }
+  }
+
+  private atlas(
+    image: HTMLImageElement,
+    cols: number,
+    rows: number,
+    column: number,
+    row: number,
+    x: number,
+    y: number,
+    extent: number,
+    death: number,
+    hurt: number,
+    reduced: boolean,
+  ) {
+    if (!image.complete || !image.naturalWidth) return;
+    const c = this.ctx;
+    const sw = image.naturalWidth / cols,
+      sh = image.naturalHeight / rows;
+    c.save();
+    this.ellipse(x, y + 3, extent * 0.18, extent * 0.035, "#263e333b");
+    c.translate(x + (reduced ? 0 : Math.sin(hurt * Math.PI) * 6), y);
+    c.globalAlpha *= 1 - death;
+    if (death && !reduced) {
+      c.rotate(death * 0.8);
+      c.translate(death * 15, death * 8);
+    }
+    c.drawImage(
+      image,
+      column * sw,
+      row * sh,
+      sw,
+      sh,
+      -extent / 2,
+      -extent,
+      extent,
+      (extent * sh) / sw,
+    );
+    c.restore();
+  }
+
+  private drawEffects(s: Scene) {
+    const c = this.ctx;
+    for (const [id, m] of this.motions) {
+      if (m.attack < 0 || !m.projectile || m.attack > m.contact || m.death > 0) continue;
+      const source = this.posedPosition(id, s),
+        target = this.posedPosition(m.target, s);
+      const windup = Math.min(0.2, m.contact * 0.35);
+      if (m.attack < windup) continue;
+      const t = Math.min(1, (m.attack - windup) / (m.contact - windup));
+      const sx = source.x + (id === "companion" ? 45 : -35),
+        sy = source.y - 105 * source.scale;
+      const tx = target.x,
+        ty = target.y - 100 * target.scale;
+      const x = sx + (tx - sx) * t,
+        y = sy + (ty - sy) * t - Math.sin(t * Math.PI) * 18;
+      const bolt =
+        id === "companion"
+          ? s.companion === "sable"
+          : this.foes.find((e) => e.id === id)?.kind === "hexer";
+      c.save();
+      c.translate(x, y);
+      c.rotate(Math.atan2(ty - sy, tx - sx));
+      if (bolt) {
+        c.fillStyle = "#cba4fa";
+        c.shadowColor = "#a879e5";
+        c.shadowBlur = 15;
+        c.beginPath();
+        c.ellipse(0, 0, 11, 5, 0, 0, Math.PI * 2);
+        c.fill();
+      } else {
+        this.line(-22, 0, 10, 0, "#452e21", 3);
+        this.line(4, -4, 12, 0, "#eee8d7", 2);
+        this.line(4, 4, 12, 0, "#eee8d7", 2);
+        this.line(-20, -4, -14, 0, "#caba94", 2);
+      }
+      c.restore();
+    }
+    for (const effect of this.effects) {
+      const p = this.posedPosition(effect.actor, s),
+        q = this.posedPosition(effect.target, s);
+      c.save();
+      c.globalAlpha = 1 - effect.age / 0.6;
+      if (effect.kind === "lightning") {
+        c.strokeStyle = "#d8bcff";
+        c.lineWidth = 4;
+        c.beginPath();
+        c.moveTo(p.x, p.y - 100 * p.scale);
+        for (let i = 1; i <= 7; i++)
+          c.lineTo(p.x + ((q.x - p.x) * i) / 7, q.y - 90 * q.scale + (i % 2 ? -18 : 12));
+        c.stroke();
+      } else if (effect.kind === "interrupt") {
+        c.strokeStyle = "#eed18b";
+        c.lineWidth = 3;
+        const yy = q.y - 175 * q.scale;
+        this.line(q.x - 12, yy - 12, q.x + 12, yy + 12, "#eed18b", 3);
+        this.line(q.x - 12, yy + 12, q.x + 12, yy - 12, "#eed18b", 3);
+      } else {
+        c.strokeStyle = effect.kind === "aegis" || effect.kind === "shield" ? "#9cdee8" : "#f7d59a";
+        c.lineWidth = 5;
+        c.beginPath();
+        c.ellipse(
+          effect.kind === "cleave" ? q.x : p.x + 80,
+          p.y - 75 * p.scale,
+          (effect.kind === "whirlwind" ? 220 : 70) * p.scale,
+          75 * p.scale,
+          0,
+          -1.8,
+          1.8,
+        );
+        c.stroke();
+      }
+      c.restore();
+    }
   }
 
   private shape(points: number[][], fill: string, stroke = INK, line = 3) {
@@ -1071,11 +1377,11 @@ export class WorldRenderer {
           : 0
       : ({ raider: 0, sentinel: 1, hexer: 2, warden: 3 }[kind] ?? 0);
     const row = hero ? (attack > 0 ? 1 : 0) : attack > 0.3 && attack < 0.8 ? 1 : 0;
-    const cell = img.width / 4;
+    const cell = img.naturalWidth / 4;
+    const cellHeight = img.naturalHeight / 2;
     const extent = 204 * scale;
     const recoil = scene.reducedMotion ? 0 : Math.sin(hurt * Math.PI) * (hero ? -8 : 9);
-    const lunge =
-      scene.reducedMotion || attack === 0 ? 0 : Math.sin(attack * Math.PI) * (hero ? 24 : -17);
+    const lunge = 0;
     const breath = scene.reducedMotion ? 0 : Math.sin(scene.time * 2.7) * 1.5;
     c.save();
     this.ellipse(x, y + 4, 39 * scale, 8 * scale, "#263e3347");
@@ -1088,9 +1394,9 @@ export class WorldRenderer {
     c.drawImage(
       img,
       column * cell,
-      row * cell,
+      row * cellHeight,
       cell,
-      cell,
+      cellHeight,
       -extent / 2,
       -extent + 4,
       extent,

@@ -83,6 +83,9 @@ var motion_was_active=false
 var context_rect=Rect2(350,620,700,210)
 var web_pause_callback
 var web_storage_callback
+var web_capture_callback
+var web_import_callback
+var cloud_slot=""
 var web_export_callback
 var web_storage_failed=false
 
@@ -122,6 +125,7 @@ func _ready():
    game.save_error="Browser storage is unavailable. This session will not survive a reload."
    show_page()
   JavaScriptBridge.get_interface("window").warChestReady(OS.is_userfs_persistent())
+  JavaScriptBridge.eval("window.warChestCloudReady && window.warChestCloudReady()")
 
 func load_local_company():
  # Separate local slots: restoring any original company never enrolls it.
@@ -266,6 +270,29 @@ func setup_web():
  web_export_callback=JavaScriptBridge.create_callback(func(_args):
   JavaScriptBridge.get_interface("window").warChestSaveSnapshot(JSON.stringify(game.snapshot())))
  browser.warChestExport=web_export_callback
+ web_capture_callback=JavaScriptBridge.create_callback(func(_args):
+  var slot=cloud_slot if not cloud_slot.is_empty() else ("story" if save_path==story_save else "original")
+  JavaScriptBridge.get_interface("window").warChestCloudSnapshot(JSON.stringify(game.snapshot()),slot))
+ browser.warChestCapture=web_capture_callback
+ web_import_callback=JavaScriptBridge.create_callback(func(args):
+  var candidate=Game.new()
+  var parsed=JSON.parse_string(str(args[0]))
+  var storage_id=str(args[1])
+  var accepted=storage_id.length()<=180 and ("account_"+storage_id.replace("-", "_")).is_valid_identifier()
+  if accepted: accepted=candidate.restore(parsed)
+  if accepted:
+   # Cloud accounts have separate files. Original browser campaigns are never overwritten.
+   var destination="user://account-"+storage_id+".json"
+   accepted=candidate.save_to(destination)
+   if accepted:
+    cancel_combat_animation()
+    game=candidate;field.game=game;save_path=destination;undo={};selected="rowan"
+    cloud_slot="story" if game.story_active() else "original"
+    page="battle" if not game.battle.is_empty() else "story" if game.story_active() and game.campaign.story.phase in ["intro","outro","ending"] else "chest"
+    mission=mini(game.campaign.unlocked,game.level()-1)
+    show_page()
+  JavaScriptBridge.get_interface("window").warChestImported(accepted,cloud_slot))
+ browser.warChestImport=web_import_callback
 
 func persist():
  if not demo:
@@ -274,6 +301,9 @@ func persist():
    return
   if game.save_to(save_path) and OS.has_feature("web"):
    JavaScriptBridge.eval("window.warChestSaveChanged && window.warChestSaveChanged()")
+   var slot=cloud_slot if not cloud_slot.is_empty() else ("story" if save_path==story_save else "original")
+   if JavaScriptBridge.eval("typeof window.warChestCloudSnapshot === 'function'"):
+    JavaScriptBridge.get_interface("window").warChestCloudSnapshot(JSON.stringify(game.snapshot()),slot)
 
 func navigate(to: String):
  cancel_combat_animation()
@@ -354,7 +384,7 @@ func start_new_story():
   if next.save_locked: story_open_error=next.save_error;game.message="Story save kept unchanged. Open How to play for recovery details.";show_page();return
  else:
   if not next.enroll_story(): return
- game=next;field.game=game;save_path=story_save;story_open_error=""
+ game=next;field.game=game;save_path=story_save;cloud_slot="";story_open_error=""
  selected="rowan";undo={};persist();navigate("battle" if not game.battle.is_empty() else ("story" if game.story_active() and game.campaign.story.phase!="prepare" else "keep"))
 
 func story_advance():
@@ -384,7 +414,7 @@ func start_story_battle():
 func open_original_company():
  if demo or save_path!=story_save or not FileAccess.file_exists(legacy_save): return
  var original=Game.new();original.load_from(legacy_save)
- game=original;field.game=game;save_path=legacy_save;selected="rowan";undo={}
+ game=original;field.game=game;save_path=legacy_save;cloud_slot="";selected="rowan";undo={}
  mission=mini(game.campaign.unlocked,game.level()-1)
  navigate("battle" if not game.battle.is_empty() else "keep")
 

@@ -13,9 +13,10 @@ import {
   loadGame,
   restoreSavedGameState,
   setAuthenticated,
+  startAccountCampaign,
 } from '@/lib/game-storage';
 import { INITIAL_PLAYERS } from '@/lib/map-generator';
-import { GameConfig } from '@/lib/types';
+import type { GameConfig } from '@/lib/types';
 import type {
   DiplomaticRelation,
   GameEvent,
@@ -54,7 +55,8 @@ export function useGameState(initialGameId?: string) {
   }, []);
 
   // Auth
-  const { data: authSession } = authClient.useSession();
+  const { data: authSession, isPending: authPending } = authClient.useSession();
+  const awaitingInitialAccount = Boolean(initialGameId) && authPending;
 
   const refreshSavedGames = useCallback(async () => {
     if (typeof window === 'undefined') return;
@@ -69,7 +71,7 @@ export function useGameState(initialGameId?: string) {
 
   // Sync auth state + re-fetch saves when session changes
   useEffect(() => {
-    setAuthenticated(!!authSession?.user);
+    setAuthenticated(!!authSession?.user, authSession?.user.id);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshSavedGames();
   }, [authSession, refreshSavedGames]);
@@ -85,6 +87,7 @@ export function useGameState(initialGameId?: string) {
 
   useEffect(() => {
     async function load() {
+      if (awaitingInitialAccount) return;
       const shouldTrackInitialRestore = isNewInitialRestoreAttempt(
         initialGameId,
         worldLoadRequest,
@@ -145,7 +148,7 @@ export function useGameState(initialGameId?: string) {
       }
     }
     load();
-  }, [refreshSavedGames, initialGameId, worldLoadRequest]);
+  }, [refreshSavedGames, initialGameId, worldLoadRequest, awaitingInitialAccount]);
 
   // Preset selection
   const handleSelectPreset = useCallback((preset: Preset) => {
@@ -230,6 +233,7 @@ export function useGameState(initialGameId?: string) {
         advisorHistory: [],
       };
 
+      startAccountCampaign();
       setGameState(newState);
 
       return gameId;

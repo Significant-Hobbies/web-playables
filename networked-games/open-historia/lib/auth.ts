@@ -43,6 +43,13 @@ export function createAuth(env: AuthEnv) {
       googleClientId && googleClientSecret
         ? { google: { clientId: googleClientId, clientSecret: googleClientSecret } }
         : {},
+    trustedOrigins: [
+      'https://historia.aliveville.com',
+      'https://idle.aliveville.com',
+      ...(env.NODE_ENV !== 'production'
+        ? ['http://localhost:5173', 'http://127.0.0.1:43187', 'http://127.0.0.1:4185']
+        : []),
+    ],
     session: {
       expiresIn: 60 * 60 * 24 * 30,
     },

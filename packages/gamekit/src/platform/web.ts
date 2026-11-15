@@ -5,6 +5,7 @@ export class WebPlatform implements Platform {
   readonly env = "web";
   readonly allowsMuteUi = true;
   readonly #key: string;
+  readonly #host = typeof window !== "undefined" ? window.playablesPersistenceHost : undefined;
 
   constructor(storageKey: string) {
     this.#key = storageKey;
@@ -14,6 +15,7 @@ export class WebPlatform implements Platform {
   gameReady(): void {}
 
   async loadData(): Promise<string | null> {
+    if (this.#host) return this.#host.loadData(this.#key);
     try {
       return localStorage.getItem(this.#key);
     } catch {
@@ -23,6 +25,7 @@ export class WebPlatform implements Platform {
   }
 
   async saveData(data: string): Promise<void> {
+    if (this.#host) return this.#host.saveData(this.#key, data);
     try {
       localStorage.setItem(this.#key, data);
     } catch {
@@ -38,9 +41,33 @@ export class WebPlatform implements Platform {
     return () => {};
   }
 
+  onSaveRequest(cb: () => void | Promise<void>): Unsubscribe {
+    return this.#host?.registerSaveRequest(cb) ?? (() => {});
+  }
+
   onPauseChange(cb: (paused: boolean) => void): Unsubscribe {
-    const handler = () => cb(document.visibilityState === "hidden");
+    let hostPaused = false;
+    const handler = () => cb(hostPaused || document.visibilityState === "hidden");
+    const unsubscribe = this.#host?.onPauseChange((paused) => {
+      hostPaused = paused;
+      handler();
+    });
     document.addEventListener("visibilitychange", handler);
-    return () => document.removeEventListener("visibilitychange", handler);
+    return () => {
+      unsubscribe?.();
+      document.removeEventListener("visibilitychange", handler);
+    };
+  }
+}
+
+/** Optional host injection exists only in assembled Pages web builds. YT never reads it. */
+declare global {
+  interface Window {
+    playablesPersistenceHost?: {
+      loadData(key: string): Promise<string | null>;
+      saveData(key: string, data: string): Promise<void>;
+      onPauseChange(callback: (paused: boolean) => void): Unsubscribe;
+      registerSaveRequest(callback: () => void | Promise<void>): Unsubscribe;
+    };
   }
 }

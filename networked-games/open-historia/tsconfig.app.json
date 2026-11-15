@@ -41,6 +41,8 @@
     "src/worker/**/*.ts",
     "**/*.test.ts",
     "lib/**/__tests__/**",
-    "lib/worker-env.ts"
+    "lib/worker-env.ts",
+    "lib/cloud-saves/repository.ts",
+    "lib/cloud-saves/security.ts"
   ]
 }

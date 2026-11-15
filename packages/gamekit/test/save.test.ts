@@ -40,6 +40,27 @@ const manager = (platform: Platform) =>
   });
 
 describe("createSaveManager", () => {
+  it("requests the live replacement model rather than the last saved object", async () => {
+    const platform = fakePlatform();
+    let request: (() => void | Promise<void>) | undefined;
+    platform.onSaveRequest = (callback) => {
+      request = callback;
+      return () => {};
+    };
+    let state = { cash: 0, investors: 0 };
+    const saves = createSaveManager({
+      platform,
+      version: 3,
+      initial: () => state,
+      getState: () => state,
+    });
+    await saves.load();
+    state = { cash: 55, investors: 2 };
+    if (!request) throw new Error("Snapshot hook was not registered");
+    await request();
+    if (!platform.raw) throw new Error("Snapshot was not persisted");
+    expect(JSON.parse(platform.raw).state).toEqual(state);
+  });
   it("returns initial state with null savedAt when no save exists", async () => {
     const result = await manager(fakePlatform()).load();
     expect(result.state).toEqual({ cash: 0, investors: 0 });

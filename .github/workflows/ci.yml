@@ -28,6 +28,22 @@ jobs:
       - run: pnpm run check
       - run: pnpm --filter open-historia exec playwright install --with-deps chromium
       - run: pnpm games:e2e
+      - name: Retain built games for rendered review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-playables-preview
+          retention-days: 3
+          path: apps/hub/dist
+      - name: Retain browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-playables-browser-evidence
+          retention-days: 3
+          path: |
+            /tmp/ember-road-web-evidence
+            /tmp/playables-cloud-evidence
       - name: Run Idle Startup test suite
         working-directory: games/idle-startup
         run: pnpm test
@@ -60,3 +76,12 @@ jobs:
       - run: pnpm exec playwright install --with-deps chromium webkit
       - run: pnpm exec playwright test e2e/campaign.spec.ts e2e/campaign-layout.spec.ts --project=desktop --project=mobile
       - run: pnpm cf:build
+      - name: Retain Historia runtime and browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: historia-preview
+          retention-days: 3
+          path: |
+            networked-games/open-historia/dist
+            networked-games/open-historia/test-results
