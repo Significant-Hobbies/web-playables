@@ -566,4 +566,25 @@ describe("a company on the old road", () => {
     expect(validState(s)).toBe(false);
     expect(livingEnemies(b)).toHaveLength(2);
   });
+  it("does not teleport a queued Mira arrow to another enemy after its target dies", () => {
+    const state = initialState();
+    const phase = battle(state);
+    const front = enemyAt(phase, 0);
+    const rear = enemyAt(phase, 1);
+    const before = front.hp;
+    rear.hp = 0;
+    phase.companionHit = {
+      remaining: 0.01,
+      damage: 50,
+      critical: false,
+      target: rear.id,
+      projectile: true,
+    };
+    const events = stepGame(state, 0.02);
+    expect(front.hp).toBe(before);
+    expect(events.filter((event) => event.type === "hit" && event.actor === "companion")).toEqual(
+      [],
+    );
+    expect(phase.companionHit).toBeNull();
+  });
 });

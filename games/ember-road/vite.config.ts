@@ -1,9 +1,11 @@
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => ({
   base: "./",
   build: { outDir: mode === "yt" ? "dist/yt" : "dist/web", emptyOutDir: true, target: "es2022" },
   plugins: [
+    tailwindcss(),
     {
       name: "yt-sdk-inject",
       transformIndexHtml() {

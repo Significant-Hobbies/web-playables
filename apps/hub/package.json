@@ -11,10 +11,18 @@
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/space-grotesk": "^5.2.8",
-    "@games/cloud-contract": "workspace:*"
+    "@games/cloud-contract": "workspace:*",
+    "@saas-maker/ui": "github:sass-maker/ui-library#v0.1.35&path:/packages/ui",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "lucide-react": "1.48.0"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
-    "vite": "^7.3.4"
+    "vite": "^7.3.4",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tailwindcss": "4.3.3",
+    "@tailwindcss/vite": "4.3.3"
   }
 }

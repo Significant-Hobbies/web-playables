@@ -837,7 +837,7 @@ export function useSkill(state: GameState): GameEvent[] {
   return events;
 }
 function resolveHero(state: GameState, battle: BattlePhase, hit: TargetHit, events: GameEvent[]) {
-  const target = battle.enemies.find((e) => e.id === hit.target && e.hp > 0) ?? frontTarget(battle);
+  const target = battle.enemies.find((e) => e.id === hit.target && e.hp > 0);
   if (!target) return;
   state.run.strikes++;
   const third = state.run.strikes % 3 === 0;
@@ -865,7 +865,7 @@ function resolveAlly(
   hit: TargetHit,
   events: GameEvent[],
 ) {
-  const target = battle.enemies.find((e) => e.id === hit.target && e.hp > 0) ?? frontTarget(battle);
+  const target = battle.enemies.find((e) => e.id === hit.target && e.hp > 0);
   if (!target) return;
   if (actor === "pet" && state.meta.loadout.pet === "owl") interrupt(target, 1, actor, events);
   const targets =
