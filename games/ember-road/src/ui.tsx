@@ -1,7 +1,11 @@
 import { Badge } from "@saas-maker/ui/components/badge";
 import { Button } from "@saas-maker/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@saas-maker/ui/components/card";
-import { NativeDialog, NativeProgress } from "@saas-maker/ui/components/native-controls";
+import {
+  NativeDialog,
+  NativeInput,
+  NativeProgress,
+} from "@saas-maker/ui/components/native-controls";
 import { Switch } from "@saas-maker/ui/components/switch";
 import {
   ArrowRight,
@@ -17,12 +21,17 @@ import {
   Sparkles,
   Sword,
   Tent,
+  Volume2,
+  VolumeX,
   X,
   Zap,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import type { AudioStatus, SoundCue } from "./audio";
+import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
+import { StoryOpening } from "./experience-ui";
 import { GameIcon } from "./game-icon";
 import { LoadoutArt } from "./loadout-art";
 import {
@@ -64,6 +73,9 @@ export interface UiSnapshot {
   saveWarning: boolean;
   paused: boolean;
   motionPaused: boolean;
+  presentationPaused: boolean;
+  audioStatus: AudioStatus;
+  audioControls: boolean;
   reducedMotion: boolean;
   decisionReady: boolean;
   note: string;
@@ -85,6 +97,13 @@ export interface UiActions {
   refreshMissions(): void;
   claim(scope: QuestScope, id: string, period: number | null): void;
   reduce(value: boolean): void;
+  unlockAudio(): void;
+  uiSound(cue?: SoundCue): void;
+  finishIntro(): void;
+  toggleSound(): void;
+  learn(lesson: Lesson): void;
+  skipGuidance(): void;
+  audioPreference(key: keyof AudioPreferences, value: boolean | number): void;
 }
 type Section = "Camp" | "Companions" | "Pets" | "Equipment" | "Skills" | "Journey";
 const rarityNames: Record<Rarity, string> = {
@@ -250,6 +269,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   useEffect(() => {
     if (canvas.current) a.canvas(canvas.current);
   }, [a]);
+  const [replayIntro, setReplayIntro] = useState(false);
+  const experience = experienceOf(state);
+  const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
   const [missionTab, setMissionTab] = useState<QuestScope>("story");
@@ -280,14 +302,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   useEffect(
     () =>
       a.inspect(
-        settings ||
+        showPrologue ||
+          settings ||
           detail !== null ||
           campOpen ||
           retreat ||
           introChapter !== null ||
           section !== "Camp",
       ),
-    [a, settings, detail, campOpen, retreat, introChapter, section],
+    [a, settings, detail, campOpen, retreat, introChapter, section, showPrologue],
   );
   useEffect(() => {
     if (inCamp) {
@@ -436,7 +459,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   );
   return (
     <div
-      className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
+      className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
     >
       <header className="game-topbar">
         <Button
@@ -468,6 +491,21 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <b id="gold">{state.meta.gold}</b>
           </span>
           {v.web && <span data-playables-account-slot="" />}
+          {v.audioControls && (
+            <Button
+              className="sound-toggle"
+              variant="ghost"
+              size="icon"
+              aria-label="Open sound settings"
+              onClick={() => setSettings(true)}
+            >
+              {experience.audio.musicEnabled || experience.audio.effectsEnabled ? (
+                <Volume2 />
+              ) : (
+                <VolumeX />
+              )}
+            </Button>
+          )}
           <Button
             id="settings-toggle"
             variant="ghost"
@@ -773,6 +811,66 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </div>
           )}
 
+          {!showPrologue &&
+            !dashboard &&
+            state.phase.kind === "battle" &&
+            (!experience.lessons.battle || !experience.lessons.skill) && (
+              <aside className="tutorial-card" aria-label="First battle guidance">
+                <span className="guide-mira" aria-hidden="true" />
+                <div>
+                  <span className="sheet-kicker">MIRA’S FIELD NOTES</span>
+                  <h3>
+                    {!experience.lessons.battle ? "We fight together." : `${skill.name} is ready.`}
+                  </h3>
+                  <p>
+                    {!experience.lessons.battle
+                      ? `Rook fights automatically at the front. ${company.name}: ${company.description}`
+                      : `Press Q or the skill button to cast ${skill.name}. ${skill.description}`}
+                  </p>
+                  <div>
+                    <Button
+                      onClick={() => a.learn(!experience.lessons.battle ? "battle" : "skill")}
+                    >
+                      {!experience.lessons.battle ? "Got it" : "Keep going"}
+                    </Button>
+                    <Button variant="ghost" onClick={a.skipGuidance}>
+                      Skip tips
+                    </Button>
+                  </div>
+                </div>
+              </aside>
+            )}
+          {!showPrologue &&
+            dashboard &&
+            section === "Camp" &&
+            state.meta.earnedGold > 0 &&
+            !experience.lessons.camp && (
+              <aside className="tutorial-card camp-guide" aria-label="Camp guidance">
+                <span className="guide-mira" aria-hidden="true" />
+                <div>
+                  <span className="sheet-kicker">A STRONGER COMPANY</span>
+                  <h3>The road rewards preparation.</h3>
+                  <p>
+                    Your gold stays with you. Forge permanent upgrades, choose equipment, and check
+                    the daily quests before your next march.
+                  </p>
+                  <div>
+                    <Button
+                      onClick={() => {
+                        a.learn("camp");
+                        setEquipmentTab("forge");
+                        go("Equipment");
+                      }}
+                    >
+                      Visit the forge
+                    </Button>
+                    <Button variant="ghost" onClick={() => a.learn("camp")}>
+                      Later
+                    </Button>
+                  </div>
+                </div>
+              </aside>
+            )}
           {!dashboard && saveWarning}
           <p
             id="save-status"
@@ -1203,8 +1301,78 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </Button>
         </div>
       </Modal>
-      <Modal open={settings} title="A quieter road." close={() => setSettings(false)}>
-        <p>Gentler movement. The same combat timing.</p>
+      <Modal
+        open={settings}
+        title="The campfire."
+        className="settings-dialog"
+        close={() => setSettings(false)}
+      >
+        <div className="settings-company">
+          <span className="settings-cinder" aria-hidden="true" />
+          <div>
+            <span className="sheet-kicker">MAKE YOURSELF AT HOME</span>
+            <h3>Sound, story & a gentler road.</h3>
+            <p>Your company will wait.</p>
+          </div>
+        </div>
+        {v.audioControls && (
+          <div className="audio-settings">
+            <div className="audio-setting">
+              <label htmlFor="music-enabled">
+                <Volume2 /> Background music
+              </label>
+              <Switch
+                id="music-enabled"
+                aria-label="Background music"
+                checked={experience.audio.musicEnabled}
+                onCheckedChange={(value) => a.audioPreference("musicEnabled", value)}
+              />
+              <NativeInput
+                aria-label="Music volume"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(experience.audio.musicVolume * 100)}
+                onChange={(event) =>
+                  a.audioPreference("musicVolume", Number(event.target.value) / 100)
+                }
+              />
+            </div>
+            <div className="audio-setting">
+              <label htmlFor="effects-enabled">
+                <Sword /> Sound effects
+              </label>
+              <Switch
+                id="effects-enabled"
+                aria-label="Sound effects"
+                checked={experience.audio.effectsEnabled}
+                onCheckedChange={(value) => a.audioPreference("effectsEnabled", value)}
+              />
+              <NativeInput
+                aria-label="Effects volume"
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(experience.audio.effectsVolume * 100)}
+                onChange={(event) =>
+                  a.audioPreference("effectsVolume", Number(event.target.value) / 100)
+                }
+              />
+            </div>
+            <p className="audio-state" role="status">
+              {v.audioStatus === "locked"
+                ? "Tap Enable sound to start the music."
+                : v.audioStatus === "loading"
+                  ? "Preparing the campfire score…"
+                  : v.audioStatus === "ready"
+                    ? "The Last Light · original music for Ember Road"
+                    : v.audioStatus === "effects-only"
+                      ? "Music could not load. Combat sounds are available."
+                      : "This browser cannot play audio. Your journey still works."}
+            </p>
+            {v.audioStatus === "locked" && <Button onClick={a.unlockAudio}>Enable sound</Button>}
+          </div>
+        )}
         <label className="motion-control" htmlFor="reduce-motion">
           <Switch
             id="reduce-motion"
@@ -1214,6 +1382,27 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           />
           Reduced motion
         </label>
+        <div className="campfire-actions">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSettings(false);
+              setReplayIntro(true);
+            }}
+          >
+            <BookOpen />
+            Watch the opening
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              a.skipGuidance();
+              setSettings(false);
+            }}
+          >
+            Skip combat tips
+          </Button>
+        </div>
         <p>Space to pause · Q to cast · 1–3 to choose an oath.</p>
         <p>
           Gold, equipment, and unlocked chapters stay with you. Oaths belong to the current journey.
@@ -1264,6 +1453,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         className="decision--choice"
       >
         <span className="eyebrow">LEVEL {state.run.level} · ONE CHOICE</span>
+        {!experience.lessons.oath && (
+          <div className="oath-guidance">
+            <span className="guide-mira" aria-hidden="true" />
+            <p>
+              These oaths shape this journey. Blue is rare, violet is epic, and gold is legendary.
+              Pick a power that helps your build, inspect your stats, or skip the choice.
+            </p>
+            <Button variant="ghost" onClick={() => a.learn("oath")}>
+              Got it
+            </Button>
+          </div>
+        )}
         <p>Every journey is a different build. Choose a power, or continue without one.</p>
         <div className="choice-tools">
           <Button variant="outline" onClick={() => setDetail("stats")}>
@@ -1343,6 +1544,32 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </Button>
         </div>
       </Modal>
+      <StoryOpening
+        open={showPrologue}
+        fresh={isFirstJourney(state)}
+        paused={v.presentationPaused}
+        audioStatus={v.audioStatus}
+        soundOn={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+        audioControls={v.audioControls}
+        toggleSound={a.toggleSound}
+        skip={() => {
+          a.finishIntro();
+          setReplayIntro(false);
+          if (!inCamp) {
+            setSection("Camp");
+            setCampOpen(true);
+          }
+        }}
+        finish={(start) => {
+          a.finishIntro();
+          setReplayIntro(false);
+          if (start) a.start(1);
+          else if (!inCamp) {
+            setSection("Camp");
+            setCampOpen(true);
+          }
+        }}
+      />
     </div>
   );
 }

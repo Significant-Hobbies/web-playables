@@ -1,3 +1,4 @@
+import { type Experience, initialExperience, validExperience } from "./experience.ts";
 import { initialQuests, type QuestLedger, validQuestLedger } from "./quests.ts";
 
 export type PerkId =
@@ -383,6 +384,7 @@ export type Phase =
 export interface GameState {
   quests: QuestLedger;
   meta: {
+    experience?: Experience;
     gold: number;
     earnedGold: number;
     unlockedChapter: number;
@@ -452,6 +454,7 @@ export function initialState(seed = 927113): GameState {
   return {
     quests: initialQuests(),
     meta: {
+      experience: initialExperience(),
       gold: 0,
       earnedGold: 0,
       unlockedChapter: 1,
@@ -1227,6 +1230,11 @@ function validAllyHit(value: unknown, battle: BattlePhase) {
 }
 export function validState(value: unknown): value is GameState {
   if (!record(value)) return false;
+  if (
+    !record(value.meta) ||
+    (value.meta.experience !== undefined && !validExperience(value.meta.experience))
+  )
+    return false;
   const quests = value.quests;
   if (!validQuestLedger(quests) || !validV2State(value)) return false;
   return quests.story.completed.every(
