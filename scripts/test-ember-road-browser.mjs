@@ -195,13 +195,13 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         arrival.meta.experience.lessons[key] = true;
       arrival.meta.unlockedChapter = member === "mira" ? 2 : 3;
       if (member === "cinder")
-        Object.assign(arrival.adventures.discoveries, { mira: true, whirlwind: true });
+        Object.assign(arrival.adventures.discoveries, { mira: false, whirlwind: true });
       assert(startRun(arrival, arrival.meta.unlockedChapter));
       arrival.run.cleared = member === "mira" ? 3 : 9;
       arrival.phase = { kind: "route", at: arrival.run.cleared };
       if (member === "cinder")
         arrival.run.context.routes = [
-          { at: 3, path: "rescue" },
+          { at: 3, path: "spring" },
           { at: 6, path: "shrine" },
         ];
       const arrivalContext = await context(await fixture(arrival));
@@ -212,6 +212,15 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         .click();
       const title = member === "mira" ? "Mira joins the company." : "Cinder joins the company.";
       await arrivalPage.getByRole("dialog", { name: title, exact: true }).waitFor();
+      if (member === "cinder")
+        assert.equal(
+          await arrivalPage
+            .getByRole("dialog", { name: title, exact: true })
+            .getByText(/pair Cinder with Mira/)
+            .count(),
+          0,
+          "Cinder's solo introduction does not assume Mira was rescued",
+        );
       const first = await stored(arrivalPage);
       assert.equal(first.state.adventures.discoveries[member], true);
       await arrivalPage.waitForTimeout(2200);

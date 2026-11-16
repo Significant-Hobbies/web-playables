@@ -3,6 +3,7 @@ import {
   activityPreview,
   advanceAdventures,
   DAY_MS,
+  routeDetails,
   routeOptions,
   runLength,
   TIERS,
@@ -90,6 +91,11 @@ describe("adventure routes and discoveries", () => {
     });
     expect(systemUnlocked(state, "daily")).toBe(true);
     expect(systemUnlocked(state, "weekly")).toBe(false);
+    expect(routeDetails(state, "rescue").name).toBe("A ribbon on the road");
+    expect(routeDetails(state, "tracks").name).toBe("Little ember footprints");
+    expect(returnToCamp(state)).toBe(true);
+    expect(state.run.chapter).toBe(2);
+    expect(state.run.context).toMatchObject({ kind: "campaign", routes: [] });
   });
   it("gives spring, elite and discovery trails distinct outcomes without repeating a saved choice", () => {
     const initial = initialState();

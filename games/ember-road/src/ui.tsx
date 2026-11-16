@@ -1248,7 +1248,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <span className="trail-history" title="Chosen trail">
                   {state.run.context.routes.map((r) => (
                     <span key={r.at}>
-                      {ROUTES[r.path].symbol} {ROUTES[r.path].name}
+                      {ROUTES[r.path].symbol} {routeDetails(state, r.path).name}
                     </span>
                   ))}
                 </span>
@@ -1840,7 +1840,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         <p>
           {newDiscovery === "mira"
             ? "Mira found your lantern. Her arrows now join Rook’s attacks. You can inspect and train your companion back at camp."
-            : "Cinder followed the ember footprints home. Your first pet joins the fight; pair Cinder with Mira to mark targets for her next arrow."}
+            : miraFound
+              ? "Cinder followed the ember footprints home. Your first pet joins the fight; pair Cinder with Mira to mark targets for her next arrow."
+              : "Cinder followed the ember footprints home. Your first pet joins Rook’s attacks. A loyal friend for every road ahead."}
         </p>
         <small>A permanent discovery. Your companion stays with the company across journeys.</small>
         <Button onClick={() => setNewDiscovery(null)}>
