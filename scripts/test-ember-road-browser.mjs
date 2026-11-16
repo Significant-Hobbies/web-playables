@@ -58,6 +58,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         archer: 0,
         arrows: 0,
         group: false,
+        backdrops: 0,
       };
       let frame = {};
       const draw = CanvasRenderingContext2D.prototype.drawImage;
@@ -74,10 +75,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
         if (this.canvas.id === "world") {
           let key;
-          if (/\/hero-knight-/.test(image.src || "")) key = "hero";
-          if (/\/enemies-/.test(image.src || "")) key = "foe";
-          if (/\/pet-atlas-/.test(image.src || "")) key = "pet";
-          if (/\/party-(atlas|walk-atlas)-/.test(image.src || ""))
+          if (/\/toon-roads-/.test(image.src || "")) window.__draws.backdrops++;
+          if (/\/toon-knight-/.test(image.src || "")) key = "hero";
+          if (/\/toon-enemies-/.test(image.src || "")) key = "foe";
+          if (/\/toon-pets-/.test(image.src || "")) key = "pet";
+          if (/\/toon-(party|walk)-/.test(image.src || ""))
             key = args[1] > image.naturalHeight * 0.7 ? "archer" : "companion";
           if (key) {
             window.__draws[key]++;
@@ -112,6 +114,41 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert(validState(state), "Fixture uses the real state validator");
     return JSON.stringify({ version: 3, savedAt: Date.now(), state });
   }
+  async function assertCampActors(page) {
+    const actors = await page.locator(".chapter-hub .toon-actor").evaluateAll(async (nodes) =>
+      Promise.all(
+        nodes.map(async (el) => {
+          const style = getComputedStyle(el),
+            rect = el.getBoundingClientRect();
+          const match = style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+          const image = new Image();
+          image.src = match?.[1] || "";
+          await image.decode();
+          return {
+            visible: rect.width > 0 && rect.height > 0 && style.visibility !== "hidden",
+            loaded: image.naturalWidth > 0,
+          };
+        }),
+      ),
+    );
+    assert.equal(actors.length, 3, "Camp shows exactly Rook, companion and pet");
+    assert(
+      actors.every((a) => a.visible && a.loaded),
+      "Visible camp actors use decoded real sprite assets",
+    );
+    assert.equal(
+      await page.locator(".chapter-hub .enemy").count(),
+      0,
+      "Camp has no visible phantom foes",
+    );
+  }
+  async function openCollection(page, label) {
+    if (await page.locator(".collection-dialog[open]").count()) await page.keyboard.press("Escape");
+    await page
+      .locator(".game-dock")
+      .getByRole("button", { name: label === "Companions" ? "Company" : label, exact: true })
+      .click();
+  }
   async function depart(page) {
     await page.locator("#start").click();
     await page.locator("#depart").click();
@@ -121,8 +158,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const page = await c.newPage();
     await ready(page);
     await page.waitForFunction(
-      () => window.__draws.hero > 0 && window.__draws.pet > 0 && window.__draws.companion > 0,
+      () =>
+        document.querySelector(".island-art")?.complete &&
+        document.querySelector(".island-art").naturalWidth > 0,
     );
+    await assertCampActors(page);
     assert.equal(
       (await page.locator('[data-slot="button"]').count()) > 10,
       true,
@@ -155,19 +195,43 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await page.screenshot({ path: join(evidence, `camp-${viewport.width}.png`) });
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.getByRole("button", { name: "Pets", exact: true }).click();
+    await openCollection(page, "Pets");
     assert(
       await page.locator('[data-equip="pet:hound"]').isDisabled(),
       "Chapter-locked pets cannot equip",
     );
-    await page.getByRole("button", { name: "Camp", exact: true }).click();
+    await page.keyboard.press("Escape");
     await depart(page);
+    await page.waitForFunction(() => window.__draws.backdrops > 0);
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      );
+      assert(
+        await page.locator("#world").evaluate((canvas) => {
+          const row = canvas
+            .getContext("2d")
+            .getImageData(0, canvas.height - 1, canvas.width, 1).data;
+          for (let i = 3; i < row.length; i += 4) if (row[i] !== 255) return false;
+          return true;
+        }),
+        `Actual atlas covers the bottom pixel row at ${viewport.width}x${viewport.height}`,
+      );
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#pause").click();
-    const paused = await page.locator("#world").screenshot();
+    await page.getByRole("dialog", { name: "The road can wait.", exact: true }).waitFor();
+    const paused = await page.locator("#world").evaluate((c) => c.toDataURL());
     await page.waitForTimeout(400);
-    assert(
-      paused.equals(await page.locator("#world").screenshot()),
-      "Pause freezes the real canvas",
+    assert.equal(
+      paused,
+      await page.locator("#world").evaluate((c) => c.toDataURL()),
+      "Pause freezes the actual canvas pixels, independently of the composited dialog",
     );
     await page.screenshot({ path: join(evidence, "paused-1440.png") });
     await page.getByRole("button", { name: "Resume journey", exact: true }).click();
@@ -208,12 +272,24 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.deepEqual(afterSkip.state.run.perks, beforeSkip.state.run.perks, "Skip grants no perk");
     assert.equal(afterSkip.state.meta.gold, beforeSkip.state.meta.gold, "Skip grants no reward");
     await page.getByRole("button", { name: "Camp", exact: true }).click();
-    await page.getByRole("button", { name: "Equipment", exact: true }).click();
+    await openCollection(page, "Equipment");
     assert(
       await page.locator('[data-equip="weapon:greatsword"]').isDisabled(),
       "Mid-run gear cannot change",
     );
+    await page.keyboard.press("Escape");
+    await page.locator("#start").waitFor();
+    assert.match(await page.locator("#start").innerText(), /^RESUME/);
+    const inspectedBefore = await stored(page);
+    await page.waitForTimeout(350);
+    assert.equal(
+      (await stored(page)).state.run.distance,
+      inspectedBefore.state.run.distance,
+      "Dismiss collection stays in paused hub",
+    );
+    await openCollection(page, "Equipment");
     await page
+      .locator(".collection-dialog[open]")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await page.getByRole("button", { name: "Keep this journey", exact: true }).click();
@@ -223,6 +299,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Cancelling retreat preserves the run",
     );
     await page
+      .locator(".collection-dialog[open]")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await page.getByRole("button", { name: "Return to camp", exact: true }).click();
@@ -258,11 +335,17 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await questPage.locator("[data-perk]").first().click();
     await questPage.getByRole("button", { name: "Camp", exact: true }).click();
     await questPage
+      .locator(".chapter-hub")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await questPage.getByRole("button", { name: "Return to camp", exact: true }).click();
+    if (await questPage.locator(".collection-dialog[open]").count())
+      await questPage.keyboard.press("Escape");
     await questPage.getByRole("button", { name: /Missions and quests/ }).click();
-    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Daily quests/ })
+      .click();
     const goldBeforeClaims = (await stored(questPage)).state.meta.gold;
     for (const quest of questBoard((await stored(questPage)).state.quests).daily)
       await questPage.locator(`[data-claim-quest="${quest.id}"]`).click();
@@ -279,18 +362,29 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     await questPage.screenshot({ path: join(evidence, "daily-quests-1440.png") });
     await ready(questPage);
+    if (await questPage.locator(".collection-dialog[open]").count())
+      await questPage.keyboard.press("Escape");
     await questPage.getByRole("button", { name: /Missions and quests/ }).click();
-    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Daily quests/ })
+      .click();
     assert.equal(
       await questPage.locator("[data-claim-quest]").count(),
       0,
       "Claimed rewards do not reappear after reload",
     );
     assert.equal((await stored(questPage)).state.meta.gold, claimed.state.meta.gold);
-    await questPage.getByRole("button", { name: /Weekly quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Weekly quests/ })
+      .click();
     assert.equal(await questPage.locator("[data-quest]").count(), 3);
     await questPage.screenshot({ path: join(evidence, "weekly-quests-1440.png") });
-    await questPage.getByRole("button", { name: /Story missions/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Story missions/ })
+      .click();
     assert.equal(await questPage.locator("[data-quest]").count(), 5);
     await questPage.screenshot({ path: join(evidence, "story-missions-1440.png") });
     result.earnedDailyWeeklyAndStoryBoard = true;
@@ -304,7 +398,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const buildContext = await context(await fixture(build));
     const buildPage = await buildContext.newPage();
     await ready(buildPage);
-    await buildPage.getByRole("button", { name: "Equipment", exact: true }).click();
+    await openCollection(buildPage, "Equipment");
     await buildPage.locator('[data-upgrade="blade"]').click();
     await buildPage.waitForFunction(
       (key) => JSON.parse(localStorage.getItem(key)).state.meta.upgrades.blade === 1,
@@ -316,11 +410,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Forge spends its exact 24 gold cost once",
     );
     await buildPage.locator('[data-equip="weapon:spear"]').click();
-    await buildPage.getByRole("button", { name: "Companions", exact: true }).click();
+    await openCollection(buildPage, "Companions");
     await buildPage.locator('[data-equip="companion:sable"]').click();
-    await buildPage.getByRole("button", { name: "Pets", exact: true }).click();
+    await openCollection(buildPage, "Pets");
     await buildPage.locator('[data-equip="pet:owl"]').click();
-    await buildPage.getByRole("button", { name: "Skills", exact: true }).click();
+    await openCollection(buildPage, "Skills");
     await buildPage.locator('[data-equip="skill:aegis"]').click();
     await ready(buildPage);
     const gearSave = await stored(buildPage);
@@ -358,8 +452,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await ready(p);
       if (phase === "travel") await p.locator("#pause").click();
       await p.waitForFunction(
-        () => window.__draws.hero > 0 || document.querySelector(".decision--defeat[open]"),
+        () =>
+          window.__draws.hero > 0 ||
+          document.querySelector(".decision--defeat[open]") ||
+          document.querySelector(".chapter-hub"),
       );
+      if (phase === "camp") await assertCampActors(p);
       assert.equal(
         await p.evaluate(() => window.__draws.foe + window.__draws.archer),
         0,
@@ -436,6 +534,10 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.match(await protectedPage.locator("#save-status").innerText(), /untouched/);
     assert(await protectedPage.locator("[data-save-warning]").isVisible());
     await depart(protectedPage);
+    assert(
+      await protectedPage.locator(".battle-layout > [data-save-warning]").isVisible(),
+      "Protected save warning remains visible during the journey",
+    );
     await protectedPage.locator("#pause").click();
     assert.equal(
       await protectedPage.evaluate((key) => localStorage.getItem(key), storageKey),

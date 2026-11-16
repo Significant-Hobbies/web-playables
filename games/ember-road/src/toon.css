@@ -1,0 +1,2032 @@
+:root {
+  --background: #e9e4ce;
+  --foreground: #23262e;
+  --card: #fff7dd;
+  --card-foreground: #23262e;
+  --popover: #fff7dd;
+  --popover-foreground: #23262e;
+  --primary: #f4ae36;
+  --primary-foreground: #24212c;
+  --secondary: #c6d1e0;
+  --secondary-foreground: #21252e;
+  --accent: #ffe0a3;
+  --accent-foreground: #21252e;
+  --muted: #e8e0c8;
+  --muted-foreground: #62665e;
+  --border: #272b34;
+  --input: #77796c;
+  --ring: #8ed6ff;
+  --radius: 0.7rem;
+  --game-font: "Arial Rounded MT Bold", "Trebuchet MS", "Geist Variable", sans-serif;
+  --font-serif: var(--game-font);
+  --font-sans: var(--game-font);
+}
+.toon-shell {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 45%, #739b54, #42643d);
+  font-family: var(--game-font);
+  isolation: isolate;
+}
+.toon-shell h1,
+.toon-shell h2,
+.toon-shell h3,
+.toon-shell [data-slot="card-title"] {
+  font-family: var(--game-font);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+}
+.toon-shell [data-slot="button"] {
+  font-weight: 800;
+  border: 3px solid #242832;
+  box-shadow: 0 3px 0 #171c25;
+  border-radius: 10px;
+  transition:
+    transform 0.12s,
+    background-color 0.12s,
+    box-shadow 0.12s;
+}
+.toon-shell [data-slot="button"]:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+.toon-shell [data-slot="button"]:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 #171c25;
+}
+.toon-shell [data-slot="button"]:focus-visible {
+  outline: 3px solid #a0e4ff;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 6px #1d273c;
+}
+.toon-shell [data-slot="button"]:disabled {
+  opacity: 0.48;
+}
+.game-topbar {
+  height: 84px;
+  flex: 0 0 84px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 9px 26px;
+  background: #34343b;
+  border-bottom: 5px solid #171b22;
+  z-index: 4;
+  color: #fff9df;
+}
+.game-topbar .hero-profile {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  display: flex;
+  gap: 12px;
+  padding: 0;
+  height: 68px;
+  color: #fff4d6;
+  text-align: left;
+}
+.hero-profile > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.hero-profile strong {
+  font-size: 19px;
+  letter-spacing: 0.5px;
+}
+.hero-profile small {
+  font-size: 11px;
+  color: #c1d0d4;
+  font-weight: 600;
+}
+.toon-portrait {
+  display: block;
+  width: 67px;
+  height: 67px;
+  background: #91c4dc url("../assets/toon-knight.png") 0 0 / 400% 200%;
+  border: 4px solid #f6ce4d;
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 3px #171b25,
+    inset 0 0 0 3px #9e7933;
+  overflow: hidden;
+}
+.damage-score {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #f59b56;
+  position: relative;
+  margin-left: 3px;
+  padding-right: 17px;
+}
+.damage-score > .game-icon {
+  width: 46px;
+  height: 46px;
+}
+.damage-score > b {
+  font-size: 35px;
+  font-weight: 1000;
+  line-height: 1;
+  -webkit-text-stroke: 3px #171b24;
+  paint-order: stroke fill;
+  text-shadow: 0 3px #171b24;
+}
+.damage-score > small {
+  font-size: 8px;
+  align-self: flex-end;
+  color: #d9c09c;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.game-wordmark {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-weight: 1000;
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: #f5d58a;
+  -webkit-text-stroke: 2px #181b24;
+  paint-order: stroke fill;
+  white-space: nowrap;
+}
+.game-topbar .header-actions {
+  margin-left: auto;
+  gap: 13px;
+}
+.game-topbar .gold {
+  min-width: 122px;
+  justify-content: center;
+  background: #20222a;
+  border: 3px solid #171b24;
+  border-radius: 10px;
+  padding: 3px 12px 3px 5px;
+  height: 46px;
+  gap: 11px;
+}
+.game-topbar .gold .game-icon {
+  width: 40px;
+  height: 40px;
+}
+.game-topbar .gold b {
+  font-size: 24px;
+  font-weight: 950;
+  color: #fff9df;
+}
+.game-topbar #settings-toggle {
+  width: 43px;
+  height: 43px;
+  background: #555864;
+  color: #dce2df;
+  padding: 7px;
+}
+.game-topbar #settings-toggle > svg {
+  width: 22px;
+  height: 22px;
+}
+.toon-shell .workspace {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.toon-shell .main-content {
+  display: block;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+.chapter-hub {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.chapter-hub:before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 160'%3E%3Cg fill='none' stroke='%231b4f34' stroke-width='9' stroke-linejoin='round'%3E%3Cpath d='m24 12 9 2 42 52-12 9-43-50ZM12 65l21 17M97 95l9 2 42 52-12 9-43-50ZM86 148l21 17'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 140px;
+}
+.toon-shell .camp-canvas {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  left: 0;
+  top: 0;
+  min-height: 0;
+}
+.bounty-banner {
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  width: 510px;
+  height: 94px !important;
+  background: #7250c9 !important;
+  border: 4px solid #222332 !important;
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  display: flex;
+  align-items: center;
+  gap: 16px !important;
+  box-shadow:
+    inset 0 0 0 5px #b9a2ed,
+    0 5px 0 #253027 !important;
+  color: #fff9e2;
+  white-space: normal !important;
+  text-align: left;
+  z-index: 2;
+}
+.toon-shell .bounty-banner:hover:not(:disabled) {
+  transform: translateX(-50%) translateY(-2px);
+}
+.toon-shell .bounty-banner:active:not(:disabled) {
+  transform: translateX(-50%) translateY(2px);
+}
+.bounty-banner > .game-icon {
+  height: 64px;
+  width: 64px;
+  transform: rotate(-8deg);
+}
+.bounty-banner > span:not(.bounty-reward) {
+  flex: 1;
+  min-width: 0;
+}
+.bounty-banner strong {
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  display: block;
+  -webkit-text-stroke: 2px #242032;
+  paint-order: stroke fill;
+}
+.bounty-banner small {
+  font-size: 10px;
+  display: block;
+  margin: 4px 0 7px;
+  color: #efe3ff;
+  font-weight: 700;
+}
+.bounty-track {
+  position: relative;
+  display: block;
+  height: 17px;
+  border: 3px solid #252335;
+  background: #252335;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bounty-track > progress {
+  height: 100%;
+  width: 100%;
+  border: 0;
+  display: block;
+  border-radius: 0;
+  background: #252335;
+}
+.bounty-track > progress::-webkit-progress-bar {
+  background: #252335;
+  border-radius: 0;
+}
+.bounty-track > progress::-webkit-progress-value {
+  background: #efb446;
+  border-radius: 0;
+}
+.bounty-track > progress::-moz-progress-bar {
+  background: #efb446;
+  border-radius: 0;
+}
+.bounty-track > b {
+  position: absolute;
+  inset: 0;
+  text-align: center;
+  line-height: 12px;
+  font-size: 10px;
+  color: #fff9ef;
+  -webkit-text-stroke: 1px #282436;
+  paint-order: stroke fill;
+}
+.bounty-reward {
+  position: relative;
+  display: block;
+  width: 49px;
+  height: 49px;
+}
+.bounty-reward > .game-icon {
+  width: 49px;
+  height: 49px;
+}
+.bounty-reward > b {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 17px;
+  color: #fffbe5;
+  -webkit-text-stroke: 2px #47342c;
+  paint-order: stroke fill;
+}
+.hub-rail {
+  position: absolute;
+  top: 150px;
+  bottom: 55px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 17px;
+  width: 122px;
+  z-index: 2;
+}
+.rail-left {
+  left: 30px;
+}
+.rail-right {
+  right: 30px;
+}
+.toon-shell .hub-rail > button {
+  position: relative;
+  background: #20312488;
+  border: 0;
+  box-shadow: none;
+  color: #fff7d7;
+  padding: 6px 9px 10px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.hub-rail > button > .game-icon {
+  width: 66px;
+  height: 66px;
+  filter: drop-shadow(0 3px 0 #17301b88);
+}
+.hub-rail > button > span {
+  font-weight: 1000;
+  font-size: 16px;
+  line-height: 1.1;
+  text-align: center;
+  white-space: normal;
+  -webkit-text-stroke: 2px #20232b;
+  paint-order: stroke fill;
+  text-shadow: 0 2px #20232b;
+}
+.hub-rail > button:hover:not(:disabled) {
+  background: #243e2599;
+}
+.chapter-center {
+  position: absolute;
+  left: 175px;
+  right: 175px;
+  top: 127px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.chapter-title {
+  text-align: center;
+  flex: none;
+}
+.chapter-title > span {
+  font-weight: 1000;
+  font-size: 30px;
+  line-height: 1.05;
+  color: #fffce5;
+  letter-spacing: 0.5px;
+  -webkit-text-stroke: 3px #192523;
+  paint-order: stroke fill;
+  text-shadow: 0 3px #192523;
+}
+.chapter-title > h1 {
+  font-size: 15px;
+  color: #cde4ac;
+  line-height: 1.2;
+  margin-top: 6px;
+  letter-spacing: 0.2px;
+  font-weight: 800;
+}
+.chapter-island {
+  position: relative;
+  flex: 0 1 280px;
+  min-height: 145px;
+  width: min(450px, 100%);
+  height: 32vh;
+  max-height: 280px;
+  isolation: isolate;
+}
+.island-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 0 #153d3238);
+  animation: island-float 5s ease-in-out infinite;
+}
+.island-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  aspect-ratio: 1;
+  max-width: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.chapter-tile {
+  background-image: url("../assets/toon-islands.png");
+  background-size: 200% 200%;
+  background-repeat: no-repeat;
+}
+.toon-shell .retreat-from-hub {
+  height: 27px;
+  min-height: 27px;
+  padding: 3px 10px;
+  font-size: 10px;
+  background: #dae2be;
+  flex: none;
+}
+.toon-actor {
+  display: block;
+  background-repeat: no-repeat;
+  position: absolute;
+  transform-origin: bottom center;
+  animation: toon-breathe 2.4s ease-in-out infinite;
+  filter: drop-shadow(0 5px 0 #26302633);
+}
+.island-rook {
+  width: 115px;
+  height: 115px;
+  left: 41%;
+  bottom: 20%;
+  background: url("../assets/toon-knight.png") 0 0 / 400% 200% no-repeat;
+  z-index: 3;
+}
+.island-companion {
+  width: 116px;
+  height: 116px;
+  left: 20%;
+  bottom: 25%;
+  background-image: url("../assets/toon-party.png");
+  background-size: 400% 400%;
+  z-index: 2;
+  animation-delay: -0.9s;
+}
+.island-pet {
+  width: 96px;
+  height: 96px;
+  left: 64%;
+  bottom: 19%;
+  background-image: url("../assets/toon-pets.png");
+  background-size: 400% 300%;
+  z-index: 4;
+  animation-delay: -1.5s;
+}
+.island-spark {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  top: 20%;
+  left: 30%;
+  background: #fff6ae;
+  box-shadow: 0 0 11px #ffdd53;
+  transform: rotate(45deg);
+  animation: twinkle 2s infinite alternate;
+}
+.spark-two {
+  left: 70%;
+  top: 60%;
+  animation-delay: -1s;
+}
+.chapter-arrow {
+  position: absolute;
+  top: 40%;
+  font-size: 30px !important;
+  height: 47px !important;
+  width: 43px;
+  background: #d5d2b9 !important;
+  color: #f9f7e9;
+  border: 3px solid #203028 !important;
+  -webkit-text-stroke: 2px #252e29;
+  paint-order: stroke fill;
+  z-index: 5;
+  padding: 0 !important;
+}
+.chapter-prev {
+  left: -45px;
+}
+.chapter-next {
+  right: -45px;
+}
+.chapter-goal {
+  color: #e9f1d5;
+  font-size: 11px;
+  text-align: center;
+  max-width: 390px;
+  line-height: 1.4;
+  flex: none;
+  text-shadow: 0 1px #24482b;
+  font-weight: 650;
+}
+.chapter-mini-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex: none;
+}
+.toon-shell .chapter-mini-actions > button {
+  height: 55px;
+  border: 0;
+  box-shadow: none;
+  background: #263c2c88;
+  color: #fff4d0;
+  border-radius: 9px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  padding: 3px 13px;
+  font-size: 11px;
+  position: relative;
+}
+.chapter-mini-actions .game-icon {
+  height: 44px;
+  width: 44px;
+}
+.chapter-mini-actions span {
+  max-width: 69px;
+  white-space: normal;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: left;
+}
+.notification {
+  position: absolute;
+  right: 0;
+  top: -7px;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 26px;
+  border: 3px solid #20232a;
+  border-radius: 7px;
+  background: #e75d4c;
+  color: #fff9dd;
+  font-size: 15px;
+  box-shadow: 0 2px #172527;
+  z-index: 4;
+}
+.toon-shell .start-adventure {
+  flex: none;
+  min-width: 300px;
+  width: 340px;
+  max-width: 90%;
+  height: 73px !important;
+  margin-top: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px !important;
+  background: #f4af35 !important;
+  border: 4px solid #24242b !important;
+  border-radius: 7px !important;
+  box-shadow:
+    inset 0 0 0 5px #ffdb70,
+    inset 0 -10px #dd8d2e,
+    0 5px #24342a !important;
+  color: #fffde5;
+  font-weight: 1000;
+  font-size: 35px;
+  line-height: 1;
+  -webkit-text-stroke: 3px #22242d;
+  paint-order: stroke fill;
+  text-shadow: 0 3px #22242d;
+  letter-spacing: 1px;
+}
+.start-adventure small {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  color: #6a4928;
+  line-height: 1;
+}
+.game-dock {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  flex: 0 0 99px;
+  height: 99px;
+  padding: 0 14px;
+  background: #24282c;
+  border-top: 5px solid #171b22;
+  z-index: 5;
+}
+.toon-shell .game-dock > button {
+  flex: 1;
+  max-width: 210px;
+  height: 94px;
+  background: #373a40;
+  border: 3px solid #171b22;
+  border-top: 0;
+  border-radius: 0 0 3px 3px;
+  box-shadow: inset 0 5px #53565b;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 1px 15px 7px;
+  color: #eee8ce;
+  font-size: 13px;
+  position: relative;
+}
+.game-dock .game-icon {
+  width: 64px;
+  height: 64px;
+  transition: transform 0.12s;
+}
+.game-dock span {
+  line-height: 1;
+  font-weight: 900;
+  -webkit-text-stroke: 2px #171b24;
+  paint-order: stroke fill;
+}
+.toon-shell .game-dock > button[aria-current="page"] {
+  background: #555759;
+  box-shadow: inset 0 5px #e9bf62;
+  transform: translateY(-6px);
+  height: 100px;
+  border-top: 3px solid #171b22;
+  border-radius: 12px 12px 0 0;
+}
+.game-dock > button[aria-current="page"] > .game-icon {
+  width: 70px;
+  height: 70px;
+  margin-top: -5px;
+}
+.toon-shell .save-status {
+  position: absolute;
+  right: 10px;
+  bottom: 3px;
+  margin: 0;
+  font-size: 8px;
+  color: #e7f0d0;
+  opacity: 0.75;
+  z-index: 3;
+  pointer-events: none;
+}
+.toon-shell .save-status.warning {
+  color: #fff2b2;
+  opacity: 1;
+}
+.toon-shell .save-warning {
+  background: #fff0c0;
+  border: 3px solid #c87d34;
+  border-radius: 8px;
+  font-size: 11px;
+  max-width: 500px;
+  padding: 10px;
+  color: #6a3c2d;
+}
+.game-icon {
+  display: block;
+  flex: none;
+}
+.toon-shell .battle-layout {
+  display: block;
+  padding: 0;
+  background: #699164;
+}
+.toon-shell .battle-heading {
+  position: absolute;
+  left: 22px;
+  right: 22px;
+  top: 14px;
+  padding: 0;
+  border: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 3;
+  gap: 10px;
+}
+.toon-shell .battle-heading h1 {
+  font-size: 27px;
+  color: #fff4d5;
+  -webkit-text-stroke: 2px #1e302a;
+  paint-order: stroke fill;
+}
+.toon-shell .battle-heading .eyebrow {
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1px;
+  color: #fff2c6;
+  text-shadow: 0 1px #2a402c;
+}
+.toon-shell .battle-heading p {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff0c5;
+  text-shadow: 0 1px 2px #172b21;
+}
+.toon-shell .battle-actions > button {
+  background: #f6dea1;
+  color: #24362a;
+  border: 3px solid #242832;
+  box-shadow: 0 3px #26392d;
+}
+.toon-shell .combat-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+.toon-shell .combat-canvas canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.toon-shell .battle-status {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 30px;
+  z-index: 3;
+  margin: 0;
+  padding: 13px;
+  background: #273638ec;
+  border: 4px solid #1e242c;
+  border-radius: 12px;
+  grid-template-columns: 1.2fr 1fr auto auto 1.2fr;
+  gap: 13px;
+  color: #f6edcc;
+  align-items: center;
+}
+.toon-shell .health-stat > span {
+  color: #f8efd0;
+  font-size: 11px;
+  font-weight: 800;
+}
+.toon-shell .health-stat small,
+.toon-shell .health-stat b {
+  color: #e5f1c3;
+  font-size: 10px;
+}
+.toon-shell .health-stat > progress {
+  height: 16px;
+  border: 3px solid #171f25;
+  border-radius: 5px;
+  --primary: #90cb62;
+  --secondary: #1d252b;
+}
+.toon-shell .health-stat:nth-child(2) > progress {
+  --primary: #72b9f0;
+}
+.toon-shell .battle-status > button {
+  height: 45px;
+  font-size: 11px;
+  padding: 7px 11px;
+  background: #eee4c8;
+  color: #33352d;
+}
+.toon-shell .battle-status > .cast-skill {
+  background: #68b5ed;
+  color: #172c43;
+  height: 52px;
+  min-width: 130px;
+  font-weight: 900;
+}
+.toon-shell .game-dialog {
+  background: #f3eccf;
+  color: #293132;
+  border: 5px solid #252832;
+  border-radius: 16px;
+  box-shadow:
+    inset 0 0 0 5px #fff7df,
+    0 9px 0 #131f29,
+    0 20px 80px #091b25bb;
+  padding: 25px;
+  max-width: 780px;
+  max-height: calc(100dvh - 48px);
+  width: calc(100vw - 36px);
+}
+.toon-shell .game-dialog::backdrop {
+  background: #0f1e29b8;
+  backdrop-filter: blur(4px);
+}
+.toon-shell .collection-dialog {
+  max-width: 1020px;
+}
+.toon-shell .dialog-heading {
+  border-bottom: 3px solid #b8bc9b;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+.toon-shell .dialog-heading h2 {
+  font-size: 28px;
+  color: #344035;
+  letter-spacing: -1px;
+}
+.toon-shell .dialog-heading > button {
+  background: #df7362;
+  color: #fff2d8;
+  width: 34px;
+  height: 34px;
+  border: 3px solid #2c3132;
+}
+.toon-shell .game-dialog p {
+  color: #515d4d;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.toon-shell .game-dialog [data-slot="button"] {
+  background: #e9c366;
+  color: #34362c;
+  border-width: 3px;
+  min-height: 36px;
+  height: auto;
+  padding: 8px 14px;
+  font-size: 12px;
+}
+.toon-shell .game-dialog [data-slot="card"] {
+  border: 3px solid #727d63;
+  background: #fff5d7;
+  border-radius: 12px;
+  box-shadow: 0 3px #b5b79a;
+  gap: 0;
+}
+.toon-shell .game-dialog [data-slot="card-header"] {
+  padding: 15px 16px 12px;
+}
+.toon-shell .game-dialog [data-slot="card-content"] {
+  padding: 0 16px 16px;
+}
+.toon-shell .game-dialog [data-slot="card-title"] {
+  font-size: 23px;
+  line-height: 1.1;
+  color: #394338;
+}
+.toon-shell .game-dialog [data-slot="badge"] {
+  border: 2px solid #8c956e;
+  background: #e1eac7;
+  font-weight: 800;
+  font-size: 10px;
+  color: #49573c;
+  padding: 3px 8px;
+}
+.toon-shell .selection-grid {
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.toon-shell .selection-card.selected {
+  border-color: #4c9556;
+  background: #edf7d4;
+  box-shadow: 0 3px #7cb474;
+}
+.toon-shell .selection-card p {
+  font-size: 12px;
+  min-height: 50px;
+}
+.toon-shell .loadout-portrait {
+  height: 135px;
+  width: 135px;
+  margin: auto;
+}
+.toon-shell .section-title {
+  font-size: 20px;
+  margin: 20px 0 13px;
+}
+.toon-shell .section-note {
+  font-size: 12px;
+  margin-bottom: 18px;
+}
+.toon-shell .mission-tabs {
+  gap: 7px;
+  flex-wrap: wrap;
+  border-bottom: 3px solid #babd9f;
+  padding-bottom: 12px;
+}
+.toon-shell .mission-tabs > button {
+  background: #c9cfb6;
+  font-size: 12px;
+}
+.toon-shell .mission-tabs > button[aria-pressed="true"] {
+  background: #78b9dc;
+  box-shadow: 0 3px #487690;
+}
+.toon-shell .mission-tabs .mission-tab-count {
+  font-weight: 950;
+  color: #485b43;
+}
+.toon-shell .mission-schedule {
+  font-size: 11px;
+  margin: 17px 0;
+  gap: 12px;
+}
+.toon-shell .mission-schedule > p {
+  font-size: 12px;
+}
+.toon-shell .mission-row {
+  padding: 16px;
+  gap: 15px;
+}
+.toon-shell .mission-row.is-ready {
+  border-color: #df9636;
+  background: #fff1bd;
+  box-shadow: 0 3px #c8a65a;
+}
+.toon-shell .mission-copy h2 {
+  font-size: 21px;
+}
+.toon-shell .mission-copy > p {
+  font-size: 12px;
+  margin-top: 5px;
+}
+.toon-shell .mission-marker {
+  border: 3px solid #85956c;
+  background: #cadcb0;
+  color: #4c6d3d;
+  font-weight: 900;
+  width: 43px;
+  height: 43px;
+}
+.toon-shell .mission-reward > span {
+  font-size: 12px;
+  font-weight: 850;
+  color: #a17424;
+}
+.toon-shell .mission-reward > button {
+  font-size: 11px;
+  min-width: 130px;
+  background: #f1b84e;
+}
+.toon-shell .mission-progress progress {
+  border: 2px solid #667658;
+  --primary: #85b960;
+  --secondary: #d0d3b8;
+  height: 10px;
+}
+.toon-shell .mission-feedback {
+  font-size: 11px;
+  margin-top: 15px;
+}
+.toon-shell .stat-list {
+  gap: 10px;
+}
+.toon-shell .stat-list > div {
+  border-bottom: 2px solid #c8cbb2;
+  padding: 10px 0;
+}
+.toon-shell .motion-control {
+  padding: 18px 0;
+}
+.toon-shell .story-letter {
+  grid-template-columns: 160px 1fr;
+  gap: 18px;
+}
+.story-ranger {
+  display: block;
+  width: 160px;
+  height: 190px;
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+  align-self: center;
+}
+.toon-shell .story-letter blockquote {
+  font-family: var(--game-font);
+  font-size: 25px;
+  color: #43523b;
+  font-weight: 850;
+}
+.toon-shell .story-goal {
+  background: #dce8c5;
+  border: 2px solid #8f9e73;
+  border-radius: 8px;
+  padding: 12px;
+}
+.toon-shell .eyebrow {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  font-weight: 850;
+  color: #687d53;
+}
+.toon-shell .dialog-actions {
+  gap: 12px;
+  margin-top: 22px;
+}
+.toon-shell .choice-grid {
+  gap: 16px;
+}
+.toon-shell .game-dialog .choice-card {
+  border-color: var(--rarity);
+  background: var(--rarity-soft);
+  box-shadow: 0 4px var(--rarity);
+  border-width: 4px;
+  transform: none;
+}
+.toon-shell .rarity-common {
+  --rarity: #6e8b70;
+  --rarity-soft: #e3edce;
+}
+.toon-shell .rarity-rare {
+  --rarity: #3f91cb;
+  --rarity-soft: #d5edff;
+}
+.toon-shell .rarity-epic {
+  --rarity: #9955cb;
+  --rarity-soft: #eedcff;
+}
+.toon-shell .rarity-legendary {
+  --rarity: #d88c28;
+  --rarity-soft: #ffe69e;
+}
+.toon-shell .game-dialog .rarity {
+  background: var(--rarity);
+  border: 2px solid #34313b;
+  color: #fff6db;
+  text-shadow: 0 1px #282e39;
+  font-weight: 900;
+}
+.toon-shell .choice-card [data-slot="card-title"] {
+  color: #303d35;
+  font-size: 23px;
+}
+.toon-shell .choice-card [data-slot="card-content"] > button {
+  width: 100%;
+  background: var(--rarity);
+  color: #fff7df;
+  text-shadow: 0 1px #383247;
+}
+.toon-shell #skip-perk {
+  margin-top: 22px;
+  background: #cbd3b9;
+}
+.toon-shell .choice-card p {
+  font-size: 12px;
+}
+.toon-shell .decision--choice {
+  max-width: 1040px;
+}
+.toon-shell .choice-tools {
+  margin: 15px 0;
+}
+.toon-shell .rarity-common svg,
+.toon-shell .rarity-rare svg,
+.toon-shell .rarity-epic svg,
+.toon-shell .rarity-legendary svg {
+  color: var(--rarity);
+}
+.toon-shell.motion-paused *,
+.toon-shell.reduced-motion * {
+  animation-play-state: paused !important;
+}
+.toon-shell.reduced-motion * {
+  animation: none !important;
+  transition: none !important;
+}
+@keyframes island-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes toon-breathe {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(1deg);
+  }
+}
+@keyframes twinkle {
+  from {
+    opacity: 0.2;
+    transform: scale(0.5) rotate(45deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.5) rotate(45deg);
+  }
+}
+@media (max-height: 780px) and (min-width: 900px) {
+  .game-topbar {
+    height: 72px;
+    flex-basis: 72px;
+  }
+  .hero-profile > .toon-portrait {
+    width: 57px;
+    height: 57px;
+  }
+  .hero-profile > span:last-child {
+    display: none;
+  }
+  .game-wordmark {
+    font-size: 19px;
+  }
+  .bounty-banner {
+    top: 12px;
+    height: 80px !important;
+    width: 475px;
+  }
+  .bounty-banner > .game-icon {
+    width: 55px;
+    height: 55px;
+  }
+  .bounty-banner strong {
+    font-size: 17px;
+  }
+  .bounty-banner small {
+    font-size: 9px;
+    margin-bottom: 5px;
+  }
+  .chapter-center {
+    top: 104px;
+    bottom: 7px;
+    gap: 5px;
+  }
+  .chapter-title > span {
+    font-size: 26px;
+  }
+  .chapter-title > h1 {
+    font-size: 12px;
+    margin-top: 3px;
+  }
+  .chapter-island {
+    flex-basis: 200px;
+    max-height: 27vh;
+    min-height: 125px;
+  }
+  .chapter-goal {
+    font-size: 10px;
+  }
+  .chapter-mini-actions > button {
+    height: 44px !important;
+    font-size: 10px !important;
+  }
+  .chapter-mini-actions .game-icon {
+    width: 35px;
+    height: 35px;
+  }
+  .toon-shell .start-adventure {
+    height: 60px !important;
+    font-size: 30px;
+    width: 300px;
+  }
+  .game-dock {
+    height: 87px;
+    flex-basis: 87px;
+  }
+  .toon-shell .game-dock > button {
+    height: 82px;
+  }
+  .game-dock .game-icon {
+    height: 54px;
+    width: 54px;
+  }
+  .toon-shell .game-dock > button[aria-current="page"] {
+    height: 88px;
+  }
+  .game-dock > button[aria-current="page"] > .game-icon {
+    height: 60px;
+    width: 60px;
+  }
+  .hub-rail {
+    top: 106px;
+    bottom: 25px;
+    gap: 8px;
+  }
+  .toon-shell .hub-rail > button {
+    height: 82px;
+  }
+  .hub-rail > button > .game-icon {
+    height: 52px;
+    width: 52px;
+  }
+  .hub-rail > button > span {
+    font-size: 14px;
+  }
+  .island-rook {
+    height: 90px;
+    width: 90px;
+  }
+  .island-companion {
+    height: 95px;
+    width: 95px;
+  }
+  .island-pet {
+    height: 80px;
+    width: 80px;
+  }
+}
+@media (max-width: 1050px) {
+  .game-topbar {
+    gap: 12px;
+    padding-inline: 18px;
+  }
+  .game-wordmark {
+    display: none;
+  }
+  .game-topbar .header-actions {
+    gap: 9px;
+  }
+  .hero-profile > span:last-child {
+    display: none;
+  }
+  .hub-rail {
+    width: 100px;
+  }
+  .rail-left {
+    left: 18px;
+  }
+  .rail-right {
+    right: 18px;
+  }
+  .chapter-center {
+    left: 140px;
+    right: 140px;
+  }
+  .chapter-island {
+    width: min(430px, 100%);
+  }
+  .bounty-banner {
+    width: 470px;
+  }
+  .hub-rail > button > span {
+    font-size: 14px;
+  }
+  .toon-shell .battle-status {
+    grid-template-columns: 1fr 1fr auto;
+    gap: 10px;
+  }
+  .battle-status > .health-stat {
+    grid-row: 1;
+  }
+  .toon-shell .battle-status > .cast-skill {
+    grid-column: 3;
+    grid-row: 1 / 3;
+  }
+  .toon-shell .battle-status > button:not(.cast-skill) {
+    height: 34px;
+    min-width: 0;
+  }
+  .toon-shell .battle-heading h1 {
+    font-size: 23px;
+  }
+  .toon-shell .header-actions [data-playables-account-slot] {
+    max-width: 165px;
+  }
+}
+@media (max-width: 650px) {
+  .game-topbar {
+    height: 68px;
+    flex-basis: 68px;
+    padding: 7px 12px;
+    gap: 8px;
+  }
+  .game-topbar .hero-profile {
+    height: 49px;
+  }
+  .toon-portrait {
+    width: 49px;
+    height: 49px;
+    border-width: 3px;
+    border-radius: 10px;
+  }
+  .damage-score {
+    gap: 2px;
+    padding-right: 0;
+    margin: 0;
+  }
+  .damage-score > .game-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .damage-score > b {
+    font-size: 27px;
+    -webkit-text-stroke: 2px #171b24;
+  }
+  .damage-score > small {
+    display: none;
+  }
+  .game-topbar .gold {
+    height: 36px;
+    min-width: 73px;
+    gap: 4px;
+    padding: 2px 7px 2px 2px;
+    border-width: 2px;
+  }
+  .game-topbar .gold .game-icon {
+    height: 28px;
+    width: 28px;
+  }
+  .game-topbar .gold b {
+    font-size: 18px;
+  }
+  .game-topbar #settings-toggle {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border-width: 2px;
+  }
+  .game-topbar #settings-toggle > svg {
+    width: 17px;
+    height: 17px;
+  }
+  .game-topbar .header-actions {
+    gap: 7px;
+  }
+  .toon-shell [data-playables-account-slot] {
+    position: absolute;
+    top: 73px;
+    right: 9px;
+    z-index: 6;
+  }
+  .toon-shell .header-actions [data-playables-account-slot] {
+    max-width: 110px;
+    transform: scale(0.8);
+    transform-origin: right top;
+  }
+  .bounty-banner {
+    top: 39px;
+    width: 270px;
+    height: 78px !important;
+    padding: 8px 10px !important;
+    gap: 7px !important;
+    border-width: 3px !important;
+  }
+  .bounty-banner > .game-icon {
+    width: 43px;
+    height: 43px;
+  }
+  .bounty-banner strong {
+    font-size: 12px;
+    -webkit-text-stroke: 1.4px #242032;
+  }
+  .bounty-banner small {
+    font-size: 8px;
+    margin: 3px 0 5px;
+  }
+  .bounty-banner .bounty-reward {
+    width: 33px;
+    height: 33px;
+  }
+  .bounty-reward > .game-icon {
+    width: 33px;
+    height: 33px;
+  }
+  .bounty-reward > b {
+    font-size: 13px;
+    -webkit-text-stroke: 1.5px #47342c;
+  }
+  .bounty-track {
+    height: 15px;
+    border-width: 2px;
+  }
+  .bounty-track > b {
+    font-size: 9px;
+    line-height: 11px;
+  }
+  .hub-rail {
+    width: 63px;
+    top: 155px;
+    bottom: 80px;
+    gap: 14px;
+    justify-content: flex-start;
+  }
+  .rail-left {
+    left: 8px;
+  }
+  .rail-right {
+    right: 8px;
+  }
+  .toon-shell .hub-rail > button {
+    height: 72px;
+    padding: 4px 1px 6px;
+    border-radius: 8px;
+  }
+  .hub-rail > button > .game-icon {
+    width: 45px;
+    height: 45px;
+  }
+  .hub-rail > button > span {
+    font-size: 11px;
+    -webkit-text-stroke: 1.7px #20232b;
+    line-height: 1.1;
+    max-width: 60px;
+  }
+  .chapter-center {
+    top: 140px;
+    bottom: 11px;
+    left: 67px;
+    right: 67px;
+    gap: 8px;
+    justify-content: center;
+  }
+  .chapter-title > span {
+    font-size: 22px;
+    -webkit-text-stroke: 2.5px #192523;
+    white-space: nowrap;
+  }
+  .chapter-title > h1 {
+    font-size: 12px;
+    max-width: 220px;
+    margin-top: 6px;
+    line-height: 1.2;
+  }
+  .chapter-island {
+    width: calc(100% + 50px);
+    height: 30vh;
+    max-height: 230px;
+    min-height: 145px;
+    flex: 0 1 220px;
+  }
+  .island-rook {
+    width: 80px;
+    height: 80px;
+    left: 37%;
+    bottom: 24%;
+  }
+  .island-companion {
+    width: 85px;
+    height: 85px;
+    left: 16%;
+    bottom: 28%;
+  }
+  .island-pet {
+    width: 71px;
+    height: 71px;
+    left: 61%;
+    bottom: 23%;
+  }
+  .chapter-arrow {
+    font-size: 20px !important;
+    width: 28px;
+    height: 35px !important;
+    border-width: 2px !important;
+    border-radius: 7px !important;
+  }
+  .chapter-prev {
+    left: 4px;
+  }
+  .chapter-next {
+    right: 4px;
+  }
+  .chapter-goal {
+    font-size: 9px;
+    line-height: 1.45;
+    max-width: 230px;
+  }
+  .chapter-mini-actions {
+    gap: 5px;
+  }
+  .toon-shell .chapter-mini-actions > button {
+    height: 60px;
+    padding: 3px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 81px;
+    font-size: 8px;
+  }
+  .chapter-mini-actions .game-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .chapter-mini-actions span {
+    text-align: center;
+    max-width: none;
+    line-height: 1.1;
+  }
+  .toon-shell .start-adventure {
+    height: 62px !important;
+    width: 230px;
+    min-width: 220px;
+    font-size: 29px;
+    -webkit-text-stroke: 2.5px #22242d;
+    max-width: calc(100vw - 80px);
+  }
+  .start-adventure small {
+    font-size: 8px;
+  }
+  .game-dock {
+    height: 82px;
+    flex-basis: 82px;
+    padding: 0 3px;
+    gap: 2px;
+    border-top-width: 4px;
+  }
+  .toon-shell .game-dock > button {
+    height: 78px;
+    max-width: initial;
+    padding: 2px 3px 6px;
+    font-size: 10px;
+    border-width: 2px;
+    box-shadow: inset 0 4px #53565b;
+  }
+  .game-dock .game-icon {
+    width: 48px;
+    height: 48px;
+  }
+  .game-dock span {
+    -webkit-text-stroke: 1.5px #171b24;
+  }
+  .toon-shell .game-dock > button[aria-current="page"] {
+    height: 85px;
+    transform: translateY(-7px);
+    border-top-width: 3px;
+    border-radius: 9px 9px 0 0;
+  }
+  .game-dock > button[aria-current="page"] > .game-icon {
+    height: 54px;
+    width: 54px;
+    margin-top: -2px;
+  }
+  .toon-shell .save-status {
+    font-size: 6px;
+    max-width: 90%;
+    line-height: 1.2;
+  }
+  .toon-shell .battle-status {
+    left: 8px;
+    right: 8px;
+    bottom: 18px;
+    padding: 9px;
+    border-width: 3px;
+    gap: 8px;
+    grid-template-columns: 1fr 1fr 1.3fr;
+  }
+  .toon-shell .battle-status > .cast-skill {
+    min-width: 0;
+    height: 68px;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 10px;
+    white-space: normal;
+    padding: 4px;
+  }
+  .toon-shell .battle-status > .cast-skill > svg {
+    width: 20px;
+  }
+  .toon-shell .battle-status > button:not(.cast-skill) {
+    font-size: 8px;
+    padding: 4px;
+    gap: 3px;
+    white-space: normal;
+    height: 32px;
+  }
+  .toon-shell .health-stat > span {
+    font-size: 9px;
+  }
+  .toon-shell .health-stat > span b,
+  .toon-shell .health-stat > span small {
+    font-size: 8px;
+  }
+  .toon-shell .health-stat > progress {
+    height: 12px;
+    border-width: 2px;
+  }
+  .toon-shell .battle-heading {
+    left: 10px;
+    right: 10px;
+    top: 12px;
+  }
+  .toon-shell .battle-heading h1 {
+    font-size: 20px;
+  }
+  .toon-shell .battle-heading p {
+    font-size: 9px;
+    max-width: 230px;
+  }
+  .toon-shell .battle-actions > button {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+  .toon-shell .battle-actions > button > svg {
+    height: 16px;
+    width: 16px;
+  }
+  .toon-shell .game-dialog {
+    padding: 18px;
+    max-height: calc(100dvh - 30px);
+    width: calc(100vw - 24px);
+    border-width: 4px;
+    border-radius: 12px;
+  }
+  .toon-shell .dialog-heading h2 {
+    font-size: 24px;
+  }
+  .toon-shell .selection-grid {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+  .toon-shell .selection-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    min-height: 180px;
+  }
+  .toon-shell .selection-card [data-slot="card-header"] {
+    padding: 12px;
+  }
+  .toon-shell .selection-card [data-slot="card-content"] {
+    padding: 12px 12px 12px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .toon-shell .selection-card [data-slot="card-title"] {
+    font-size: 20px;
+  }
+  .toon-shell .loadout-portrait {
+    height: 90px;
+    width: 90px;
+  }
+  .toon-shell .selection-card p {
+    font-size: 11px;
+    min-height: 0;
+  }
+  .toon-shell .selection-card [data-slot="button"] {
+    font-size: 10px;
+    padding: 7px;
+  }
+  .toon-shell .mission-tabs > button {
+    font-size: 9px;
+    padding: 7px 8px;
+  }
+  .toon-shell .mission-row {
+    padding: 12px;
+    gap: 9px;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .toon-shell .mission-copy h2 {
+    font-size: 18px;
+  }
+  .toon-shell .mission-copy > p {
+    font-size: 10px;
+  }
+  .toon-shell .mission-marker {
+    height: 30px;
+    width: 30px;
+    border-width: 2px;
+  }
+  .toon-shell .mission-reward {
+    grid-column: 2;
+    justify-self: stretch;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .toon-shell .mission-reward > button {
+    min-width: 0;
+    font-size: 9px;
+    padding: 6px 10px;
+  }
+  .toon-shell .mission-reward > span {
+    font-size: 10px;
+  }
+  .toon-shell .mission-schedule {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+  }
+  .toon-shell .mission-schedule > p {
+    font-size: 11px;
+  }
+  .toon-shell .story-letter {
+    grid-template-columns: 90px 1fr;
+    gap: 10px;
+  }
+  .toon-shell .story-letter blockquote {
+    font-size: 19px;
+  }
+  .story-ranger {
+    width: 90px;
+    height: 120px;
+  }
+  .toon-shell .story-goal {
+    padding: 8px;
+    font-size: 10px !important;
+  }
+  .toon-shell .choice-grid {
+    grid-template-columns: 1fr;
+  }
+  .toon-shell .game-dialog .choice-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+  .toon-shell .choice-card [data-slot="card-title"] {
+    font-size: 20px;
+  }
+  .toon-shell .choice-card p {
+    font-size: 10px;
+  }
+  .toon-shell .choice-card [data-slot="card-header"] {
+    padding: 12px;
+  }
+  .toon-shell .choice-card [data-slot="card-content"] {
+    padding: 12px;
+  }
+  .toon-shell .choice-card [data-slot="card-content"] > button {
+    font-size: 10px;
+    padding: 6px;
+  }
+  .toon-shell .choice-tools > button {
+    font-size: 10px;
+  }
+  .toon-shell .dialog-actions {
+    gap: 9px;
+  }
+  .toon-shell .dialog-actions > button {
+    font-size: 10px;
+    padding: 8px;
+  }
+  .toon-shell .notification {
+    height: 20px;
+    min-width: 20px;
+    font-size: 11px;
+    border-width: 2px;
+  }
+}
+@media (max-height: 500px) and (min-width: 651px) {
+  .game-topbar {
+    height: 54px;
+    flex-basis: 54px;
+    padding-block: 3px;
+  }
+  .toon-portrait {
+    width: 43px !important;
+    height: 43px !important;
+  }
+  .damage-score > b {
+    font-size: 25px;
+  }
+  .damage-score > .game-icon {
+    width: 35px;
+    height: 35px;
+  }
+  .game-topbar .gold {
+    height: 34px;
+  }
+  .game-topbar .gold .game-icon {
+    height: 28px;
+    width: 28px;
+  }
+  .game-topbar .gold b {
+    font-size: 18px;
+  }
+  .game-topbar #settings-toggle {
+    height: 32px;
+    width: 32px;
+  }
+  .game-dock {
+    height: 58px;
+    flex-basis: 58px;
+  }
+  .toon-shell .game-dock > button {
+    height: 53px;
+    font-size: 9px;
+    flex-direction: row;
+    justify-content: center;
+    gap: 7px;
+  }
+  .game-dock .game-icon {
+    height: 36px;
+    width: 36px;
+  }
+  .toon-shell .game-dock > button[aria-current="page"] {
+    height: 59px;
+    transform: translateY(-6px);
+  }
+  .game-dock > button[aria-current="page"] > .game-icon {
+    height: 40px;
+    width: 40px;
+  }
+  .bounty-banner {
+    top: 8px;
+    left: 28%;
+    width: 260px;
+    height: 62px !important;
+    padding: 7px !important;
+    gap: 6px !important;
+  }
+  .bounty-banner > .game-icon {
+    height: 36px;
+    width: 36px;
+  }
+  .bounty-banner strong {
+    font-size: 11px;
+  }
+  .bounty-banner small {
+    font-size: 8px;
+  }
+  .bounty-banner .bounty-reward {
+    display: none;
+  }
+  .chapter-center {
+    top: 6px;
+    bottom: 6px;
+    left: 120px;
+    right: 120px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 60px 1fr 45px;
+    gap: 3px 20px;
+  }
+  .chapter-title {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .chapter-title > span {
+    font-size: 20px;
+  }
+  .chapter-title > h1 {
+    font-size: 11px;
+  }
+  .chapter-island {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    max-height: 180px;
+    height: 100%;
+    min-height: 100px;
+    width: 100%;
+    margin: 0;
+  }
+  .chapter-goal {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    font-size: 10px;
+  }
+  .chapter-mini-actions {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+  }
+  .toon-shell .chapter-mini-actions > button {
+    height: 39px !important;
+    font-size: 8px !important;
+    padding: 3px 6px;
+  }
+  .chapter-mini-actions .game-icon {
+    height: 28px;
+    width: 28px;
+  }
+  .toon-shell .start-adventure {
+    grid-column: 2;
+    grid-row: 3;
+    height: 43px !important;
+    font-size: 23px;
+    width: 230px;
+    min-width: 200px;
+    justify-self: center;
+    margin: 0;
+  }
+  .start-adventure small {
+    font-size: 7px;
+  }
+  .hub-rail {
+    top: 25px;
+    bottom: 15px;
+    width: 83px;
+    gap: 3px;
+  }
+  .rail-left {
+    left: 12px;
+  }
+  .rail-right {
+    right: 12px;
+  }
+  .toon-shell .hub-rail > button {
+    height: 65px;
+  }
+  .hub-rail > button > .game-icon {
+    height: 40px;
+    width: 40px;
+  }
+  .hub-rail > button > span {
+    font-size: 11px;
+  }
+  .island-rook {
+    height: 75px;
+    width: 75px;
+  }
+  .island-companion {
+    height: 80px;
+    width: 80px;
+  }
+  .island-pet {
+    height: 60px;
+    width: 60px;
+  }
+  .chapter-arrow {
+    height: 30px !important;
+    width: 26px;
+    font-size: 17px !important;
+  }
+  .chapter-prev {
+    left: -16px;
+  }
+  .chapter-next {
+    right: -16px;
+  }
+  .toon-shell .battle-status {
+    left: 18px;
+    right: 18px;
+    bottom: 15px;
+    padding: 8px;
+    grid-template-columns: 1fr 1fr auto auto 1fr;
+    gap: 9px;
+  }
+  .toon-shell .battle-status > .cast-skill {
+    grid-column: 5;
+    grid-row: 1;
+    min-width: 100px;
+    height: 40px;
+  }
+  .toon-shell .battle-status > button:not(.cast-skill) {
+    font-size: 9px;
+    height: 34px;
+  }
+  .toon-shell .battle-heading h1 {
+    font-size: 19px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toon-shell * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.toon-shell.is-road .main-content > .save-warning {
+  position: absolute;
+  top: 110px;
+  left: 20px;
+  right: 20px;
+  z-index: 4;
+  margin: 0;
+  font-size: 12px;
+  max-width: 650px;
+  box-shadow: 0 3px #664832;
+}
+@media (min-width: 1100px) and (min-height: 800px) {
+  .chapter-center {
+    justify-content: flex-start;
+  }
+  .chapter-island {
+    flex-basis: 340px;
+    height: 38vh;
+    max-height: 340px;
+  }
+  .island-rook {
+    width: 130px;
+    height: 130px;
+  }
+  .island-companion {
+    width: 130px;
+    height: 130px;
+  }
+  .island-pet {
+    width: 105px;
+    height: 105px;
+  }
+}
+
+.toon-shell progress[aria-label="Health"]::-webkit-progress-value {
+  background: #78ce65 !important;
+}
+.toon-shell progress[aria-label="Health"]::-moz-progress-bar {
+  background: #78ce65 !important;
+}
+.toon-shell progress[aria-label="Experience"]::-webkit-progress-value {
+  background: #65bcf3 !important;
+}
+.toon-shell progress[aria-label="Experience"]::-moz-progress-bar {
+  background: #65bcf3 !important;
+}
+
+.toon-shell .game-dialog .rarity-legendary [data-slot="card-content"] > button,
+.toon-shell .game-dialog .rarity.rarity-legendary {
+  color: #33230f;
+  text-shadow: none;
+}

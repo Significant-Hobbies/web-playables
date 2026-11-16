@@ -1,11 +1,7 @@
 import { Badge } from "@saas-maker/ui/components/badge";
 import { Button } from "@saas-maker/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@saas-maker/ui/components/card";
-import {
-  NativeDialog,
-  NativeProgress,
-  NativeSelect,
-} from "@saas-maker/ui/components/native-controls";
+import { NativeDialog, NativeProgress } from "@saas-maker/ui/components/native-controls";
 import { Switch } from "@saas-maker/ui/components/switch";
 import {
   ArrowRight,
@@ -15,23 +11,19 @@ import {
   Flame,
   Heart,
   LockKeyhole,
-  Map as MapIcon,
   Pause,
-  PawPrint,
   Play,
   Settings,
-  Shield,
   Sparkles,
   Sword,
   Tent,
-  UserRound,
-  Wind,
   X,
   Zap,
 } from "lucide-react";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import { GameIcon } from "./game-icon";
 import {
   ARMORS,
   CHAPTERS,
@@ -56,9 +48,9 @@ import {
 import { type QuestCard, type QuestScope, questBoard, resetAt } from "./quests";
 import { journeyStory } from "./story";
 
-const miraPortrait = new URL("../assets/mira.png", import.meta.url).href;
-const partyAtlas = new URL("../assets/party-atlas.png", import.meta.url).href;
-const petAtlas = new URL("../assets/pet-atlas.png", import.meta.url).href;
+const chapterIsland = new URL("../assets/toon-island.png", import.meta.url).href;
+const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
+const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
 function PerkSymbol({ family }: { family: Perk["family"] }) {
   return family === "steel" ? <Sword /> : family === "vitality" ? <Heart /> : <Flame />;
 }
@@ -69,6 +61,7 @@ export interface UiSnapshot {
   saveMessage: string;
   saveWarning: boolean;
   paused: boolean;
+  motionPaused: boolean;
   reducedMotion: boolean;
   decisionReady: boolean;
   note: string;
@@ -91,15 +84,7 @@ export interface UiActions {
   claim(scope: QuestScope, id: string, period: number | null): void;
   reduce(value: boolean): void;
 }
-const nav = [
-  ["Camp", Tent],
-  ["Companions", UserRound],
-  ["Pets", PawPrint],
-  ["Equipment", Shield],
-  ["Skills", Sparkles],
-  ["Journey", MapIcon],
-] as const;
-type Section = (typeof nav)[number][0];
+type Section = "Camp" | "Companions" | "Pets" | "Equipment" | "Skills" | "Journey";
 const rarityNames: Record<Rarity, string> = {
   common: "Common",
   rare: "Rare",
@@ -239,6 +224,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [chapter, setChapter] = useState(state.run.chapter);
   const inCamp = state.phase.kind === "camp";
   const dashboard = inCamp || campOpen;
+  const hubChapter = inCamp ? Math.min(chapter, state.meta.unlockedChapter) : state.run.chapter;
   useEffect(() => a.stage(dashboard), [a, dashboard]);
   const active = state.phase.kind === "travel" || state.phase.kind === "battle";
   const company = COMPANIONS.find((c) => c.id === state.meta.loadout.companion)!;
@@ -253,10 +239,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const readyRewards = [...missions.story, ...missions.daily, ...missions.weekly].filter(
     (q) => q.ready,
   ).length;
-  const nextMission = missions.story.findIndex((q) => q.progress === 0);
   useEffect(
-    () => a.inspect(settings || detail !== null || campOpen || retreat || introChapter !== null),
-    [a, settings, detail, campOpen, retreat, introChapter],
+    () =>
+      a.inspect(
+        settings ||
+          detail !== null ||
+          campOpen ||
+          retreat ||
+          introChapter !== null ||
+          section !== "Camp",
+      ),
+    [a, settings, detail, campOpen, retreat, introChapter, section],
   );
   useEffect(() => {
     if (inCamp) {
@@ -270,21 +263,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (!inCamp) setCampOpen(true);
   };
   function launch() {
-    setIntroChapter(chapter);
+    setIntroChapter(hubChapter);
   }
-  const gear = [
-    [
-      Sword,
-      weapon.name,
-      `Blade rank ${state.meta.upgrades.blade} · ${stats.damage.toFixed(0)} damage`,
-    ],
-    [Shield, armor.name, `Mail rank ${state.meta.upgrades.mail} · ${stats.armor} armor`],
-    [
-      Sparkles,
-      "Ember charm",
-      `Charm rank ${state.meta.upgrades.charm} · ${Math.round(stats.crit * 100)}% critical`,
-    ],
-  ] as const;
   function selection<K extends keyof Loadout>(
     slot: K,
     items: readonly { id: Loadout[K]; name: string; description: string; chapter: number }[],
@@ -355,541 +335,287 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     </p>
   );
   return (
-    <div className={`app-shell ${dashboard ? "is-dashboard" : "is-road"}`}>
-      <header className="masthead">
-        <div className="brand">
-          <Flame />
-          <span>ember road</span>
-        </div>
-        <span className="header-chapter">
-          CHAPTER {state.run.chapter} · {place.place}
+    <div
+      className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
+    >
+      <header className="game-topbar">
+        <Button
+          className="hero-profile"
+          variant="ghost"
+          aria-label="Show current stats"
+          onClick={() => setDetail("stats")}
+        >
+          <span className="toon-portrait" />
+          <span>
+            <strong>ROOK</strong>
+            <small>Level {state.run.level}</small>
+          </span>
+        </Button>
+        <span className="damage-score">
+          <GameIcon kind="battle" />
+          <b>{Math.round(stats.damage)}</b>
+          <small>DAMAGE</small>
         </span>
+        <span className="game-wordmark">EMBER ROAD</span>
         <div className="header-actions">
           <span className="gold">
-            <Coins />
+            <GameIcon kind="gold" />
             <b id="gold">{state.meta.gold}</b>
           </span>
           {v.web && <span data-playables-account-slot="" />}
           <Button
-            variant="ghost"
-            size="sm"
-            aria-label={`Missions and quests${readyRewards ? `, ${readyRewards} rewards ready` : ""}`}
-            onClick={() => go("Journey")}
-          >
-            <MapIcon />
-            <span className="desktop-label">Quests</span>
-            {readyRewards > 0 && (
-              <Badge className="quest-ready-count" variant="outline">
-                {readyRewards}
-              </Badge>
-            )}
-          </Button>
-          <Button
             id="settings-toggle"
             variant="ghost"
-            size="sm"
+            size="icon"
             aria-label="Open game settings"
             onClick={() => setSettings(true)}
           >
             <Settings />
-            <span className="desktop-label">Settings</span>
           </Button>
         </div>
       </header>
       <div className="workspace">
-        {dashboard && (
-          <aside className="sidebar">
-            <nav aria-label="Camp sections">
-              {nav.map(([name, Icon]) => (
-                <Button
-                  key={name}
-                  variant={section === name ? "secondary" : "ghost"}
-                  aria-current={section === name ? "page" : undefined}
-                  onClick={() => go(name)}
-                >
-                  <Icon />
-                  {name}
-                  {name === "Journey" && readyRewards > 0 && (
-                    <Badge className="quest-ready-count" variant="outline">
-                      {readyRewards}
-                    </Badge>
-                  )}
-                </Button>
-              ))}
-            </nav>
-            <div className="sidebar-story">
-              <span className="eyebrow">THE OLD ROAD</span>
-              <h2>
-                Five roads.
-                <br />
-                One promise.
-              </h2>
-              <p>Bring the watchtower’s light home.</p>
-              <Flame />
-            </div>
-          </aside>
-        )}
         <main
           data-section={section}
           className={`main-content ${dashboard ? "dashboard" : "battle-layout"}`}
         >
-          {dashboard && (
-            <div className="page-heading">
-              <span className="eyebrow">
-                CHAPTER {state.run.chapter} · {place.place}
-              </span>
-              <h1>
-                {section === "Camp"
-                  ? "Make ready for the road."
-                  : section === "Companions"
-                    ? "Choose who walks beside you."
-                    : section === "Pets"
-                      ? "Small friends. Fierce hearts."
-                      : section === "Equipment"
-                        ? "Made for the march."
-                        : section === "Skills"
-                          ? "Make the next fight yours."
-                          : "One light leads to another."}
-              </h1>
-              <p
-                className={v.saveWarning && section === "Camp" ? "warning" : undefined}
-                data-save-warning={v.saveWarning && section === "Camp" ? true : undefined}
-                role={v.saveWarning && section === "Camp" ? "status" : undefined}
-              >
-                {v.saveWarning && section === "Camp"
-                  ? v.saveMessage
-                  : inCamp
-                    ? nextMission >= 0
-                      ? `Next mission: ${journeyStory(nextMission + 1).goal}`
-                      : "The light is home. Revisit a road, or take on a quest."
-                    : "Your journey is paused. Inspect your company, or return to camp to change it."}
-              </p>
-              {!inCamp && (
-                <div className="inspection-actions">
-                  <Button variant="outline" onClick={() => setCampOpen(false)}>
-                    <Play />
-                    Resume journey
-                  </Button>
-                  <Button variant="ghost" onClick={() => setRetreat(true)}>
-                    Return to camp and change build
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-          {(!dashboard || section !== "Camp") && saveWarning}
-          <div
-            className={
-              dashboard && section !== "Camp" ? "company-layout hidden-company" : "company-layout"
-            }
-          >
-            <Card className="company-card">
-              {dashboard && (
-                <CardHeader>
-                  <div className="card-heading">
-                    <div>
-                      <span className="eyebrow">YOUR COMPANY</span>
-                      <CardTitle>Rook &amp; {company.name}</CardTitle>
-                    </div>
-                    <Badge variant="outline">{inCamp ? "Ready to travel" : "Journey paused"}</Badge>
-                  </div>
-                </CardHeader>
-              )}
-              {!dashboard && (
-                <div className="battle-heading">
-                  <div>
-                    <span className="eyebrow" id="enemy-label">
-                      {state.phase.kind === "battle"
-                        ? `ENCOUNTER ${state.run.cleared + 1}`
-                        : "THE OLD ROAD"}
-                    </span>
-                    <h1>{place.name}</h1>
-                    <p>
-                      {state.phase.kind === "battle"
-                        ? state.phase.enemies
-                            .filter((e) => e.hp > 0)
-                            .map((e) => e.name)
-                            .join(" · ")
-                        : "Carry the light onward."}
-                    </p>
-                  </div>
-                  <div className="battle-actions">
-                    <Button variant="outline" onClick={() => go("Camp")}>
-                      <Tent />
-                      Camp
-                    </Button>
-                    <Button
-                      id="pause"
-                      variant="outline"
-                      aria-label={v.paused ? "Resume game" : "Pause game"}
-                      disabled={!v.loaded || !active}
-                      onClick={a.pause}
-                    >
-                      {v.paused ? <Play /> : <Pause />}
-                    </Button>
-                  </div>
-                </div>
-              )}
-              <div className="world-stage">
-                <canvas
-                  id="world"
-                  ref={canvas}
-                  aria-label="Rook, his companion and pet on the old road"
-                  role="img"
-                />
-                {dashboard && (
-                  <div className="company-labels">
-                    <div>
-                      <strong>Rook</strong>
-                      <small>Front line · knight</small>
-                    </div>
-                    <div>
-                      <strong>{company.name}</strong>
-                      <small>{company.role}</small>
-                    </div>
-                    <div>
-                      <strong>{pet.name}</strong>
-                      <small>{pet.kind}</small>
-                    </div>
-                  </div>
-                )}
-              </div>
-              {dashboard ? (
-                <div className="company-foot">
-                  <span>
-                    <Wind />
-                    {company.description}
-                  </span>
-                  <Button variant="outline" size="sm" onClick={() => go("Companions")}>
-                    Change company
-                  </Button>
-                </div>
-              ) : (
-                <div className="road-foot">
-                  <span>
-                    {state.run.cleared} / {ENCOUNTERS_PER_CHAPTER} waves
-                  </span>
-                  <NativeProgress
-                    aria-label="Chapter progress"
-                    max={ENCOUNTERS_PER_CHAPTER}
-                    value={state.run.cleared}
-                  />
-                  <span>{v.note}</span>
-                </div>
-              )}
-            </Card>
-            {dashboard && (
-              <Card className="gear-card">
-                <CardHeader>
-                  <span className="eyebrow">EQUIPPED</span>
-                  <CardTitle>Made for the march</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {gear.map(([Icon, name, desc]) => (
-                    <div className="gear-row" key={name}>
-                      <span className="gear-icon">
-                        <Icon />
-                      </span>
-                      <div>
-                        <strong>{name}</strong>
-                        <small>{desc}</small>
-                      </div>
-                    </div>
-                  ))}
-                  <p className="gear-note">
-                    <BookOpen />
-                    Forged equipment stays with you between journeys.
-                  </p>
-                  <Button variant="outline" onClick={() => go("Equipment")}>
-                    Open equipment
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+          <div className={`world-stage ${dashboard ? "camp-canvas" : "combat-canvas"}`}>
+            <canvas
+              id="world"
+              ref={canvas}
+              aria-label="Rook, his companion and pet on the old road"
+              role="img"
+            />
           </div>
-          {dashboard && section === "Camp" && (
-            <Card className="skill-overview">
-              <CardHeader>
-                <div className="card-heading">
-                  <div>
-                    <span className="eyebrow">SKILL LOADOUT</span>
-                    <CardTitle>Make the next fight yours</CardTitle>
+          {dashboard && (
+            <section className="chapter-hub" aria-label="Chapter selection">
+              <Button
+                className="bounty-banner"
+                variant="ghost"
+                aria-label="Missions and quests"
+                onClick={() => {
+                  setMissionTab("daily");
+                  go("Journey");
+                }}
+              >
+                <GameIcon kind="quests" />
+                <span>
+                  <strong>WAYFARER’S CALLING</strong>
+                  <small>{missions.daily[0]!.description}</small>
+                  <span className="bounty-track">
+                    <NativeProgress
+                      max={missions.daily[0]!.target}
+                      value={missions.daily[0]!.progress}
+                      aria-label="Daily foe quest progress"
+                    />
+                    <b>
+                      {missions.daily[0]!.progress} / {missions.daily[0]!.target}
+                    </b>
+                  </span>
+                </span>
+                <span className="bounty-reward">
+                  <GameIcon kind="gold" />
+                  <b>{missions.daily[0]!.reward}</b>
+                </span>
+              </Button>
+              <aside className="hub-rail rail-left" aria-label="Build your company">
+                <Button variant="ghost" onClick={() => go("Companions")}>
+                  <GameIcon kind="company" />
+                  <span>Company</span>
+                </Button>
+                <Button variant="ghost" onClick={() => go("Pets")}>
+                  <GameIcon kind="pet" />
+                  <span>Pets</span>
+                </Button>
+                <Button variant="ghost" onClick={() => setDetail("stats")}>
+                  <GameIcon kind="battle" />
+                  <span>Stats</span>
+                </Button>
+              </aside>
+              <div className="chapter-center">
+                <div className="chapter-title">
+                  <span>CHAPTER {hubChapter}</span>
+                  <h1>{CHAPTERS[hubChapter - 1]!.name}</h1>
+                </div>
+                <div className={`chapter-island island-${hubChapter}`}>
+                  <div className="island-frame">
+                    {hubChapter === 1 ? (
+                      <img
+                        className="island-art"
+                        src={chapterIsland}
+                        alt="The Cinder March woodland watchtower"
+                      />
+                    ) : (
+                      <span
+                        className="island-art chapter-tile"
+                        role="img"
+                        aria-label={`${CHAPTERS[hubChapter - 1]!.name}, the next road for your company`}
+                        style={{
+                          backgroundPosition: `${((hubChapter - 2) % 2) * 100}% ${Math.floor((hubChapter - 2) / 2) * 100}%`,
+                        }}
+                      />
+                    )}
                   </div>
-                  <Button variant="ghost" onClick={() => go("Skills")}>
-                    All skills
+                  <span className="island-spark spark-one" />
+                  <span className="island-spark spark-two" />
+                  <span
+                    className="island-rook toon-actor"
+                    role="img"
+                    aria-label="Rook ready for the journey"
+                  />
+                  <span
+                    className="island-companion toon-actor"
+                    style={{
+                      backgroundPosition: `0 ${{ mira: 0, bram: 100 / 3, sable: 200 / 3 }[state.meta.loadout.companion]}%`,
+                    }}
+                    role="img"
+                    aria-label={`${company.name} ready for the journey`}
+                  />
+                  <span
+                    className="island-pet toon-actor"
+                    style={{
+                      backgroundPosition: `0 ${{ fox: 0, hound: 50, owl: 100 }[state.meta.loadout.pet]}%`,
+                    }}
+                    role="img"
+                    aria-label={`${pet.name} ready for the journey`}
+                  />
+                  <Button
+                    className="chapter-prev chapter-arrow"
+                    variant="ghost"
+                    aria-label="Previous chapter"
+                    disabled={!inCamp || hubChapter <= 1}
+                    onClick={() => setChapter(hubChapter - 1)}
+                  >
+                    ◀
+                  </Button>
+                  <Button
+                    className="chapter-next chapter-arrow"
+                    variant="ghost"
+                    aria-label="Next chapter"
+                    disabled={!inCamp || hubChapter >= state.meta.unlockedChapter}
+                    onClick={() => setChapter(hubChapter + 1)}
+                  >
+                    ▶
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="skill-columns">
-                  {SKILLS.map((s) => (
-                    <Button
-                      className="skill-summary"
-                      variant="ghost"
-                      key={s.id}
-                      onClick={() => go("Skills")}
-                    >
-                      <span className="skill-summary-top">
-                        <span className="gear-icon">
-                          <Sparkles />
-                        </span>
-                        <Badge variant="outline">
-                          {s.id === skill.id
-                            ? "Equipped"
-                            : s.chapter > state.meta.unlockedChapter
-                              ? `Chapter ${s.chapter}`
-                              : "Available"}
-                        </Badge>
-                      </span>
-                      <strong>{s.name}</strong>
-                      <span>{s.description}</span>
-                      <small>
-                        {s.cooldown}s cooldown ·{" "}
-                        {s.id === skill.id ? "one active skill" : "view skill"} <ArrowRight />
-                      </small>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
-          {dashboard &&
-            section === "Pets" &&
-            selection(
-              "pet",
-              PETS.map((p) => ({ ...p, name: `${p.name} · ${p.kind}` })),
-            )}
-          {dashboard && section === "Skills" && (
-            <>
-              <p className="section-note">
-                Equip one active skill. Press Q or tap its button during combat. Your oaths add
-                passive powers on each journey.
-              </p>
-              {selection("skill", SKILLS)}
-              <Card className="oath-card">
-                <CardHeader>
-                  <CardTitle>Current powers</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Powers state={state} />
-                </CardContent>
-              </Card>
-            </>
-          )}
-          {dashboard && section === "Equipment" && (
-            <>
-              <h2 className="section-title">Weapon</h2>
-              {selection("weapon", WEAPONS)}
-              <h2 className="section-title">Armor</h2>
-              {selection("armor", ARMORS)}
-              <h2 className="section-title">The forge</h2>
-              <p className="section-note">
-                Permanent upgrades improve every weapon, companion, and pet where stated.
-              </p>
-              <div className="selection-grid forge">
-                {(["blade", "mail", "charm"] as const).map((id) => (
-                  <Card key={id}>
-                    <CardHeader>
-                      <CardTitle>
-                        {
-                          {
-                            blade: "Hone the blade",
-                            mail: "Reinforce the mail",
-                            charm: "Kindle the charm",
-                          }[id]
-                        }
-                      </CardTitle>
-                      <Badge variant="outline">
-                        Rank {state.meta.upgrades[id]} / {UPGRADE_CAP}
-                      </Badge>
-                    </CardHeader>
-                    <CardContent>
-                      <p>
-                        {
-                          {
-                            blade: "+4 Rook damage and +1.5 companion damage per rank.",
-                            mail: "+25 maximum health and +1 armor per rank.",
-                            charm: "+2.5% critical chance and +1 pet damage per rank.",
-                          }[id]
-                        }
-                      </p>
-                      <Button
-                        variant="outline"
-                        data-upgrade={id}
-                        disabled={
-                          !inCamp ||
-                          state.meta.upgrades[id] >= UPGRADE_CAP ||
-                          state.meta.gold < upgradeCost(state, id)
-                        }
-                        onClick={() => a.upgrade(id)}
-                      >
-                        {state.meta.upgrades[id] >= UPGRADE_CAP
-                          ? "Fully forged"
-                          : `Forge · ${upgradeCost(state, id)} gold`}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-          {dashboard && section === "Journey" && (
-            <section className="mission-board" aria-label="Mission board">
-              <nav className="mission-tabs" aria-label="Mission schedule">
-                {(
-                  [
-                    ["story", "Story missions"],
-                    ["daily", "Daily quests"],
-                    ["weekly", "Weekly quests"],
-                  ] as const
-                ).map(([scope, label]) => (
+                <p className="chapter-goal">{journeyStory(hubChapter).goal}</p>
+                <div className="chapter-mini-actions">
                   <Button
-                    key={scope}
-                    variant={missionTab === scope ? "secondary" : "ghost"}
-                    aria-pressed={missionTab === scope}
+                    variant="ghost"
                     onClick={() => {
-                      a.refreshMissions();
-                      setMissionTab(scope);
+                      setMissionTab("story");
+                      go("Journey");
                     }}
                   >
-                    {label}
-                    <span className="mission-tab-count">
-                      {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
-                    </span>
+                    <GameIcon kind="quests" />
+                    <span>Story missions</span>
                   </Button>
-                ))}
-              </nav>
-              <div className="mission-schedule">
-                <p>
-                  {missionTab === "story"
-                    ? "Five chapters. Recover the light, then bring your company home."
-                    : missionTab === "daily"
-                      ? "Three small goals for today's journey. Progress counts across your runs."
-                      : "Longer goals for your company. Replayed chapters count toward victories."}
-                </p>
-                {missionTab !== "story" && (
-                  <span>
-                    Resets{" "}
-                    {new Intl.DateTimeFormat("en-GB", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      timeZone: "UTC",
-                    }).format(new Date(resetAt(state.quests, missionTab)))}{" "}
-                    UTC
-                  </span>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setMissionTab("weekly");
+                      go("Journey");
+                    }}
+                  >
+                    <GameIcon kind="rewards" />
+                    <span>Chapter rewards</span>
+                    {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
+                  </Button>
+                </div>
+                {saveWarning}
+                <Button
+                  id="start"
+                  className="start-adventure"
+                  disabled={!v.loaded}
+                  onClick={inCamp ? launch : () => setCampOpen(false)}
+                >
+                  {inCamp ? "START" : "RESUME"}
+                  <small>{inCamp ? "Begin the march" : "Resume journey"}</small>
+                </Button>
+                {!inCamp && (
+                  <Button
+                    className="retreat-from-hub"
+                    variant="ghost"
+                    onClick={() => setRetreat(true)}
+                  >
+                    Return to camp and change build
+                  </Button>
                 )}
               </div>
-              <div className="mission-list">
-                {missions[missionTab].map((quest: QuestCard, i) => {
-                  const chapter = missionTab === "story" ? i + 1 : null;
-                  const locked = chapter !== null && chapter > state.meta.unlockedChapter;
-                  const progress =
-                    chapter !== null
-                      ? quest.progress > 0
-                        ? ENCOUNTERS_PER_CHAPTER
-                        : state.run.chapter === chapter
-                          ? state.run.cleared
-                          : 0
-                      : quest.progress;
-                  const target = chapter !== null ? ENCOUNTERS_PER_CHAPTER : quest.target;
-                  return (
-                    <Card
-                      key={quest.id}
-                      data-quest={quest.id}
-                      className={`mission-row ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
-                    >
-                      <div className="mission-marker">
-                        {quest.claimed ? (
-                          <Check />
-                        ) : locked ? (
-                          <LockKeyhole />
-                        ) : (
-                          (chapter ??
-                          (quest.id.includes("foes") ? (
-                            <Sword />
-                          ) : quest.id.includes("skills") ? (
-                            <Zap />
-                          ) : (
-                            <Flame />
-                          )))
-                        )}
-                      </div>
-                      <div className="mission-copy">
-                        <div className="mission-title">
-                          <h2>{chapter !== null ? CHAPTERS[i]!.name : quest.title}</h2>
-                          <Badge variant="outline">
-                            {quest.claimed
-                              ? "Claimed"
-                              : quest.ready
-                                ? "Reward ready"
-                                : locked
-                                  ? "Locked"
-                                  : chapter !== null
-                                    ? `Chapter ${chapter}`
-                                    : "In progress"}
-                          </Badge>
-                        </div>
-                        <p>{chapter !== null ? journeyStory(chapter).goal : quest.description}</p>
-                        <div className="mission-progress">
-                          <NativeProgress
-                            aria-label={`${chapter !== null ? CHAPTERS[i]!.name : quest.title} progress`}
-                            max={target}
-                            value={progress}
-                          />
-                          <small>
-                            {progress}/{target} {chapter !== null ? "waves" : ""}
-                          </small>
-                        </div>
-                      </div>
-                      <div className="mission-reward">
-                        <span>
-                          <Coins /> {quest.reward} gold
-                        </span>
-                        {quest.ready ? (
-                          <Button
-                            data-claim-quest={quest.id}
-                            disabled={!v.loaded || v.saveWarning}
-                            onClick={() => a.claim(missionTab, quest.id, quest.period)}
-                          >
-                            Claim reward
-                          </Button>
-                        ) : chapter !== null && !locked ? (
-                          <Button
-                            variant="outline"
-                            disabled={!inCamp}
-                            onClick={() => {
-                              setChapter(chapter);
-                              go("Camp");
-                            }}
-                          >
-                            {inCamp
-                              ? quest.claimed
-                                ? "Revisit road"
-                                : "Prepare journey"
-                              : "Journey underway"}
-                          </Button>
-                        ) : (
-                          <Button variant="outline" disabled>
-                            {quest.claimed
-                              ? "Reward claimed"
-                              : locked
-                                ? `Reach chapter ${chapter}`
-                                : "Keep adventuring"}
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-              <p className="mission-feedback" role="status">
-                {v.note}
-              </p>
+              <aside className="hub-rail rail-right" aria-label="Missions and rewards">
+                <Button
+                  variant="ghost"
+                  aria-label="Open daily quests"
+                  onClick={() => {
+                    setMissionTab("daily");
+                    go("Journey");
+                  }}
+                >
+                  <GameIcon kind="daily" />
+                  <span>Daily quests</span>
+                  {missions.daily.some((q) => q.ready) && <b className="notification">!</b>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  aria-label="Open weekly quests"
+                  onClick={() => {
+                    setMissionTab("weekly");
+                    go("Journey");
+                  }}
+                >
+                  <GameIcon kind="weekly" />
+                  <span>Weekly quests</span>
+                  {missions.weekly.some((q) => q.ready) && <b className="notification">!</b>}
+                </Button>
+                <Button
+                  variant="ghost"
+                  aria-label="Open story missions"
+                  onClick={() => {
+                    setMissionTab("story");
+                    go("Journey");
+                  }}
+                >
+                  <GameIcon kind="quests" />
+                  <span>Missions</span>
+                  {missions.story.some((q) => q.ready) && <b className="notification">!</b>}
+                </Button>
+              </aside>
             </section>
+          )}
+          {!dashboard && (
+            <div className="battle-heading">
+              <div>
+                <span className="eyebrow" id="enemy-label">
+                  {state.phase.kind === "battle"
+                    ? `ENCOUNTER ${state.run.cleared + 1} / ${ENCOUNTERS_PER_CHAPTER}`
+                    : "THE OLD ROAD"}
+                </span>
+                <h1>{place.name}</h1>
+                <p>
+                  {state.phase.kind === "battle"
+                    ? state.phase.enemies
+                        .filter((e) => e.hp > 0)
+                        .map((e) => e.name)
+                        .join(" · ")
+                    : "Carry the light onward."}
+                </p>
+              </div>
+              <div className="battle-actions">
+                <Button variant="outline" onClick={() => go("Camp")}>
+                  <Tent />
+                  Camp
+                </Button>
+                <Button
+                  id="pause"
+                  variant="outline"
+                  aria-label={v.paused ? "Resume game" : "Pause game"}
+                  disabled={!v.loaded || !active}
+                  onClick={a.pause}
+                >
+                  {v.paused ? <Play /> : <Pause />}
+                </Button>
+              </div>
+            </div>
           )}
           {!dashboard && (
             <div className="battle-status">
@@ -941,64 +667,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </Button>
             </div>
           )}
-          {dashboard && (
-            <footer className="camp-footer">
-              <div>
-                <span className="eyebrow">ROOK’S CONDITION</span>
-                <div className="quick-stats">
-                  <span>
-                    health
-                    <strong>
-                      {Math.ceil(state.run.hp)}
-                      <small>/{stats.hp}</small>
-                    </strong>
-                  </span>
-                  <span>
-                    damage<strong>{stats.damage.toFixed(0)}</strong>
-                  </span>
-                  <span>
-                    attacks / sec<strong>{(1 / stats.interval).toFixed(2)}</strong>
-                  </span>
-                  <span>
-                    critical
-                    <strong>
-                      {Math.round(stats.crit * 100)}
-                      <small>%</small>
-                    </strong>
-                  </span>
-                  <Button variant="ghost" size="sm" onClick={() => setDetail("stats")}>
-                    All stats
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setDetail("powers")}>
-                    Current powers
-                  </Button>
-                </div>
-              </div>
-              <div className="begin-area">
-                {inCamp && (
-                  <NativeSelect
-                    aria-label="Choose chapter"
-                    value={chapter}
-                    onChange={(e) => setChapter(Number(e.target.value))}
-                  >
-                    {CHAPTERS.filter((_, i) => i < state.meta.unlockedChapter).map((c, i) => (
-                      <option value={i + 1} key={c.name}>
-                        Chapter {i + 1} · {c.name}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                )}
-                <Button
-                  id="start"
-                  disabled={!v.loaded}
-                  onClick={inCamp ? launch : () => setCampOpen(false)}
-                >
-                  <ArrowRight />
-                  {inCamp ? "Begin the march" : "Resume journey"}
-                </Button>
-              </div>
-            </footer>
-          )}
+
+          {!dashboard && saveWarning}
           <p
             id="save-status"
             className={`save-status ${v.saveWarning ? "warning" : ""}`}
@@ -1008,6 +678,309 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
+      {dashboard && (
+        <nav className="game-dock" aria-label="Camp sections">
+          {(
+            [
+              ["Equipment", "equipment", "Equipment"],
+              ["Companions", "company", "Company"],
+              ["Camp", "battle", "Battle"],
+              ["Skills", "skills", "Skills"],
+              ["Pets", "pet", "Pets"],
+            ] as const
+          ).map(([name, icon, label]) => (
+            <Button
+              key={name}
+              variant="ghost"
+              aria-current={section === name ? "page" : undefined}
+              onClick={() => go(name)}
+            >
+              <GameIcon kind={icon} />
+              <span>{label}</span>
+            </Button>
+          ))}
+        </nav>
+      )}
+      <Modal
+        open={dashboard && section !== "Camp"}
+        title={
+          section === "Journey"
+            ? "Missions & rewards"
+            : section === "Companions"
+              ? "Your company"
+              : section === "Equipment"
+                ? "Equipment & forge"
+                : section === "Skills"
+                  ? "Skills & powers"
+                  : "Your pets"
+        }
+        className="collection-dialog"
+        close={() => {
+          setSection("Camp");
+        }}
+      >
+        {!inCamp && (
+          <p className="section-note">
+            Your journey is paused. Return to camp to change your build.
+          </p>
+        )}
+        {section !== "Camp" && saveWarning}
+        {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
+        {dashboard &&
+          section === "Pets" &&
+          selection(
+            "pet",
+            PETS.map((p) => ({ ...p, name: `${p.name} · ${p.kind}` })),
+          )}
+        {dashboard && section === "Skills" && (
+          <>
+            <p className="section-note">
+              Equip one active skill. Press Q or tap its button during combat. Your oaths add
+              passive powers on each journey.
+            </p>
+            {selection("skill", SKILLS)}
+            <Card className="oath-card">
+              <CardHeader>
+                <CardTitle>Current powers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Powers state={state} />
+              </CardContent>
+            </Card>
+          </>
+        )}
+        {dashboard && section === "Equipment" && (
+          <>
+            <h2 className="section-title">Weapon</h2>
+            {selection("weapon", WEAPONS)}
+            <h2 className="section-title">Armor</h2>
+            {selection("armor", ARMORS)}
+            <h2 className="section-title">The forge</h2>
+            <p className="section-note">
+              Permanent upgrades improve every weapon, companion, and pet where stated.
+            </p>
+            <div className="selection-grid forge">
+              {(["blade", "mail", "charm"] as const).map((id) => (
+                <Card key={id}>
+                  <CardHeader>
+                    <CardTitle>
+                      {
+                        {
+                          blade: "Hone the blade",
+                          mail: "Reinforce the mail",
+                          charm: "Kindle the charm",
+                        }[id]
+                      }
+                    </CardTitle>
+                    <Badge variant="outline">
+                      Rank {state.meta.upgrades[id]} / {UPGRADE_CAP}
+                    </Badge>
+                  </CardHeader>
+                  <CardContent>
+                    <p>
+                      {
+                        {
+                          blade: "+4 Rook damage and +1.5 companion damage per rank.",
+                          mail: "+25 maximum health and +1 armor per rank.",
+                          charm: "+2.5% critical chance and +1 pet damage per rank.",
+                        }[id]
+                      }
+                    </p>
+                    <Button
+                      variant="outline"
+                      data-upgrade={id}
+                      disabled={
+                        !inCamp ||
+                        state.meta.upgrades[id] >= UPGRADE_CAP ||
+                        state.meta.gold < upgradeCost(state, id)
+                      }
+                      onClick={() => a.upgrade(id)}
+                    >
+                      {state.meta.upgrades[id] >= UPGRADE_CAP
+                        ? "Fully forged"
+                        : `Forge · ${upgradeCost(state, id)} gold`}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
+        {dashboard && section === "Journey" && (
+          <section className="mission-board" aria-label="Mission board">
+            <nav className="mission-tabs" aria-label="Mission schedule">
+              {(
+                [
+                  ["story", "Story missions"],
+                  ["daily", "Daily quests"],
+                  ["weekly", "Weekly quests"],
+                ] as const
+              ).map(([scope, label]) => (
+                <Button
+                  key={scope}
+                  variant={missionTab === scope ? "secondary" : "ghost"}
+                  aria-pressed={missionTab === scope}
+                  onClick={() => {
+                    a.refreshMissions();
+                    setMissionTab(scope);
+                  }}
+                >
+                  {label}
+                  <span className="mission-tab-count">
+                    {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
+                  </span>
+                </Button>
+              ))}
+            </nav>
+            <div className="mission-schedule">
+              <p>
+                {missionTab === "story"
+                  ? "Five chapters. Recover the light, then bring your company home."
+                  : missionTab === "daily"
+                    ? "Three small goals for today's journey. Progress counts across your runs."
+                    : "Longer goals for your company. Replayed chapters count toward victories."}
+              </p>
+              {missionTab !== "story" && (
+                <span>
+                  Resets{" "}
+                  {new Intl.DateTimeFormat("en-GB", {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    timeZone: "UTC",
+                  }).format(new Date(resetAt(state.quests, missionTab)))}{" "}
+                  UTC
+                </span>
+              )}
+            </div>
+            <div className="mission-list">
+              {missions[missionTab].map((quest: QuestCard, i) => {
+                const chapter = missionTab === "story" ? i + 1 : null;
+                const locked = chapter !== null && chapter > state.meta.unlockedChapter;
+                const progress =
+                  chapter !== null
+                    ? quest.progress > 0
+                      ? ENCOUNTERS_PER_CHAPTER
+                      : state.run.chapter === chapter
+                        ? state.run.cleared
+                        : 0
+                    : quest.progress;
+                const target = chapter !== null ? ENCOUNTERS_PER_CHAPTER : quest.target;
+                return (
+                  <Card
+                    key={quest.id}
+                    data-quest={quest.id}
+                    className={`mission-row ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
+                  >
+                    <div className="mission-marker">
+                      {quest.claimed ? (
+                        <Check />
+                      ) : locked ? (
+                        <LockKeyhole />
+                      ) : (
+                        (chapter ??
+                        (quest.id.includes("foes") ? (
+                          <Sword />
+                        ) : quest.id.includes("skills") ? (
+                          <Zap />
+                        ) : (
+                          <Flame />
+                        )))
+                      )}
+                    </div>
+                    <div className="mission-copy">
+                      <div className="mission-title">
+                        <h2>{chapter !== null ? CHAPTERS[i]!.name : quest.title}</h2>
+                        <Badge variant="outline">
+                          {quest.claimed
+                            ? "Claimed"
+                            : quest.ready
+                              ? "Reward ready"
+                              : locked
+                                ? "Locked"
+                                : chapter !== null
+                                  ? `Chapter ${chapter}`
+                                  : "In progress"}
+                        </Badge>
+                      </div>
+                      <p>{chapter !== null ? journeyStory(chapter).goal : quest.description}</p>
+                      <div className="mission-progress">
+                        <NativeProgress
+                          aria-label={`${chapter !== null ? CHAPTERS[i]!.name : quest.title} progress`}
+                          max={target}
+                          value={progress}
+                        />
+                        <small>
+                          {progress}/{target} {chapter !== null ? "waves" : ""}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="mission-reward">
+                      <span>
+                        <Coins /> {quest.reward} gold
+                      </span>
+                      {quest.ready ? (
+                        <Button
+                          data-claim-quest={quest.id}
+                          disabled={!v.loaded || v.saveWarning}
+                          onClick={() => a.claim(missionTab, quest.id, quest.period)}
+                        >
+                          Claim reward
+                        </Button>
+                      ) : chapter !== null && !locked ? (
+                        <Button
+                          variant="outline"
+                          disabled={!inCamp}
+                          onClick={() => {
+                            setChapter(chapter);
+                            go("Camp");
+                          }}
+                        >
+                          {inCamp
+                            ? quest.claimed
+                              ? "Revisit road"
+                              : "Prepare journey"
+                            : "Journey underway"}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" disabled>
+                          {quest.claimed
+                            ? "Reward claimed"
+                            : locked
+                              ? `Reach chapter ${chapter}`
+                              : "Keep adventuring"}
+                        </Button>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+            <p className="mission-feedback" role="status">
+              {v.note}
+            </p>
+          </section>
+        )}
+
+        {!inCamp && (
+          <div className="dialog-actions">
+            <Button
+              onClick={() => {
+                setSection("Camp");
+                setCampOpen(false);
+              }}
+            >
+              <Play />
+              Resume journey
+            </Button>
+            <Button variant="outline" onClick={() => setRetreat(true)}>
+              Return to camp and change build
+            </Button>
+          </div>
+        )}
+      </Modal>
       <Modal
         open={introChapter !== null}
         title={journeyStory(introChapter ?? chapter).title}
@@ -1015,7 +988,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         className="chapter-opening"
       >
         <div className="story-letter">
-          <img src={miraPortrait} alt="Mira carrying her journal and lantern" />
+          <span className="story-ranger" role="img" aria-label="Mira, your ranger companion" />
           <div>
             <span className="eyebrow">FROM MIRA’S JOURNAL · CHAPTER {introChapter ?? chapter}</span>
             <blockquote>{journeyStory(introChapter ?? chapter).opening}</blockquote>

@@ -2,6 +2,7 @@ export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
 import { rank } from "./model";
+import { spriteBottom, visibleSpriteHeight } from "./sprite-frames";
 
 interface ActorMotion {
   attack: number;
@@ -59,13 +60,7 @@ export class WorldRenderer {
   private effects: { actor: ActorId; target: ActorId; age: number; kind: string }[] = [];
   private backdrops = new Map<number, HTMLImageElement>();
   private lightningAge = 1;
-  private readonly places = [
-    [new URL("../assets/cinder-march.png", import.meta.url).href, 0.77],
-    [new URL("../assets/lantern-ruins.png", import.meta.url).href, 0.71],
-    [new URL("../assets/hollow-marsh.png", import.meta.url).href, 0.61],
-    [new URL("../assets/frostbound-keep.png", import.meta.url).href, 0.69],
-    [new URL("../assets/last-threshold.png", import.meta.url).href, 0.67],
-  ] as const;
+  private readonly roadAtlasUrl = new URL("../assets/toon-roads.png", import.meta.url).href;
   private width = 1000;
   private height = 520;
   private actorScale = 1;
@@ -77,11 +72,11 @@ export class WorldRenderer {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("The game needs a browser with Canvas 2D support.");
     this.ctx = ctx;
-    this.heroImage.src = new URL("../assets/hero-knight.png", import.meta.url).href;
-    this.enemyImage.src = new URL("../assets/enemies.png", import.meta.url).href;
-    this.partyImage.src = new URL("../assets/party-atlas.png", import.meta.url).href;
-    this.petImage.src = new URL("../assets/pet-atlas.png", import.meta.url).href;
-    this.walkImage.src = new URL("../assets/party-walk-atlas.png", import.meta.url).href;
+    this.heroImage.src = new URL("../assets/toon-knight.png", import.meta.url).href;
+    this.enemyImage.src = new URL("../assets/toon-enemies.png", import.meta.url).href;
+    this.partyImage.src = new URL("../assets/toon-party.png", import.meta.url).href;
+    this.petImage.src = new URL("../assets/toon-pets.png", import.meta.url).href;
+    this.walkImage.src = new URL("../assets/toon-walk.png", import.meta.url).href;
     this.backdrop(1);
   }
 
@@ -183,6 +178,7 @@ export class WorldRenderer {
   ) {
     this.campView = camp;
     this.capture(state);
+    if (camp) return;
     const enemies = !camp && (state.phase.kind === "battle" || this.settling) ? this.foes : [];
     this.draw({
       time,
@@ -387,13 +383,24 @@ export class WorldRenderer {
           row,
           x,
           y,
-          (pet ? 250 : 210) * scale,
+          (pet ? 250 : 270) * scale,
           m.death,
           hurt,
           s.reducedMotion,
         );
       }
-      if (foe && foe.hp > 0) this.healthBar(x, y - 205 * scale, 74, foe.hp, foe.maxHp);
+      if (foe && foe.hp > 0) {
+        const visibleHeight =
+          foe.kind === "archer"
+            ? 270 * visibleSpriteHeight("party", 3, 0)
+            : 300 *
+              visibleSpriteHeight(
+                "enemies",
+                0,
+                { raider: 0, sentinel: 1, hexer: 2, warden: 3 }[foe.kind],
+              );
+        this.healthBar(x, y - (visibleHeight + 16) * scale, 74, foe.hp, foe.maxHp);
+      }
     }
     if (s.shield > 0) {
       const p = this.posedPosition("hero", s);
@@ -422,6 +429,8 @@ export class WorldRenderer {
     const c = this.ctx;
     const sw = image.naturalWidth / cols,
       sh = image.naturalHeight / rows;
+    const sheet = image === this.petImage ? "pets" : image === this.walkImage ? "walk" : "party";
+    const bottom = spriteBottom(sheet, row, column);
     c.save();
     this.ellipse(x, y + 3, extent * 0.18, extent * 0.035, "#263e333b");
     c.translate(x + (reduced ? 0 : Math.sin(hurt * Math.PI) * 6), y);
@@ -437,7 +446,7 @@ export class WorldRenderer {
       sw,
       sh,
       -extent / 2,
-      -extent,
+      -(extent * sh * bottom) / sw,
       extent,
       (extent * sh) / sw,
     );
@@ -576,14 +585,21 @@ export class WorldRenderer {
     const image = this.backdrop(s.chapter);
     if (image.complete && image.naturalWidth) {
       const img = image;
-      const scale = Math.max(1000 / img.width, (h * 1.2) / img.height);
-      const w = img.width * scale;
-      const hh = img.height * scale;
-      const drift = Math.sin(s.distance * 0.15) * Math.min(25, Math.max(0, (w - 1000) / 2));
+      const index = Math.max(0, Math.min(4, s.chapter - 1));
+      const sw = img.naturalWidth / 2;
+      const sh = img.naturalHeight / 3;
+      const scale = Math.max(1000 / sw, h / sh);
+      const w = sw * scale;
+      const hh = sh * scale;
+      const drift = Math.sin(s.distance * 0.15) * Math.min(22, Math.max(0, (w - 1000) / 2));
       c.drawImage(
         img,
+        (index % 2) * sw,
+        Math.floor(index / 2) * sh,
+        sw,
+        sh,
         (1000 - w) / 2 + drift,
-        h * 0.73 - hh * (this.places[s.chapter - 1]?.[1] ?? 0.77),
+        Math.max(h - hh, Math.min(0, h * 0.73 - hh * 0.74)),
         w,
         hh,
       );
@@ -1379,7 +1395,8 @@ export class WorldRenderer {
     const row = hero ? (attack > 0 ? 1 : 0) : attack > 0.3 && attack < 0.8 ? 1 : 0;
     const cell = img.naturalWidth / 4;
     const cellHeight = img.naturalHeight / 2;
-    const extent = 204 * scale;
+    const extent = (hero ? 204 : 300) * scale;
+    const bottom = spriteBottom(hero ? "hero" : "enemies", row, column);
     const recoil = scene.reducedMotion ? 0 : Math.sin(hurt * Math.PI) * (hero ? -8 : 9);
     const lunge = 0;
     const breath = scene.reducedMotion ? 0 : Math.sin(scene.time * 2.7) * 1.5;
@@ -1398,7 +1415,7 @@ export class WorldRenderer {
       cell,
       cellHeight,
       -extent / 2,
-      -extent + 4,
+      -extent * bottom + 4,
       extent,
       extent,
     );
@@ -1630,7 +1647,7 @@ export class WorldRenderer {
     let image = this.backdrops.get(chapter);
     if (!image) {
       image = new Image();
-      image.src = (this.places[chapter - 1] ?? this.places[0])[0];
+      image.src = this.roadAtlasUrl;
       this.backdrops.set(chapter, image);
     }
     return image;
