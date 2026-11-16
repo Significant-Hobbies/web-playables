@@ -109,8 +109,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await page.evaluate(
       () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
     );
-    if (skipOpening && (await page.locator("#skip-prologue").isVisible()))
+    if (skipOpening && (await page.locator("#skip-prologue").isVisible())) {
       await page.locator("#skip-prologue").click();
+      const resume = page.locator("#start");
+      if ((await resume.isVisible()) && /^RESUME/.test(await resume.innerText()))
+        await resume.click();
+    }
   }
   async function stored(page) {
     return page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
@@ -191,11 +195,14 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Opening is silent before a gesture",
     );
     await originPage.screenshot({ path: join(evidence, "origin-story-1440.png") });
-    await originPage.locator("#prologue-next").click();
+    assert.equal(await originPage.evaluate(() => document.activeElement?.id), "prologue-next");
+    await originPage.keyboard.press("Enter");
     assert(await originPage.getByText("A promise worth keeping.", { exact: true }).isVisible());
-    await originPage.locator("#prologue-next").click();
+    await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
+    await originPage.keyboard.press("Enter");
     assert(await originPage.getByText("No one walks alone.", { exact: true }).isVisible());
-    await originPage.locator("#prologue-next").click();
+    await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
+    await originPage.keyboard.press("Enter");
     await originPage.waitForFunction(() => window.__audioLoops === 2);
     assert.equal(await originPage.evaluate(() => window.__audioContexts.length), 1);
     await originPage.getByRole("complementary", { name: "First battle guidance" }).waitFor();
@@ -224,10 +231,13 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "The running journey stays frozen under the replayed opening",
     );
     await originPage.locator("#skip-prologue").click();
-    const resumedRun = (await stored(originPage)).state.run;
-    assert.equal(resumedRun.chapter, pausedRun.chapter);
-    assert.equal(resumedRun.cleared, pausedRun.cleared);
-    assert.deepEqual(resumedRun.perks, pausedRun.perks);
+    assert.match(await originPage.locator("#start").innerText(), /^RESUME/);
+    const heldRun = (await stored(originPage)).state.run;
+    assert.equal(heldRun.chapter, pausedRun.chapter);
+    assert.equal(heldRun.cleared, pausedRun.cleared);
+    assert.deepEqual(heldRun.perks, pausedRun.perks);
+    await originPage.waitForTimeout(200);
+    assert.equal((await stored(originPage)).state.run.distance, heldRun.distance);
     await originPage.reload();
     await originPage.waitForFunction(
       () => !document.getElementById("save-status")?.textContent.includes("Loading"),

@@ -133,6 +133,7 @@ function snapshot(): UiSnapshot {
     motionPaused: userPaused || platformPaused || inspecting,
     presentationPaused: userPaused || platformPaused,
     audioStatus,
+    audioPermitted: platform.audioEnabled(),
     audioControls: platform.allowsMuteUi,
     reducedMotion,
     decisionReady: loaded && !renderer?.settling,

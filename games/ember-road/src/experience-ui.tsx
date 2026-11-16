@@ -10,6 +10,7 @@ export function StoryOpening({
   fresh,
   paused,
   audioStatus,
+  audioPermitted,
   soundOn,
   audioControls,
   toggleSound,
@@ -20,6 +21,7 @@ export function StoryOpening({
   fresh: boolean;
   paused: boolean;
   audioStatus: AudioStatus;
+  audioPermitted: boolean;
   soundOn: boolean;
   audioControls: boolean;
   toggleSound(): void;
@@ -31,15 +33,15 @@ export function StoryOpening({
   useEffect(() => {
     const node = dialog.current;
     if (!node) return;
-    if (open && !node.open) {
-      node.showModal();
-      node.querySelector<HTMLButtonElement>("#prologue-next")?.focus();
+    if (open) {
+      if (!node.open) node.showModal();
+      node.querySelector<HTMLButtonElement>(`#prologue-next[data-scene="${step}"]`)?.focus();
     }
     if (!open && node.open) {
       node.close();
       setStep(0);
     }
-  }, [open]);
+  }, [open, step]);
   const scene = PROLOGUE[step]!;
   return (
     <NativeDialog
@@ -98,6 +100,7 @@ export function StoryOpening({
           )}
           <Button
             id="prologue-next"
+            data-scene={step}
             onClick={() => (step < PROLOGUE.length - 1 ? setStep(step + 1) : finish(fresh))}
           >
             {step === PROLOGUE.length - 1 && !fresh ? "Return to the company" : scene.next}
@@ -115,13 +118,15 @@ export function StoryOpening({
       </div>
       <span className="opening-audio">
         <Volume2 />
-        {audioStatus === "locked"
-          ? "Music begins with your first action"
-          : audioStatus === "loading"
-            ? "The last light is waking…"
-            : audioStatus === "ready"
-              ? "The Last Light · original score"
-              : "Sound unavailable · the story continues"}
+        {!audioPermitted
+          ? "Sound is muted in the player"
+          : audioStatus === "locked"
+            ? "Music begins with your first action"
+            : audioStatus === "loading"
+              ? "The last light is waking…"
+              : audioStatus === "ready"
+                ? "The Last Light · original score"
+                : "Sound unavailable · the story continues"}
       </span>
     </NativeDialog>
   );

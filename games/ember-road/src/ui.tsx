@@ -75,6 +75,7 @@ export interface UiSnapshot {
   motionPaused: boolean;
   presentationPaused: boolean;
   audioStatus: AudioStatus;
+  audioPermitted: boolean;
   audioControls: boolean;
   reducedMotion: boolean;
   decisionReady: boolean;
@@ -1549,6 +1550,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         fresh={isFirstJourney(state)}
         paused={v.presentationPaused}
         audioStatus={v.audioStatus}
+        audioPermitted={v.audioPermitted}
         soundOn={experience.audio.musicEnabled || experience.audio.effectsEnabled}
         audioControls={v.audioControls}
         toggleSound={a.toggleSound}
