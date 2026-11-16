@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { initialState } from "./model";
+import { initialState as freshState } from "./model";
 import { companyPower } from "./power";
+
+function initialState(seed?: number) {
+  const state = freshState(seed);
+  delete state.meta.progression;
+  return state;
+}
 
 describe("company power", () => {
   it("rates the equipped build without mutating or rating temporary run condition", () => {

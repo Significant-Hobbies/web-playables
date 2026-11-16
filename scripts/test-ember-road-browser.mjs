@@ -8,14 +8,19 @@ import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   beginBattle,
+  initialState as freshState,
   heroStats,
-  initialState,
   startRun,
   validState,
 } from "../games/ember-road/src/model.ts";
 import { questBoard } from "../games/ember-road/src/quests.ts";
 import { createSiteServer } from "./serve-site.mjs";
 
+function initialState(seed) {
+  const state = freshState(seed);
+  delete state.meta.progression;
+  return state;
+}
 const storageKey = "save:ember-road:v1";
 test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
   timeout: 120000,
@@ -157,6 +162,10 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       .locator(".game-dock")
       .getByRole("button", { name: label === "Companions" ? "Company" : label, exact: true })
       .click();
+    await page.waitForFunction(() => {
+      const dialog = document.querySelector(".collection-dialog[open]");
+      return dialog && Number(getComputedStyle(dialog).opacity) === 1;
+    });
   }
   async function depart(page) {
     await page.locator("#start").click();
@@ -200,13 +209,41 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert(await originPage.getByText("A promise worth keeping.", { exact: true }).isVisible());
     await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
     await originPage.keyboard.press("Enter");
-    assert(await originPage.getByText("No one walks alone.", { exact: true }).isVisible());
+    assert(await originPage.getByText("One brave first step.", { exact: true }).isVisible());
     await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
     await originPage.keyboard.press("Enter");
     await originPage.waitForFunction(() => window.__audioLoops === 2);
     assert.equal(await originPage.evaluate(() => window.__audioContexts.length), 1);
     await originPage.getByRole("complementary", { name: "First battle guidance" }).waitFor();
-    await originPage.waitForFunction(() => !document.querySelector(".cast-skill").disabled);
+    assert.equal(
+      await originPage.locator(".cast-skill").count(),
+      0,
+      "Fresh Rook has not earned an active skill",
+    );
+    assert.equal(
+      await originPage.evaluate(() => window.__draws.companion),
+      0,
+      "Fresh Rook begins without a companion",
+    );
+    assert.equal(
+      await originPage.evaluate(() => window.__draws.pet),
+      0,
+      "Fresh Rook begins without a pet",
+    );
+    await originPage.waitForFunction(
+      (key) => JSON.parse(localStorage.getItem(key)).state.meta.experience.lessons.battle,
+      storageKey,
+    );
+    for (let wait = 0; wait < 70; wait++) {
+      if (await originPage.locator(".cast-skill:not(:disabled)").count()) break;
+      const choice = originPage.locator(".decision--choice[open] [data-perk]").first();
+      if (await choice.count()) await choice.click();
+      await originPage.waitForTimeout(500);
+    }
+    await originPage.waitForFunction(
+      () =>
+        !document.querySelector(".cast-skill")?.disabled && !!document.querySelector(".cast-skill"),
+    );
     await originPage.keyboard.press("q");
     await originPage.waitForFunction(
       (key) => JSON.parse(localStorage.getItem(key)).state.meta.experience.lessons.skill,
@@ -225,6 +262,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const pausedRun = structuredClone(firstSaved.state.run);
     await originPage.getByRole("button", { name: "Watch the opening", exact: true }).click();
     await originPage.getByRole("dialog", { name: "How the journey began" }).waitFor();
+    assert.equal(
+      await originPage.locator(".opening-mira").count(),
+      firstSaved.state.meta.progression.renown >= 6 ? 1 : 0,
+      "Replay respects the company unlock",
+    );
+    assert.equal(
+      await originPage.locator(".opening-cinder").count(),
+      firstSaved.state.meta.progression.renown >= 36 ? 1 : 0,
+      "Replay respects the pet unlock",
+    );
     assert.deepEqual(
       (await stored(originPage)).state.run,
       pausedRun,
@@ -250,7 +297,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.equal((await stored(originPage)).state.meta.experience.audio.musicEnabled, false);
     result.storyOpeningGuidanceAndAudioPreferences = true;
     await originContext.close();
-    const c = await context();
+    const c = await context(await fixture(initialState()));
     const page = await c.newPage();
     await ready(page);
     await page.waitForFunction(
@@ -338,9 +385,65 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await page.screenshot({ path: join(evidence, "battle-1440.png") });
     await page.locator(".decision--choice[open]").waitFor({ timeout: 30000 });
     const beforeSkip = await stored(page);
+    const originalOptions = await page
+      .locator("[data-perk]")
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.perk));
+    await page.locator("[data-reroll]").click();
+    await page.waitForFunction(
+      (key) => JSON.parse(localStorage.getItem(key)).state.phase.rerolls === 0,
+      storageKey,
+    );
     const options = await page
       .locator("[data-perk]")
       .evaluateAll((nodes) => nodes.map((n) => n.dataset.perk));
+    assert(
+      options.every((id) => !originalOptions.includes(id)),
+      "Refresh offers different eligible powers",
+    );
+    assert.deepEqual(
+      (await stored(page)).state.run.perks,
+      beforeSkip.state.run.perks,
+      "Refresh grants no oath",
+    );
+    assert.deepEqual(
+      (await stored(page)).state.quests,
+      beforeSkip.state.quests,
+      "Refresh grants no quest progress",
+    );
+    await page.reload();
+    await page.locator(".decision--choice[open]").waitFor();
+    assert(
+      await page.locator("[data-reroll]").isDisabled(),
+      "A used refresh stays used after reload",
+    );
+    assert.deepEqual(
+      await page.locator("[data-perk]").evaluateAll((nodes) => nodes.map((n) => n.dataset.perk)),
+      options,
+    );
+    const chip = page.locator(".decision--choice[open] .power-chip").first();
+    await chip.hover();
+    await page.locator(".power-tooltip:popover-open").waitFor();
+    await chip.click();
+    assert(
+      await page.locator(".power-tooltip:popover-open").isVisible(),
+      "Power details remain visible above the choice dialog",
+    );
+    await chip.press("Enter");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 0);
+    await chip.press("Enter");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 1);
+    await chip.press("Escape");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 0);
+    assert.equal(await page.locator(".decision--choice[open]").count(), 1);
+    await page.mouse.move(10, 10);
+    assert(
+      (
+        await page
+          .locator(".power-tooltip[popover]:not(:popover-open)")
+          .evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).display))
+      ).every((display) => display === "none"),
+      "Closed Fleet power tooltip cards never remain in layout",
+    );
     await page.locator(".choice-tools").getByRole("button", { name: "Current stats" }).click();
     const statsDialog = page.getByRole("dialog", { name: "Current stats", exact: true });
     assert(await statsDialog.getByText("Critical chance", { exact: true }).isVisible());
@@ -359,7 +462,29 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Inspection preserves the exact offer",
     );
     await page.screenshot({ path: join(evidence, "choice-1440.png") });
+    await page.evaluate(() => {
+      window.__closedChoiceFrames = [];
+      const sample = () => {
+        const dialog = document.querySelector(".decision--choice");
+        if (!dialog.open) {
+          const rect = dialog.getBoundingClientRect();
+          window.__closedChoiceFrames.push({
+            display: getComputedStyle(dialog).display,
+            height: rect.height,
+          });
+        }
+        if (window.__closedChoiceFrames.length < 8) requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     await page.locator("#skip-perk").click();
+    await page.waitForFunction(() => window.__closedChoiceFrames.length >= 8);
+    assert(
+      (await page.evaluate(() => window.__closedChoiceFrames)).every(
+        (frame) => frame.display === "none" && frame.height === 0,
+      ),
+      "Closing choices never paint a retained empty dialog",
+    );
     await page.waitForFunction(
       (key) => JSON.parse(localStorage.getItem(key)).state.phase.kind !== "choice",
       storageKey,
@@ -408,7 +533,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.deepEqual(retreated.state.run.perks, {});
     await c.close();
 
-    const questContext = await context();
+    const questContext = await context(await fixture(initialState()));
     const questPage = await questContext.newPage();
     await ready(questPage);
     await depart(questPage);
@@ -622,6 +747,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await delayedPage.evaluate(() => JSON.parse(window.__sdkStored).state.meta.gold),
       176,
     );
+    await delayedPage.keyboard.press("Escape");
+    await openCollection(delayedPage, "Companions");
+    assert(
+      await delayedPage
+        .locator(".collection-dialog[open] .selection-card")
+        .evaluateAll((cards) =>
+          cards.every((card) => Number(getComputedStyle(card).opacity) === 1),
+        ),
+      "Host pause keeps every collection card visible",
+    );
     result.delayedSdkLoadPreservesProgress = true;
     await delayed.close();
 
@@ -655,7 +790,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       document.getElementById("save-status").textContent.includes("unavailable"),
     );
     await depart(unavailable);
-    await unavailable.waitForFunction(() => window.__draws.group);
+    await unavailable.waitForFunction(() => window.__draws.hero > 0 && window.__draws.foe > 0);
     assert(await unavailable.locator("[data-save-warning]").isVisible());
     result.storageFailureKeepsPlayable = true;
     await unavailableContext.close();
