@@ -671,3 +671,63 @@
     font-size: 20px;
   }
 }
+
+/* Keep the collection's three choices and actions together on short desktops. */
+@media (min-width: 760px) and (max-height: 800px) {
+  .collection-banner {
+    padding: 3px 0 10px;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
+  .collection-banner .sheet-kicker {
+    display: none;
+  }
+  .collection-banner > .game-icon {
+    width: 44px;
+    height: 44px;
+  }
+  .toon-shell .collection-banner h3 {
+    font-size: 20px;
+    margin: 0 0 5px;
+  }
+  .toon-shell .collection-banner p {
+    font-size: 11px;
+  }
+  .equipment-tabs {
+    margin-bottom: 16px;
+  }
+  .toon-shell .game-dialog .equipment-tabs > button {
+    display: flex;
+    align-items: center;
+    padding: 6px 10px;
+    font-size: 13px;
+    gap: 8px;
+    min-height: 40px;
+  }
+  .equipment-tabs .game-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .equipment-tabs span {
+    display: none;
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="card-header"] {
+    gap: 3px;
+  }
+  .item-stage {
+    height: 90px;
+    margin-block: 2px 5px;
+  }
+  .item-stage::before {
+    height: 80px;
+    width: 135px;
+  }
+  .loadout-art {
+    height: 98px;
+    width: 98px;
+  }
+  .toon-shell .collection-dialog .loadout-portrait {
+    height: 104px;
+    width: 104px;
+  }
+}

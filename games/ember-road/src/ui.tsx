@@ -932,7 +932,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <>
                 <h2 className="section-title">Make the whole company stronger.</h2>
                 <p className="section-note">
-                  Permanent upgrades improve every weapon, companion, and pet where stated.
+                  {state.meta.gold.toLocaleString()} gold available. Permanent upgrades improve
+                  every weapon, companion, and pet where stated.
                 </p>
                 <div className="selection-grid forge">
                   {(["blade", "mail", "charm"] as const).map((id) => (
