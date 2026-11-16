@@ -6,7 +6,7 @@ export type Tier = 1 | 2 | 3;
 export type RouteId = "spring" | "elite" | "rescue" | "shrine" | "tracks";
 export type RunContext =
   | { kind: "campaign"; routes: { at: number; path: RouteId }[]; junctionFloor: number }
-  | { kind: ActivityKind; id: number; period: number; tier: Tier };
+  | { kind: ActivityKind; id: number; period: number; tier: Tier; returnChapter: number };
 export interface AdventureLedger {
   day: number;
   week: number;
@@ -244,6 +244,9 @@ export function validRunContext(state: GameState): boolean {
   return (
     state.phase.kind !== "camp" &&
     state.run.cleared <= (c.kind === "daily" ? 6 : 3) &&
+    Number.isInteger(c.returnChapter) &&
+    c.returnChapter >= 1 &&
+    c.returnChapter <= state.meta.unlockedChapter &&
     Number.isInteger(c.id) &&
     c.id >= 0 &&
     c.id < 5 &&

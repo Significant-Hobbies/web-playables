@@ -1,4 +1,4 @@
-import { activityUnlocked } from "./adventures";
+import { activityUnlocked } from "./adventures.ts";
 import type { GameState } from "./model";
 
 export const LEVEL_THRESHOLDS = [0, 6, 12, 36, 72, 120, 180, 260, 360, 500] as const;

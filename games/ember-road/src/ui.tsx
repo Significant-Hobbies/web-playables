@@ -113,7 +113,13 @@ export interface UiActions {
   pause(): void;
   start(chapter: number): void;
   route(path: RouteId): void;
-  adventure(kind: ActivityKind, tier: Tier, period: number, id: number): boolean;
+  adventure(
+    kind: ActivityKind,
+    tier: Tier,
+    period: number,
+    id: number,
+    returnChapter: number,
+  ): boolean;
   choose(id: PerkId): void;
   skip(): void;
   reroll(): void;
@@ -996,7 +1002,6 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   >
                     <GameIcon kind="rewards" />
                     <span>Adventures</span>
-                    {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
                   </Button>
                 </div>
                 {saveWarning}
@@ -1058,7 +1063,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 >
                   <GameIcon kind="quests" />
                   <span>Missions</span>
-                  {missions.story.some((q) => q.ready) && <b className="notification">!</b>}
+                  {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
                 </Button>
               </aside>
             </section>
@@ -1918,7 +1923,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           data-start-adventure=""
           disabled={!offer.unlocked || !inCamp}
           onClick={() => {
-            if (a.adventure(offer.kind, offer.tier, offer.period, offer.id))
+            if (a.adventure(offer.kind, offer.tier, offer.period, offer.id, hubChapter))
               setAdventureOpen(false);
           }}
         >

@@ -18,6 +18,7 @@ import {
   heroStats,
   initialState,
   migrateV3State,
+  retreatToCamp,
   returnToCamp,
   skipPerk,
   startActivity,
@@ -135,6 +136,53 @@ describe("adventure routes and discoveries", () => {
     skipped.phase = { kind: "choice", options: ["edge"] };
     skipPerk(skipped);
     expect(systemUnlocked(skipped, "skills")).toBe(false);
+  });
+});
+describe.each(["daily", "hunt"] as const)("%s return journey", (kind) => {
+  it.each([
+    "win",
+    "defeat",
+    "retreat",
+  ] as const)("restores the selected campaign chapter after %s and reload", (exit) => {
+    const state = veteran();
+    state.run.chapter = 5;
+    launch(state, kind, 1);
+    if (exit === "win") finish(state);
+    if (exit === "defeat") {
+      state.phase = { kind: "defeat", enemy: adventureEnemies(state)[0]!.name };
+      state.run.hp = 0;
+    }
+    const restored = JSON.parse(JSON.stringify(state));
+    expect(validState(restored)).toBe(true);
+    const before = structuredClone(restored.meta);
+    expect(exit === "retreat" ? retreatToCamp(restored) : returnToCamp(restored)).toBe(true);
+    expect(restored.run.chapter).toBe(5);
+    expect(restored.phase.kind).toBe("camp");
+    expect(restored.meta).toEqual(before);
+    expect(validState(restored)).toBe(true);
+  });
+});
+describe("adventure return chapter validation", () => {
+  it("captures the selected camp chapter independently of the combat tier and rejects invalid return chapters", () => {
+    const state = veteran();
+    state.run.chapter = 5;
+    advanceAdventures(state, 40 * DAY_MS);
+    const offer = activityPreview(state, "daily", 3);
+    expect(startActivity(state, "daily", 3, offer.period, offer.id, 40 * DAY_MS, 3)).toBe(true);
+    expect(state.run.chapter).toBe(4);
+    expect(state.run.context).toMatchObject({ returnChapter: 3 });
+    const restored = JSON.parse(JSON.stringify(state));
+    expect(retreatToCamp(restored)).toBe(true);
+    expect(restored.run.chapter).toBe(3);
+    const frozen = structuredClone(restored.run);
+    expect(startActivity(restored, "daily", 3, offer.period, offer.id, 40 * DAY_MS, 6)).toBe(false);
+    expect(restored.run).toEqual(frozen);
+    for (const chapter of [undefined, 0, 6, 1.5]) {
+      const invalid = structuredClone(state);
+      if (invalid.run.context?.kind !== "campaign")
+        Object.assign(invalid.run.context!, { returnChapter: chapter });
+      expect(validState(invalid)).toBe(false);
+    }
   });
 });
 describe("calendar adventures", () => {

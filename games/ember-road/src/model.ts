@@ -15,7 +15,7 @@ import {
   type Tier,
   validAdventureLedger,
   validRunContext,
-} from "./adventures";
+} from "./adventures.ts";
 import { type Experience, initialExperience, validExperience } from "./experience.ts";
 import {
   awardRenown,
@@ -652,6 +652,8 @@ export function returnToCamp(state: GameState) {
     (!state.run.context || state.run.context.kind === "campaign")
   )
     state.run.chapter = Math.min(state.meta.unlockedChapter, state.run.chapter + 1);
+  const context = state.run.context;
+  if (context && context.kind !== "campaign") state.run.chapter = context.returnChapter;
   state.run.context = { kind: "campaign", routes: [], junctionFloor: state.run.cleared };
   state.phase = { kind: "camp" };
   state.run.perks = {};
@@ -663,7 +665,9 @@ export function returnToCamp(state: GameState) {
 
 export function retreatToCamp(state: GameState): boolean {
   if (!["travel", "battle", "choice", "route"].includes(state.phase.kind)) return false;
-  const chapter = state.run.chapter;
+  const context = state.run.context;
+  const chapter =
+    context && context.kind !== "campaign" ? context.returnChapter : state.run.chapter;
   const seed = state.run.seed;
   state.run = {
     context: state.adventures ? { kind: "campaign", routes: [], junctionFloor: 0 } : undefined,
@@ -776,18 +780,24 @@ export function startActivity(
   period: number,
   id: number,
   now: number,
+  returnChapter = state.run.context && state.run.context.kind !== "campaign"
+    ? state.run.context.returnChapter
+    : state.run.chapter,
 ): boolean {
   advanceAdventures(state, now);
   if (!["daily", "hunt"].includes(kind) || ![1, 2, 3].includes(tier)) return false;
   const offer = activityPreview(state, kind, tier);
   if (
+    !Number.isInteger(returnChapter) ||
+    returnChapter < 1 ||
+    returnChapter > state.meta.unlockedChapter ||
     !offer.unlocked ||
     offer.period !== period ||
     offer.id !== id ||
     !startRun(state, Math.min(state.meta.unlockedChapter, TIERS[tier - 1]!.chapter))
   )
     return false;
-  state.run.context = { kind, tier, period, id };
+  state.run.context = { kind, tier, period, id, returnChapter };
   state.run.seed = ((period + 1) * 2654435761 + id * 97 + tier * 17) >>> 0 || 1;
   return true;
 }
@@ -1068,9 +1078,8 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
     state.run.xp -= xpNeeded(state);
     state.run.level++;
     const options = offeredPerks(state);
-    state.phase = options.length
-      ? { kind: "choice", options, rerolls: 1 }
-      : { kind: "travel", remaining: 0.9 };
+    if (options.length) state.phase = { kind: "choice", options, rerolls: 1 };
+    else resumeTrail(state);
     events.push({ type: "level", level: state.run.level });
   } else resumeTrail(state, 1.05);
   return true;

@@ -254,9 +254,9 @@ const actions: UiActions = {
       changed(true);
     }
   },
-  adventure(kind, tier, period, id) {
+  adventure(kind, tier, period, id, returnChapter) {
     if (!loaded) return false;
-    if (startActivity(state, kind, tier, period, id, Date.now())) {
+    if (startActivity(state, kind, tier, period, id, Date.now(), returnChapter)) {
       userPaused = false;
       note = `${activityPreview(state, kind, tier).name} · first-clear rewards are saved once per tier.`;
       changed(true);
