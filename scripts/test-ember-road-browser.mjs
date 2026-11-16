@@ -112,6 +112,34 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert(validState(state), "Fixture uses the real state validator");
     return JSON.stringify({ version: 3, savedAt: Date.now(), state });
   }
+  async function assertCampActors(page) {
+    const actors = await page.locator(".chapter-hub .toon-actor").evaluateAll(async (nodes) =>
+      Promise.all(
+        nodes.map(async (el) => {
+          const style = getComputedStyle(el),
+            rect = el.getBoundingClientRect();
+          const match = style.backgroundImage.match(/url\(["']?(.*?)["']?\)/);
+          const image = new Image();
+          image.src = match?.[1] || "";
+          await image.decode();
+          return {
+            visible: rect.width > 0 && rect.height > 0 && style.visibility !== "hidden",
+            loaded: image.naturalWidth > 0,
+          };
+        }),
+      ),
+    );
+    assert.equal(actors.length, 3, "Camp shows exactly Rook, companion and pet");
+    assert(
+      actors.every((a) => a.visible && a.loaded),
+      "Visible camp actors use decoded real sprite assets",
+    );
+    assert.equal(
+      await page.locator(".chapter-hub .enemy").count(),
+      0,
+      "Camp has no visible phantom foes",
+    );
+  }
   async function openCollection(page, label) {
     if (await page.locator(".collection-dialog[open]").count()) await page.keyboard.press("Escape");
     await page
@@ -132,6 +160,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         document.querySelector(".island-art")?.complete &&
         document.querySelector(".island-art").naturalWidth > 0,
     );
+    await assertCampActors(page);
     assert.equal(
       (await page.locator('[data-slot="button"]').count()) > 10,
       true,
@@ -172,11 +201,13 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await page.keyboard.press("Escape");
     await depart(page);
     await page.locator("#pause").click();
-    const paused = await page.locator("#world").screenshot();
+    await page.getByRole("dialog", { name: "The road can wait.", exact: true }).waitFor();
+    const paused = await page.locator("#world").evaluate((c) => c.toDataURL());
     await page.waitForTimeout(400);
-    assert(
-      paused.equals(await page.locator("#world").screenshot()),
-      "Pause freezes the real canvas",
+    assert.equal(
+      paused,
+      await page.locator("#world").evaluate((c) => c.toDataURL()),
+      "Pause freezes the actual canvas pixels, independently of the composited dialog",
     );
     await page.screenshot({ path: join(evidence, "paused-1440.png") });
     await page.getByRole("button", { name: "Resume journey", exact: true }).click();
@@ -222,6 +253,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await page.locator('[data-equip="weapon:greatsword"]').isDisabled(),
       "Mid-run gear cannot change",
     );
+    await page.keyboard.press("Escape");
+    await page.locator("#start").getByText("RESUME", { exact: true }).waitFor();
+    const inspectedBefore = await stored(page);
+    await page.waitForTimeout(350);
+    assert.equal(
+      (await stored(page)).state.run.distance,
+      inspectedBefore.state.run.distance,
+      "Dismiss collection stays in paused hub",
+    );
+    await openCollection(page, "Equipment");
     await page
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
@@ -376,11 +417,14 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
           document.querySelector(".decision--defeat[open]") ||
           document.querySelector(".chapter-hub"),
       );
-      assert.equal(
-        await p.evaluate(() => window.__draws.foe + window.__draws.archer),
-        0,
-        `${phase} reload draws no phantom foes`,
-      );
+      if (phase === "camp") await assertCampActors(p);
+      else {
+        assert.equal(
+          await p.evaluate(() => window.__draws.foe + window.__draws.archer),
+          0,
+          `${phase} reload draws no phantom foes`,
+        );
+      }
       await terminal.close();
     }
     const squad = initialState();
@@ -452,6 +496,10 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.match(await protectedPage.locator("#save-status").innerText(), /untouched/);
     assert(await protectedPage.locator("[data-save-warning]").isVisible());
     await depart(protectedPage);
+    assert(
+      await protectedPage.locator(".battle-layout > [data-save-warning]").isVisible(),
+      "Protected save warning remains visible during the journey",
+    );
     await protectedPage.locator("#pause").click();
     assert.equal(
       await protectedPage.evaluate((key) => localStorage.getItem(key), storageKey),

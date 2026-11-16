@@ -2,6 +2,7 @@ export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
 import { rank } from "./model";
+import { spriteBottom } from "./sprite-frames";
 
 interface ActorMotion {
   attack: number;
@@ -59,13 +60,7 @@ export class WorldRenderer {
   private effects: { actor: ActorId; target: ActorId; age: number; kind: string }[] = [];
   private backdrops = new Map<number, HTMLImageElement>();
   private lightningAge = 1;
-  private readonly places = [
-    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.77],
-    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.71],
-    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.61],
-    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.69],
-    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.67],
-  ] as const;
+  private readonly roadAtlasUrl = new URL("../assets/toon-roads.png", import.meta.url).href;
   private width = 1000;
   private height = 520;
   private actorScale = 1;
@@ -388,7 +383,7 @@ export class WorldRenderer {
           row,
           x,
           y,
-          (pet ? 250 : 210) * scale,
+          (pet ? 250 : 270) * scale,
           m.death,
           hurt,
           s.reducedMotion,
@@ -423,6 +418,8 @@ export class WorldRenderer {
     const c = this.ctx;
     const sw = image.naturalWidth / cols,
       sh = image.naturalHeight / rows;
+    const sheet = image === this.petImage ? "pets" : image === this.walkImage ? "walk" : "party";
+    const bottom = spriteBottom(sheet, row, column);
     c.save();
     this.ellipse(x, y + 3, extent * 0.18, extent * 0.035, "#263e333b");
     c.translate(x + (reduced ? 0 : Math.sin(hurt * Math.PI) * 6), y);
@@ -438,7 +435,7 @@ export class WorldRenderer {
       sw,
       sh,
       -extent / 2,
-      -extent,
+      -(extent * sh * bottom) / sw,
       extent,
       (extent * sh) / sw,
     );
@@ -591,7 +588,7 @@ export class WorldRenderer {
         sw,
         sh,
         (1000 - w) / 2 + drift,
-        h * 0.73 - hh * 0.74,
+        Math.min(h * 0.73 - hh * 0.74, h - hh),
         w,
         hh,
       );
@@ -1387,7 +1384,8 @@ export class WorldRenderer {
     const row = hero ? (attack > 0 ? 1 : 0) : attack > 0.3 && attack < 0.8 ? 1 : 0;
     const cell = img.naturalWidth / 4;
     const cellHeight = img.naturalHeight / 2;
-    const extent = 204 * scale;
+    const extent = (hero ? 204 : 300) * scale;
+    const bottom = spriteBottom(hero ? "hero" : "enemies", row, column);
     const recoil = scene.reducedMotion ? 0 : Math.sin(hurt * Math.PI) * (hero ? -8 : 9);
     const lunge = 0;
     const breath = scene.reducedMotion ? 0 : Math.sin(scene.time * 2.7) * 1.5;
@@ -1406,7 +1404,7 @@ export class WorldRenderer {
       cell,
       cellHeight,
       -extent / 2,
-      -extent + 4,
+      -extent * bottom + 4,
       extent,
       extent,
     );
@@ -1638,7 +1636,7 @@ export class WorldRenderer {
     let image = this.backdrops.get(chapter);
     if (!image) {
       image = new Image();
-      image.src = (this.places[chapter - 1] ?? this.places[0])[0];
+      image.src = this.roadAtlasUrl;
       this.backdrops.set(chapter, image);
     }
     return image;

@@ -224,6 +224,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [chapter, setChapter] = useState(state.run.chapter);
   const inCamp = state.phase.kind === "camp";
   const dashboard = inCamp || campOpen;
+  const hubChapter = inCamp ? Math.min(chapter, state.meta.unlockedChapter) : state.run.chapter;
   useEffect(() => a.stage(dashboard), [a, dashboard]);
   const active = state.phase.kind === "travel" || state.phase.kind === "battle";
   const company = COMPANIONS.find((c) => c.id === state.meta.loadout.companion)!;
@@ -262,7 +263,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (!inCamp) setCampOpen(true);
   };
   function launch() {
-    setIntroChapter(chapter);
+    setIntroChapter(hubChapter);
   }
   function selection<K extends keyof Loadout>(
     slot: K,
@@ -433,12 +434,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </aside>
               <div className="chapter-center">
                 <div className="chapter-title">
-                  <span>CHAPTER {chapter}</span>
-                  <h1>{CHAPTERS[chapter - 1]!.name}</h1>
+                  <span>CHAPTER {hubChapter}</span>
+                  <h1>{CHAPTERS[hubChapter - 1]!.name}</h1>
                 </div>
-                <div className={`chapter-island island-${chapter}`}>
+                <div className={`chapter-island island-${hubChapter}`}>
                   <div className="island-frame">
-                    {chapter === 1 ? (
+                    {hubChapter === 1 ? (
                       <img
                         className="island-art"
                         src={chapterIsland}
@@ -448,9 +449,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                       <span
                         className="island-art chapter-tile"
                         role="img"
-                        aria-label={`${CHAPTERS[chapter - 1]!.name}, the next road for your company`}
+                        aria-label={`${CHAPTERS[hubChapter - 1]!.name}, the next road for your company`}
                         style={{
-                          backgroundPosition: `${((chapter - 2) % 2) * 100}% ${Math.floor((chapter - 2) / 2) * 100}%`,
+                          backgroundPosition: `${((hubChapter - 2) % 2) * 100}% ${Math.floor((hubChapter - 2) / 2) * 100}%`,
                         }}
                       />
                     )}
@@ -482,8 +483,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     className="chapter-prev chapter-arrow"
                     variant="ghost"
                     aria-label="Previous chapter"
-                    disabled={!inCamp || chapter <= 1}
-                    onClick={() => setChapter(chapter - 1)}
+                    disabled={!inCamp || hubChapter <= 1}
+                    onClick={() => setChapter(hubChapter - 1)}
                   >
                     ◀
                   </Button>
@@ -491,13 +492,13 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     className="chapter-next chapter-arrow"
                     variant="ghost"
                     aria-label="Next chapter"
-                    disabled={!inCamp || chapter >= state.meta.unlockedChapter}
-                    onClick={() => setChapter(chapter + 1)}
+                    disabled={!inCamp || hubChapter >= state.meta.unlockedChapter}
+                    onClick={() => setChapter(hubChapter + 1)}
                   >
                     ▶
                   </Button>
                 </div>
-                <p className="chapter-goal">{journeyStory(chapter).goal}</p>
+                <p className="chapter-goal">{journeyStory(hubChapter).goal}</p>
                 <div className="chapter-mini-actions">
                   <Button
                     variant="ghost"
@@ -667,6 +668,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </div>
           )}
 
+          {!dashboard && saveWarning}
           <p
             id="save-status"
             className={`save-status ${v.saveWarning ? "warning" : ""}`}
@@ -715,7 +717,6 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         className="collection-dialog"
         close={() => {
           setSection("Camp");
-          if (!inCamp) setCampOpen(false);
         }}
       >
         {!inCamp && (
@@ -723,7 +724,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             Your journey is paused. Return to camp to change your build.
           </p>
         )}
-        {saveWarning}
+        {section !== "Camp" && saveWarning}
         {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
         {dashboard &&
           section === "Pets" &&
