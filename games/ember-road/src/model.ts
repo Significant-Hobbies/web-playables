@@ -323,7 +323,7 @@ export const SKILLS = [
     id: "aegis",
     name: "Aegis",
     description:
-      "Shield 30% maximum health and interrupt unbraced foes. With Briar mail, a broken shield fires Shatterguard shards (chapter 3).",
+      "Shield 30% maximum health and interrupt unbraced foes. From chapter 3, a broken shield fires Shatterguard shards. Recasting forfeits stored charge.",
     chapter: 3,
     cooldown: 12,
   },
@@ -386,11 +386,11 @@ export interface PendingHit {
   remaining: number;
   damage: number;
   critical: boolean;
+  legacy?: boolean;
 }
 export type SynergyId = "shatterguard" | "storm-relay" | "hunters-signal";
 export interface TargetHit extends PendingHit {
   source?: "hero" | CompanionId | PetId;
-  legacy?: boolean;
   signalMark?: number;
   signalBonus?: number;
   target: ActorId;
@@ -614,6 +614,12 @@ export const SYNERGIES = [
   {
     id: "shatterguard",
     name: "Shatterguard",
+    badge: (state: GameState) => (state.run.shieldCast ? "Armed" : "Cast"),
+    reveal: (state: GameState) => state.meta.unlockedChapter >= 3,
+    status: (state: GameState) =>
+      state.run.shieldCast
+        ? `Armed · ${Math.ceil(state.run.shieldCast.absorbed)} absorbed · ${Math.ceil(state.run.shield)} barrier. Recasting forfeits stored charge.`
+        : "Needs a fresh Aegis cast · Recasting replaces the barrier and forfeits stored charge.",
     description:
       "When enemy damage breaks Aegis, fire up to 3 shards. Total raw damage is the lesser of 60% absorbed damage and 100% cast-time Rook damage. Recasts never shatter; shards cannot heal.",
     requirements: [
@@ -623,15 +629,14 @@ export const SYNERGIES = [
         met: (state: GameState) =>
           state.meta.loadout.skill === "aegis" && systemUnlocked(state, "skills"),
       },
-      {
-        label: "Choose Briar mail this journey",
-        met: (state: GameState) => rank(state, "thorns") > 0,
-      },
     ],
   },
   {
     id: "storm-relay",
     name: "Storm Relay",
+    badge: () => "✓",
+    reveal: (state: GameState) => state.meta.unlockedChapter >= 3,
+    status: () => "Ready on a piercing third strike",
     description:
       "Every third strike, a real piercing contact relays lightning to up to 3 other living foes with fading power. Storm’s covenant redistributes its existing chain budget; Stormbound alone grants a small 35% Rook-damage budget. Reactions cannot heal or repeat.",
     requirements: [
@@ -649,6 +654,13 @@ export const SYNERGIES = [
   {
     id: "hunters-signal",
     name: "Hunter’s Signal",
+    badge: () => "✓",
+    reveal: (state: GameState) =>
+      !!state.adventures?.discoveries.mira &&
+      !!state.adventures?.discoveries.cinder &&
+      systemUnlocked(state, "company") &&
+      systemUnlocked(state, "pets"),
+    status: () => "Ready when Cinder marks a surviving foe",
     description:
       "Cinder’s bite marks one surviving foe for 4s. Mira aims her next arrow at that foe; one successful marked hit consumes the mark for +50% of that arrow’s snapshotted damage. In-flight arrows keep their target; expired or replaced marks give no bonus.",
     requirements: [
@@ -673,7 +685,14 @@ export function synergyStatus(state: GameState) {
     const missing = rule.requirements
       .filter((requirement) => !requirement.met(state))
       .map((requirement) => requirement.label);
-    return { ...rule, active: missing.length === 0, missing };
+    return {
+      ...rule,
+      revealed: rule.reveal(state),
+      badge: missing.length ? "+" : rule.badge(state),
+      active: missing.length === 0,
+      missing,
+      status: missing.length ? `Requires: ${missing.join(" · ")}` : rule.status(state),
+    };
   });
 }
 export function activeSynergies(state: GameState): SynergyId[] {
@@ -1149,7 +1168,6 @@ function damageEnemy(
 }
 function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]): boolean {
   if (livingEnemies(battle).length) return false;
-  state.run.shieldCast = null;
   state.run.cleared++;
   const campaign = !state.run.context || state.run.context.kind === "campaign";
   const finished = state.run.cleared >= runLength(state);
@@ -1159,6 +1177,7 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
   state.run.xp += 2;
   heal(state, heroStats(state).hp * 0.08 * rank(state, "renewal"), events);
   if (finished) {
+    state.run.shieldCast = null;
     let reward = 35 + state.run.chapter * 15;
     let bonus = 0;
     let bonusStatus: "earned" | "claimed" | "expired" | undefined;
@@ -1416,14 +1435,20 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
     if (foe.pendingHit) {
       foe.pendingHit.remaining -= dt;
       if (foe.pendingHit.remaining <= 0) {
-        const raw = foe.pendingHit.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
+        const hit = foe.pendingHit;
+        const raw = hit.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
         foe.pendingHit = null;
         foe.braced = false;
-        const incoming = Math.max(1, raw - stats.armor);
+        // Only an attack already in flight at the v4 upgrade retains armor-first mitigation.
+        const incoming = Math.max(1, raw - (hit.legacy ? stats.armor : 0));
         const absorbed = Math.min(state.run.shield, incoming);
         state.run.shield -= absorbed;
         if (state.run.shieldCast) state.run.shieldCast.absorbed += absorbed;
-        const damage = Math.min(state.run.hp, incoming - absorbed);
+        const unshielded = incoming - absorbed;
+        const damage = Math.min(
+          state.run.hp,
+          hit.legacy ? unshielded : unshielded > 0 ? Math.max(1, unshielded - stats.armor) : 0,
+        );
         state.run.hp = Math.max(0, state.run.hp - damage);
         events.push({
           type: "hit",
@@ -2039,7 +2064,10 @@ export function migrateV4State(value: unknown): GameState {
     battle.mark = null;
     battle.markSerial = 0;
     battle.reactions = [];
-    for (const enemy of battle.enemies) enemy.braced = false;
+    for (const enemy of battle.enemies) {
+      enemy.braced = false;
+      if (enemy.pendingHit) enemy.pendingHit.legacy = true;
+    }
     for (const [field, source] of [
       ["heroHit", "hero"],
       ["companionHit", state.meta.loadout.companion],
@@ -2071,10 +2099,15 @@ export function validState(value: unknown): value is GameState {
     )
   )
     return false;
-  if (state.phase.kind !== "battle") return cast === null;
+  if (state.phase.kind !== "battle")
+    return cast === null || ["travel", "choice", "route"].includes(state.phase.kind);
   const battle = state.phase;
   if (
-    !battle.enemies.every((foe) => typeof foe.braced === "boolean") ||
+    !battle.enemies.every(
+      (foe) =>
+        typeof foe.braced === "boolean" &&
+        (!foe.pendingHit || foe.pendingHit.legacy === undefined || foe.pendingHit.legacy === true),
+    ) ||
     !number(battle.markSerial, 0, 1e9, true)
   )
     return false;

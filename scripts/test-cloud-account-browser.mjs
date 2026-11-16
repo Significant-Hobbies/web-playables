@@ -170,11 +170,11 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.getByRole("button", { name: "Add this journey to cloud", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
     assert.equal(writes[0].expectedRevision, 0);
-    assert.equal(JSON.parse(writes[0].envelope.data).version, 4);
+    assert.equal(JSON.parse(writes[0].envelope.data).version, 5);
     const changed = JSON.parse(head.data);
     changed.state.meta.gold += 17;
     changed.state.meta.earnedGold += 17;
-    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "4" });
+    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "5" });
     await page.evaluate(() => window.playablesCloud.restore("main"));
     await page.getByRole("button", { name: "Continue cloud journey", exact: true }).click();
     await page.getByRole("button", { name: "Reload game", exact: true }).click();

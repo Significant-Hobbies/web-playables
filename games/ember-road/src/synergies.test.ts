@@ -12,8 +12,10 @@ import {
   migrateV2State,
   migrateV3State,
   migrateV4State,
+  retreatToCamp,
   startRun,
   stepGame,
+  synergyStatus,
   useSkill,
   validLegacyState,
   validState,
@@ -68,12 +70,141 @@ describe("bounded build reactions", () => {
     const built = setup();
     expect(activeSynergies(built)).toEqual(["hunters-signal"]);
     built.meta.loadout.skill = "aegis";
-    built.run.perks.thorns = 1;
     built.meta.loadout.weapon = "spear";
     built.run.perks.storm = 1;
     expect(activeSynergies(built)).toEqual(["shatterguard", "storm-relay", "hunters-signal"]);
     built.meta.unlockedChapter = 2;
     expect(activeSynergies(built)).toEqual(["hunters-signal"]);
+  });
+  it("reveals build combinations at their discoveries and chapter milestones", () => {
+    const state = initialState();
+    expect(synergyStatus(state).filter((rule) => rule.revealed)).toEqual([]);
+    state.meta.unlockedChapter = 3;
+    expect(
+      synergyStatus(state)
+        .filter((rule) => rule.revealed)
+        .map((rule) => rule.id),
+    ).toEqual(["shatterguard", "storm-relay"]);
+    Object.assign(state.adventures!.discoveries, { mira: true, cinder: true });
+    expect(synergyStatus(state).every((rule) => rule.revealed)).toBe(true);
+    state.meta.loadout.skill = "aegis";
+    state.adventures!.discoveries.whirlwind = true;
+    expect(activeSynergies(state)).toContain("shatterguard");
+    expect(synergyStatus(state)[0]!.status).toContain("fresh Aegis");
+  });
+  it("keeps absorbed charge across a cleared wave and JSON reload until exactly one later break", () => {
+    const state = setup();
+    state.run.cleared = 1;
+    state.run.context = { kind: "campaign", routes: [], junctionFloor: 0 };
+    state.phase = beginBattle(state);
+    state.phase.heroCooldown = state.phase.companionCooldown = state.phase.petCooldown = 5;
+    for (const foe of state.phase.enemies) foe.cooldown = 5;
+    state.meta.loadout.skill = "aegis";
+    useSkill(state);
+    incoming(state);
+    stepGame(state, 0.01);
+    const cast = structuredClone(state.run.shieldCast);
+    expect(cast!.absorbed).toBeGreaterThan(0);
+    for (const foe of state.phase.enemies.slice(1)) foe.hp = 0;
+    strike(state, 10000);
+    stepGame(state, 0.01);
+    expect(state.phase.kind).toBe("travel");
+    expect(state.run.shieldCast).toEqual(cast);
+    expect(validState(state)).toBe(true);
+    const reloaded: GameState = JSON.parse(JSON.stringify(state));
+    expect(validState(reloaded)).toBe(true);
+    advance(reloaded, 1.2);
+    if (reloaded.phase.kind !== "battle") throw new Error("Expected next battle");
+    reloaded.phase.heroCooldown = reloaded.phase.companionCooldown = reloaded.phase.petCooldown = 5;
+    for (const foe of reloaded.phase.enemies) foe.cooldown = 5;
+    const foe = reloaded.phase.enemies[0]!;
+    let shatters = 0;
+    for (let hit = 0; hit < 20 && reloaded.run.shield > 0; hit++) {
+      foe.pendingHit = { remaining: 0.001, damage: foe.damage, critical: false };
+      shatters += stepGame(reloaded, 0.01).filter(
+        (event) => event.type === "combo" && event.effect === "shatterguard",
+      ).length;
+    }
+    expect(shatters).toBe(reloaded.phase.enemies.length);
+    expect(reloaded.run.shieldCast).toBeNull();
+    expect(
+      advance(reloaded, 0.3).filter(
+        (event) => event.type === "hit" && event.effect === "shatterguard",
+      ),
+    ).toHaveLength(shatters);
+    foe.pendingHit = { remaining: 0.001, damage: foe.damage, critical: false };
+    expect(
+      stepGame(reloaded, 0.01).some(
+        (event) => event.type === "combo" && event.effect === "shatterguard",
+      ),
+    ).toBe(false);
+  });
+  it("preserves charged barriers at choices and forks but rejects terminal cast artifacts", () => {
+    const state: GameState = setup();
+    state.run.shield = 10;
+    state.run.shieldCast = { absorbed: 5, attack: heroStats(state).damage };
+    state.run.cleared = 3;
+    state.run.context = { kind: "campaign", routes: [], junctionFloor: 0 };
+    state.phase = { kind: "route", at: 3 };
+    expect(validState(state)).toBe(true);
+    state.run.cleared = 2;
+    state.phase = { kind: "choice", options: ["edge", "tempo", "heart"], rerolls: 1 };
+    expect(validState(state)).toBe(true);
+    state.phase = { kind: "camp" };
+    expect(validState(state)).toBe(false);
+    state.phase = { kind: "travel", remaining: 1 };
+    retreatToCamp(state);
+    expect(state.run.shieldCast).toBeNull();
+    expect(state.run.shield).toBe(0);
+    startRun(state, 5);
+    expect(state.run.shieldCast).toBeNull();
+  });
+  it.each([
+    ["full block", 100, 10, 0],
+    ["partial block", 5, 10, 0],
+    ["unshielded body armor", 0, 10, 0],
+    ["minimum body damage", 0, 100, 1],
+  ])("applies ranged mitigation, barrier, then body armor: %s", (_, shield, armor, minimum) => {
+    const state = setup();
+    state.meta.upgrades.mail = armor;
+    state.run.shield = shield;
+    state.run.shieldCast = null;
+    const hp = state.run.hp;
+    const foe = incoming(state);
+    const raw = Math.max(1, foe.damage);
+    stepGame(state, 0.01);
+    expect(state.run.shield).toBe(Math.max(0, shield - raw));
+    expect(hp - state.run.hp).toBe(shield >= raw ? 0 : Math.max(minimum, 1, raw - shield - armor));
+  });
+  it("applies ranged resistance before barrier absorption", () => {
+    const state = setup();
+    state.run.perks.ward = 1;
+    state.meta.upgrades.mail = 4;
+    state.run.shield = 5;
+    const foe = state.phase.enemies.find((enemy) => enemy.row === "back")!;
+    foe.pendingHit = { remaining: 0.001, damage: foe.damage, critical: false };
+    const hp = state.run.hp;
+    const raw = Math.max(1, foe.damage * (1 - heroStats(state).rangedResistance));
+    stepGame(state, 0.01);
+    expect(state.run.shield).toBe(0);
+    expect(hp - state.run.hp).toBeCloseTo(Math.max(1, raw - 5 - heroStats(state).armor));
+  });
+  it("clears cast provenance on victory without letting queued shards enter another wave", () => {
+    const state = setup();
+    state.meta.loadout.skill = "aegis";
+    useSkill(state);
+    for (const foe of state.phase.enemies.slice(1)) foe.hp = 0;
+    strike(state, 10000);
+    stepGame(state, 0.01);
+    expect(state.phase.kind).toBe("victory");
+    expect(state.run.shieldCast).toBeNull();
+    expect(validState(state)).toBe(true);
+    state.run.shieldCast = { absorbed: 0, attack: 1 };
+    expect(validState(state)).toBe(false);
+    state.run.shieldCast = null;
+    startRun(state, 5);
+    expect(state.run.shield).toBe(0);
+    expect(state.run.shieldCast).toBeNull();
   });
   it("shatters once only after positive shield absorption reaches zero, with both caps", () => {
     const state = setup();
@@ -134,9 +265,41 @@ describe("bounded build reactions", () => {
     incoming(state);
     const events = stepGame(state, 0.01);
     expect(state.phase.kind).toBe("defeat");
+    expect(state.run.shieldCast).toBeNull();
+    expect(validState(state)).toBe(true);
+    state.run.shield = 1;
+    state.run.shieldCast = { absorbed: 0, attack: 1 };
+    expect(validState(state)).toBe(false);
     expect(events.some((event) => event.type === "combo" && event.effect === "shatterguard")).toBe(
       false,
     );
+  });
+  it("discards queued shards and battle-only marks and bracing at a wave boundary", () => {
+    const state = setup();
+    state.run.cleared = 1;
+    state.run.context = { kind: "campaign", routes: [], junctionFloor: 0 };
+    state.phase = beginBattle(state);
+    state.phase.heroCooldown = state.phase.companionCooldown = state.phase.petCooldown = 5;
+    const foe = state.phase.enemies[0]!;
+    foe.hp = 1;
+    foe.cooldown = 5;
+    foe.braced = true;
+    for (const other of state.phase.enemies.slice(1)) other.hp = 0;
+    state.phase.markSerial = 1;
+    state.phase.mark = { target: foe.id, serial: 1, remaining: 4 };
+    state.run.perks.thorns = 1;
+    state.run.shield = 1;
+    state.run.shieldCast = { absorbed: 5, attack: heroStats(state).damage };
+    incoming(state);
+    expect(
+      stepGame(state, 0.01).some(
+        (event) => event.type === "combo" && event.effect === "shatterguard",
+      ),
+    ).toBe(true);
+    expect(state.phase.kind).toBe("travel");
+    expect(hits(advance(state, 1.2), "shatterguard")).toEqual([]);
+    expect(state.phase).toMatchObject({ kind: "battle", reactions: [], mark: null, markSerial: 0 });
+    expect(state.phase.enemies.every((enemy) => !enemy.braced)).toBe(true);
   });
   it("replays queued shards deterministically after reload", () => {
     const state = setup();
@@ -432,6 +595,61 @@ describe("v5 strict combat envelope", () => {
     const twin = JSON.parse(JSON.stringify(state));
     expect(advance(state, 1)).toEqual(advance(twin, 1));
     expect(state).toEqual(twin);
+  });
+  it("lands one migrated enemy attack with v4 armor order, then uses v5 barrier order", () => {
+    const old = structuredClone(RELEASED_V4_BATTLE.state);
+    const state = migrateV4State(old);
+    if (state.phase.kind !== "battle") throw new Error("Expected released battle");
+    state.phase.heroHit = state.phase.companionHit = state.phase.petHit = null;
+    state.phase.heroCooldown = state.phase.companionCooldown = state.phase.petCooldown = 5;
+    const foe = state.phase.enemies.find((enemy) => enemy.pendingHit)!;
+    for (const enemy of state.phase.enemies) {
+      enemy.cooldown = 5;
+      if (enemy !== foe) enemy.pendingHit = null;
+    }
+    expect(foe.pendingHit!.legacy).toBe(true);
+    state.run.shield = 40;
+    const stats = heroStats(state);
+    const raw = foe.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
+    foe.pendingHit!.remaining = 0.001;
+    expect(validState(state)).toBe(true);
+    stepGame(state, 0.01);
+    expect(state.run.shield).toBeCloseTo(40 - Math.max(1, raw - stats.armor));
+    foe.cooldown = 0;
+    stepGame(state, 0.01);
+    expect(foe.pendingHit!.legacy).toBeUndefined();
+    const before = state.run.shield;
+    foe.pendingHit!.remaining = 0.001;
+    stepGame(state, 0.01);
+    expect(state.run.shield).toBeCloseTo(Math.max(0, before - Math.max(1, raw)));
+  });
+  it("preserves fractional v4 health damage when a queued attack partly exceeds its barrier", () => {
+    const state = migrateV4State(structuredClone(RELEASED_V4_BATTLE.state));
+    if (state.phase.kind !== "battle") throw new Error("Expected released battle");
+    state.phase.heroHit = state.phase.companionHit = state.phase.petHit = null;
+    state.phase.heroCooldown = state.phase.companionCooldown = state.phase.petCooldown = 5;
+    const foe = state.phase.enemies.find((enemy) => enemy.pendingHit)!;
+    for (const enemy of state.phase.enemies) {
+      enemy.cooldown = 5;
+      if (enemy !== foe) enemy.pendingHit = null;
+    }
+    const stats = heroStats(state);
+    const raw = foe.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
+    state.run.shield = Math.max(1, raw - stats.armor) - 0.25;
+    const hp = state.run.hp;
+    foe.pendingHit!.remaining = 0.001;
+    stepGame(state, 0.01);
+    expect(hp - state.run.hp).toBeCloseTo(0.25);
+    expect(state.run.shield).toBe(0);
+  });
+  it("strictly rejects malformed enemy legacy flags while leaving v4 acceptance frozen", () => {
+    const state = setup();
+    const foe = incoming(state);
+    for (const flag of [false, 1, "true", null]) {
+      Object.assign(foe.pendingHit!, { legacy: flag });
+      expect(validV4State(state)).toBe(true);
+      expect(validState(state)).toBe(false);
+    }
   });
   it("v4 acceptance does not require new fields and migration grants no retroactive proc", () => {
     const state = setup();

@@ -263,17 +263,19 @@ function Powers({ state }: { state: GameState }) {
   const powers = PERKS.filter((p) => rank(state, p.id) > 0);
   return (
     <div className="powers-list">
-      {synergyStatus(state).map((rule) => (
-        <div className="power-row" key={rule.id}>
-          <div>
-            <strong>
-              {rule.name} · {rule.active ? "Active" : "Build combo"}
-            </strong>
-            <p>{rule.description}</p>
-            <small>{rule.active ? "Ready" : rule.missing.join(" · ")}</small>
+      {synergyStatus(state)
+        .filter((rule) => rule.revealed)
+        .map((rule) => (
+          <div className="power-row" key={rule.id}>
+            <div>
+              <strong>
+                {rule.name} · {rule.active ? "Active" : "Build combo"}
+              </strong>
+              <p>{rule.description}</p>
+              <small>{rule.status}</small>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
       {systemUnlocked(state, "skills") && (
         <div className="power-row">
           <LoadoutArt slot="skill" id={skill.id} />
@@ -434,30 +436,28 @@ function PowerBelt({ state }: { state: GameState }) {
           <b>{rank(state, p.id)}</b>
         </PowerChip>
       ))}
-      {synergyStatus(state).map((rule) => (
-        <PowerChip
-          key={rule.id}
-          className={`synergy-${rule.id} ${rule.active ? "synergy-active" : "synergy-locked"}`}
-          label={`${rule.name}, ${rule.active ? "active" : "requirements missing"}`}
-          description={
-            <>
-              <strong>
-                {rule.name} · {rule.active ? "Active combo" : "Build combo"}
-              </strong>
-              <p>{rule.description}</p>
-              <small>
-                {rule.active
-                  ? "Ready with this company and build"
-                  : `Requires: ${rule.missing.join(" · ")}`}
-              </small>
-            </>
-          }
-        >
-          <Zap />
-          <span>{rule.name}</span>
-          <b>{rule.active ? "✓" : "+"}</b>
-        </PowerChip>
-      ))}
+      {synergyStatus(state)
+        .filter((rule) => rule.revealed)
+        .map((rule) => (
+          <PowerChip
+            key={rule.id}
+            className={`synergy-${rule.id} ${rule.active ? "synergy-active" : "synergy-locked"}`}
+            label={`${rule.name}, ${rule.status}`}
+            description={
+              <>
+                <strong>
+                  {rule.name} · {rule.active ? "Active combo" : "Build combo"}
+                </strong>
+                <p>{rule.description}</p>
+                <small>{rule.status}</small>
+              </>
+            }
+          >
+            <Zap />
+            <span>{rule.name}</span>
+            <b>{rule.badge}</b>
+          </PowerChip>
+        ))}
       {!powers.length && (
         <span className="powers-empty">Defeat waves to discover your first oath.</span>
       )}
