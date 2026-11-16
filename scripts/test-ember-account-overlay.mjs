@@ -370,6 +370,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
           { exact: true },
         )
         .waitFor();
+      await s.page.getByRole("dialog", { name: "Keep this tab open.", exact: true }).waitFor();
       assert.equal(
         await s.page
           .getByText("Cloud is unavailable. Local progress is kept.", { exact: true })
@@ -387,6 +388,42 @@ test("Ember account prompt suspends and restores decisions without changing the 
         0,
       );
       await s.page.screenshot({ path: join(evidence, "signed-in-storage-unavailable.png") });
+      await s.context.close();
+    }
+    {
+      const s = await session(fresh(), { width: 1280, height: 800 });
+      await s.login();
+      await s.page.getByRole("button", { name: "Save to my account", exact: true }).click();
+      await s.page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
+      await s.page.evaluate(async () => {
+        const data = window.playablesCloud.exportLocal().data;
+        const setItem = Storage.prototype.setItem;
+        window.restoreFixtureStorage = () => {
+          Storage.prototype.setItem = setItem;
+        };
+        Storage.prototype.setItem = () => {
+          throw new DOMException("Storage denied", "SecurityError");
+        };
+        try {
+          await window.playablesCloud.saveData("save:ember-road:v1", data);
+        } catch {
+          /* Expected write denial. */
+        }
+      });
+      await s.page.getByRole("button", { name: "Account and saves", exact: true }).click();
+      const prompt = s.page.getByRole("dialog", { name: "Keep this tab open.", exact: true });
+      await prompt.waitFor();
+      assert.equal(await prompt.locator(".account-message").count(), 0);
+      assert.equal(await prompt.locator(".ember-checkpoint").count(), 0);
+      assert(await prompt.getByRole("button", { name: "Save now", exact: true }).isDisabled());
+      assert(
+        (
+          await s.page.getByRole("button", { name: "Account and saves", exact: true }).textContent()
+        ).includes("Saving unavailable"),
+      );
+      await prompt.getByRole("button", { name: "Return to the road", exact: true }).click();
+      assert.equal(await s.page.locator("#playables-account-host dialog[open]").count(), 0);
+      assert.equal((await checkpoint(s.page)).phase.kind, "camp");
       await s.context.close();
     }
     {

@@ -140,19 +140,21 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
     ember && conflict?.reason === "import" && conflict.local && !conflict.cloud && !conflict.cached;
   const title = !ember
     ? "Your journeys, kept."
-    : state.reloadRequired
-      ? state.user
-        ? "Your checkpoint is ready."
-        : "Signed out safely."
-      : state.phase === "update-required"
-        ? "Keep your checkpoint."
-        : importing || !state.user
-          ? "Keep your journey safe."
-          : conflict
-            ? "Choose your checkpoint."
-            : state.phase === "offline"
-              ? "Your journey stays here."
-              : "Your journey is safe.";
+    : !state.storageAvailable
+      ? "Keep this tab open."
+      : state.reloadRequired
+        ? state.user
+          ? "Your checkpoint is ready."
+          : "Signed out safely."
+        : state.phase === "update-required"
+          ? "Keep your checkpoint."
+          : importing || !state.user
+            ? "Keep your journey safe."
+            : conflict
+              ? "Choose your checkpoint."
+              : state.phase === "offline"
+                ? "Your journey stays here."
+                : "Your journey is safe.";
   const statusRequired =
     state.reloadRequired ||
     state.phase === "update-required" ||
@@ -177,30 +179,29 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                 : state.phase === "saved"
                   ? "Your checkpoint is saved to your account. Pick up the road wherever you play."
                   : state.message || "Your checkpoint stays on this device while you play.";
-  const displayMessage =
-    !state.storageAvailable &&
-    (message === STORAGE_WARNING || (state.phase === "offline" && !state.authRequired))
-      ? null
-      : message;
+  const displayMessage = state.storageAvailable ? message : null;
+  const statusLabel = state.storageAvailable ? phaseLabels[state.phase] : "Saving unavailable";
   return (
     <div data-theme="paper" className={`cloud-shell${ember ? " ember-cloud" : ""}`}>
       <Button
         variant="outline"
         size="sm"
         aria-label="Account and saves"
-        title={importing ? "Save your journey" : phaseLabels[state.phase]}
+        title={state.storageAvailable && importing ? "Save your journey" : statusLabel}
         onClick={() => setOpen(true)}
         className="account-trigger"
       >
         <UserRound size={16} />
         <span>
-          {state.user
-            ? importing
-              ? "Save your journey"
-              : phaseLabels[state.phase]
-            : "Account & saves"}
+          {!state.storageAvailable
+            ? statusLabel
+            : state.user
+              ? importing
+                ? "Save your journey"
+                : statusLabel
+              : "Account & saves"}
         </span>
-        <i data-phase={state.phase} />
+        <i data-phase={state.storageAvailable ? state.phase : "offline"} />
       </Button>
       <NativeDialog
         ref={dialog}
@@ -305,12 +306,16 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
           </section>
         ) : importing ? (
           <section className="import-prompt">
-            <Button disabled={busy} onClick={() => void choose("local")}>
+            <Button disabled={busy || !state.storageAvailable} onClick={() => void choose("local")}>
               <Cloud size={18} />
               Save to my account
               <ArrowRight size={18} />
             </Button>
-            <Button variant="ghost" disabled={busy} onClick={() => void choose("offline")}>
+            <Button
+              variant="ghost"
+              disabled={busy || !state.storageAvailable}
+              onClick={() => void choose("offline")}
+            >
               Not now · keep playing
             </Button>
           </section>
@@ -338,26 +343,44 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             </div>
             <div className="account-actions">
               {conflict.cached && (
-                <Button onClick={() => void choose("cached")} disabled={busy}>
+                <Button
+                  onClick={() => void choose("cached")}
+                  disabled={busy || !state.storageAvailable}
+                >
                   Use cached account journey · {when(conflict.cached.savedAt)}
                 </Button>
               )}
               {conflict.cloud && (
-                <Button disabled={busy} onClick={() => void choose("cloud")}>
+                <Button
+                  disabled={busy || !state.storageAvailable}
+                  onClick={() => void choose("cloud")}
+                >
                   Continue cloud journey
                 </Button>
               )}
               {conflict.local && (
-                <Button variant="outline" disabled={busy} onClick={() => void choose("local")}>
+                <Button
+                  variant="outline"
+                  disabled={busy || !state.storageAvailable}
+                  onClick={() => void choose("local")}
+                >
                   {conflict.cloud ? "Use this device's journey" : "Add this journey to cloud"}
                 </Button>
               )}
               {conflict.local && conflict.cloud && (
-                <Button variant="outline" disabled={busy} onClick={() => void choose("keep-both")}>
+                <Button
+                  variant="outline"
+                  disabled={busy || !state.storageAvailable}
+                  onClick={() => void choose("keep-both")}
+                >
                   Keep both journeys
                 </Button>
               )}
-              <Button variant="ghost" disabled={busy} onClick={() => void choose("offline")}>
+              <Button
+                variant="ghost"
+                disabled={busy || !state.storageAvailable}
+                onClick={() => void choose("offline")}
+              >
                 Continue locally
               </Button>
             </div>
