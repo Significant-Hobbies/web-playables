@@ -86,7 +86,8 @@ export const PERKS: readonly Perk[] = [
     id: "blood",
     title: "Blood oath",
     caption: "VITALITY / LIFESTEAL",
-    description: "Restore health equal to 10% of Rook’s damage dealt.",
+    description:
+      "Restore 10% of Rook’s damage per rank, including ordinary chain lightning and Briar mail. Build-combo reactions never heal.",
     family: "vitality",
     rarity: "rare",
     max: 3,
@@ -168,7 +169,7 @@ export const PERKS: readonly Perk[] = [
     title: "Thunderclap",
     caption: "EMBER / INTERRUPT",
     description:
-      "Every third strike cancels all enemy windups and arrows, delaying their next attack by 1.2 seconds per rank.",
+      "Every third strike cancels attacks and delays foes by 1.2s per rank. Interrupted foes brace until they resolve one attack; further cancels cannot delay them.",
     family: "ember",
     rarity: "legendary",
     max: 2,
@@ -204,7 +205,8 @@ export const COMPANIONS = [
     id: "mira",
     name: "Mira",
     role: "Ranger",
-    description: "Fires an arrow at the rear line every 1.8 seconds.",
+    description:
+      "Fires every 1.8s. With discovered Cinder, her next arrow favors his 4s mark and consumes it for +50% arrow damage. Flying arrows keep their target.",
     chapter: 1,
     damage: 8,
     interval: 1.8,
@@ -233,7 +235,8 @@ export const PETS = [
     id: "fox",
     name: "Cinder",
     kind: "Ember fox",
-    description: "Bites the weakest enemy every 2 seconds.",
+    description:
+      "Bites the weakest foe every 2s. With discovered Mira, surviving targets receive one 4s Hunter’s Signal mark; marks never stack.",
     chapter: 1,
     damage: 5,
     interval: 2,
@@ -251,7 +254,8 @@ export const PETS = [
     id: "owl",
     name: "Pip",
     kind: "Dusk owl",
-    description: "Dives at archers and cancels their pending shots.",
+    description:
+      "Dives at archers and interrupts unbraced foes. They resist further cancels until one attack resolves.",
     chapter: 3,
     damage: 7,
     interval: 2.7,
@@ -273,7 +277,8 @@ export const WEAPONS = [
   {
     id: "spear",
     name: "Watchkeeper’s spear",
-    description: "10% faster. Pierces a rear enemy for 20% damage.",
+    description:
+      "10% faster. Pierces a rear foe for 20% damage. Every third strike can relay Stormbound or Storm’s covenant from that contact.",
     chapter: 3,
   },
 ] as const;
@@ -310,14 +315,15 @@ export const SKILLS = [
     id: "volley",
     name: "Piercing volley",
     description:
-      "Deal 175% sword damage to each rear enemy and cancel their pending attacks. Hits all enemies if there is no rear line.",
+      "Deal 175% sword damage to the rear line and interrupt unbraced foes. Hits all foes if no rear line remains. Bracing ends after one attack resolves.",
     chapter: 2,
     cooldown: 10,
   },
   {
     id: "aegis",
     name: "Aegis",
-    description: "Gain a shield equal to 30% maximum health and cancel all incoming attacks.",
+    description:
+      "Shield 30% maximum health and interrupt unbraced foes. With Briar mail, a broken shield fires Shatterguard shards (chapter 3).",
     chapter: 3,
     cooldown: 12,
   },
@@ -381,7 +387,12 @@ export interface PendingHit {
   damage: number;
   critical: boolean;
 }
+export type SynergyId = "shatterguard" | "storm-relay" | "hunters-signal";
 export interface TargetHit extends PendingHit {
+  source?: "hero" | CompanionId | PetId;
+  legacy?: boolean;
+  signalMark?: number;
+  signalBonus?: number;
   target: ActorId;
   projectile: boolean;
 }
@@ -391,10 +402,20 @@ export interface EnemyFighter extends Enemy {
   row: "front" | "back";
   cooldown: number;
   pendingHit: PendingHit | null;
+  braced?: boolean;
 }
 export interface BattlePhase {
   kind: "battle";
   formation: "legacy" | "squad";
+  mark?: { target: ActorId; remaining: number; serial: number } | null;
+  markSerial?: number;
+  reactions?: {
+    target: ActorId;
+    remaining: number;
+    damage: number;
+    actor: ActorId;
+    effect: "shatterguard";
+  }[];
   enemies: EnemyFighter[];
   heroCooldown: number;
   companionCooldown: number;
@@ -444,6 +465,7 @@ export interface GameState {
     perks: Partial<Record<PerkId, number>>;
     skillCooldown: number;
     shield: number;
+    shieldCast?: { absorbed: number; attack: number } | null;
   };
   phase: Phase;
 }
@@ -472,7 +494,9 @@ export type GameEvent =
       damage: number;
       critical: boolean;
       lightning?: boolean;
+      effect?: SynergyId;
     }
+  | { type: "combo"; effect: SynergyId | "mark" | "brace"; actor: ActorId; target: ActorId }
   | { type: "heal"; amount: number }
   | { type: "kill"; gold: number; target: ActorId }
   | { type: "level"; level: number }
@@ -517,6 +541,7 @@ export function initialState(seed = 927113): GameState {
       perks: {},
       skillCooldown: 0,
       shield: 0,
+      shieldCast: null,
     },
     phase: { kind: "camp" },
   };
@@ -572,6 +597,89 @@ export function heroStats(state: GameState): HeroStats {
     cleave: rank(state, "cleave") * 0.45 + (l.weapon === "greatsword" ? 0.25 : 0),
     pierce: rank(state, "pierce") * 0.4 + (l.weapon === "spear" ? 0.2 : 0),
   };
+}
+/** Bounded one-hop reactions; future content adds a named rule, never a recursive proc bus. */
+export const COMBO_TUNING = {
+  shatterAbsorbed: 0.6,
+  shatterAttackCap: 1,
+  shatterTargets: 3,
+  shardFlight: 0.28,
+  relayEntryAttack: 0.35,
+  relayTargets: 3,
+  relayDecay: 0.65,
+  markSeconds: 4,
+  signalBonus: 0.5,
+} as const;
+export const SYNERGIES = [
+  {
+    id: "shatterguard",
+    name: "Shatterguard",
+    description:
+      "When enemy damage breaks Aegis, fire up to 3 shards. Total raw damage is the lesser of 60% absorbed damage and 100% cast-time Rook damage. Recasts never shatter; shards cannot heal.",
+    requirements: [
+      { label: "Reach chapter 3", met: (state: GameState) => state.meta.unlockedChapter >= 3 },
+      {
+        label: "Equip Aegis and unlock skills",
+        met: (state: GameState) =>
+          state.meta.loadout.skill === "aegis" && systemUnlocked(state, "skills"),
+      },
+      {
+        label: "Choose Briar mail this journey",
+        met: (state: GameState) => rank(state, "thorns") > 0,
+      },
+    ],
+  },
+  {
+    id: "storm-relay",
+    name: "Storm Relay",
+    description:
+      "Every third strike, a real piercing contact relays lightning to up to 3 other living foes with fading power. Storm’s covenant redistributes its existing chain budget; Stormbound alone grants a small 35% Rook-damage budget. Reactions cannot heal or repeat.",
+    requirements: [
+      { label: "Reach chapter 3", met: (state: GameState) => state.meta.unlockedChapter >= 3 },
+      {
+        label: "Equip a spear or choose Through the ranks",
+        met: (state: GameState) => heroStats(state).pierce > 0,
+      },
+      {
+        label: "Choose Stormbound or Storm’s covenant",
+        met: (state: GameState) => rank(state, "storm") > 0 || rank(state, "chain") > 0,
+      },
+    ],
+  },
+  {
+    id: "hunters-signal",
+    name: "Hunter’s Signal",
+    description:
+      "Cinder’s bite marks one surviving foe for 4s. Mira aims her next arrow at that foe; one successful marked hit consumes the mark for +50% of that arrow’s snapshotted damage. In-flight arrows keep their target; expired or replaced marks give no bonus.",
+    requirements: [
+      {
+        label: "Discover Mira and Cinder",
+        met: (state: GameState) =>
+          !!state.adventures?.discoveries.mira &&
+          !!state.adventures?.discoveries.cinder &&
+          systemUnlocked(state, "company") &&
+          systemUnlocked(state, "pets"),
+      },
+      {
+        label: "Equip Mira and Cinder",
+        met: (state: GameState) =>
+          state.meta.loadout.companion === "mira" && state.meta.loadout.pet === "fox",
+      },
+    ],
+  },
+] as const;
+export function synergyStatus(state: GameState) {
+  return SYNERGIES.map((rule) => {
+    const missing = rule.requirements
+      .filter((requirement) => !requirement.met(state))
+      .map((requirement) => requirement.label);
+    return { ...rule, active: missing.length === 0, missing };
+  });
+}
+export function activeSynergies(state: GameState): SynergyId[] {
+  return synergyStatus(state)
+    .filter((rule) => rule.active)
+    .map((rule) => rule.id);
 }
 export function equip<K extends keyof Loadout>(state: GameState, slot: K, id: Loadout[K]): boolean {
   if (state.phase.kind !== "camp") return false;
@@ -640,6 +748,7 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
     perks: {},
     skillCooldown: 0,
     shield: 0,
+    shieldCast: null,
   };
   state.run.hp = heroStats(state).hp;
   state.phase = { kind: "travel", remaining: 1.25 };
@@ -658,6 +767,7 @@ export function returnToCamp(state: GameState) {
   state.phase = { kind: "camp" };
   state.run.perks = {};
   state.run.shield = 0;
+  state.run.shieldCast = null;
   state.run.skillCooldown = 0;
   state.run.hp = heroStats(state).hp;
   return true;
@@ -683,6 +793,7 @@ export function retreatToCamp(state: GameState): boolean {
     perks: {},
     skillCooldown: 0,
     shield: 0,
+    shieldCast: null,
   };
   state.run.hp = heroStats(state).hp;
   state.phase = { kind: "camp" };
@@ -770,6 +881,7 @@ export function encounterGroup(chapter: number, cleared: number): EnemyFighter[]
       gold: Math.floor(base.gold / count) + (slot < base.gold % count ? 1 : 0),
       cooldown: 0.9 + slot * 0.35,
       pendingHit: null,
+      braced: false,
     };
   });
 }
@@ -924,6 +1036,9 @@ export function beginBattle(state: GameState): BattlePhase {
   return {
     kind: "battle",
     formation: "squad",
+    mark: null,
+    markSerial: 0,
+    reactions: [],
     enemies: adventureEnemies(state),
     heroCooldown: 0.22,
     companionCooldown: 0.45,
@@ -1007,9 +1122,10 @@ function damageEnemy(
   events: GameEvent[],
   critical = false,
   lightning = false,
+  reaction?: SynergyId,
 ) {
   if (enemy.hp <= 0) return;
-  const actual = Math.min(enemy.hp, Math.max(1, damage - enemy.armor));
+  const actual = Math.min(enemy.hp, Math.max(reaction ? 0 : 1, damage - enemy.armor));
   enemy.hp = Math.max(0, enemy.hp - actual);
   events.push({
     type: "hit",
@@ -1019,9 +1135,12 @@ function damageEnemy(
     damage: actual,
     critical,
     ...(lightning ? { lightning: true } : {}),
+    ...(reaction ? { effect: reaction } : {}),
   });
-  if (actor === "hero") heal(state, actual * heroStats(state).lifesteal, events);
+  if (actor === "hero" && !reaction) heal(state, actual * heroStats(state).lifesteal, events);
   if (enemy.hp === 0) {
+    if (state.phase.kind === "battle" && state.phase.mark?.target === enemy.id)
+      state.phase.mark = null;
     awardRenown(state, 1);
     enemy.pendingHit = null;
     awardGold(state, enemy.gold);
@@ -1030,6 +1149,7 @@ function damageEnemy(
 }
 function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]): boolean {
   if (livingEnemies(battle).length) return false;
+  state.run.shieldCast = null;
   state.run.cleared++;
   const campaign = !state.run.context || state.run.context.kind === "campaign";
   const finished = state.run.cleared >= runLength(state);
@@ -1085,10 +1205,12 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
   return true;
 }
 function interrupt(enemy: EnemyFighter, delay: number, actor: ActorId, events: GameEvent[]) {
-  if (enemy.hp <= 0) return;
+  if (enemy.hp <= 0 || enemy.braced) return;
+  enemy.braced = true;
   enemy.pendingHit = null;
   enemy.cooldown = Math.max(enemy.cooldown, delay);
   events.push({ type: "interrupt", actor, target: enemy.id });
+  events.push({ type: "combo", effect: "brace", actor, target: enemy.id });
 }
 export function effectiveSkillCooldown(state: GameState, id: SkillId = state.meta.loadout.skill) {
   return (
@@ -1111,6 +1233,9 @@ export function useSkill(state: GameState): GameEvent[] {
   state.run.skillCooldown = effectiveSkillCooldown(state);
   if (skill.id === "aegis") {
     state.run.shield = stats.hp * 0.3;
+    state.run.shieldCast = activeSynergies(state).includes("shatterguard")
+      ? { absorbed: 0, attack: stats.damage }
+      : null;
     events.push({ type: "shield", amount: state.run.shield });
     for (const foe of livingEnemies(battle)) interrupt(foe, 0.9, "hero", events);
   } else {
@@ -1135,12 +1260,37 @@ function resolveHero(state: GameState, battle: BattlePhase, hit: TargetHit, even
   if (stats.cleave)
     for (const foe of livingEnemies(battle).filter((e) => e.row === "front" && e.id !== target.id))
       damageEnemy(state, foe, hit.damage * stats.cleave, "hero", events);
+  let pierced: EnemyFighter | undefined;
   if (stats.pierce) {
-    const rear = livingEnemies(battle).find((e) => e.row === "back" && e.id !== target.id);
-    if (rear) damageEnemy(state, rear, hit.damage * stats.pierce, "hero", events);
+    pierced = livingEnemies(battle).find((e) => e.row === "back" && e.id !== target.id);
+    if (pierced) damageEnemy(state, pierced, hit.damage * stats.pierce, "hero", events);
   }
-  if (third && rank(state, "chain"))
-    for (const foe of livingEnemies(battle).filter((e) => e.id !== target.id))
+  const chainTargets = livingEnemies(battle).filter((e) => e.id !== target.id);
+  if (third && pierced && !hit.legacy && activeSynergies(state).includes("storm-relay")) {
+    const targets = livingEnemies(battle)
+      .filter((e) => e.id !== pierced.id)
+      .slice(0, COMBO_TUNING.relayTargets);
+    const budget = rank(state, "chain")
+      ? 14 * rank(state, "chain") * chainTargets.length
+      : stats.damage * COMBO_TUNING.relayEntryAttack;
+    const totalWeight = targets.reduce((sum, _, i) => sum + COMBO_TUNING.relayDecay ** i, 0);
+    let origin: ActorId = pierced.id;
+    for (const [i, foe] of (budget > 0 ? targets : []).entries()) {
+      events.push({ type: "combo", effect: "storm-relay", actor: origin, target: foe.id });
+      damageEnemy(
+        state,
+        foe,
+        (budget * COMBO_TUNING.relayDecay ** i) / totalWeight,
+        "hero",
+        events,
+        false,
+        true,
+        "storm-relay",
+      );
+      origin = foe.id;
+    }
+  } else if (third && rank(state, "chain"))
+    for (const foe of chainTargets)
       damageEnemy(state, foe, 14 * rank(state, "chain"), "hero", events, false, true);
   if (third && rank(state, "interrupt"))
     for (const foe of livingEnemies(battle))
@@ -1155,21 +1305,48 @@ function resolveAlly(
 ) {
   const target = battle.enemies.find((e) => e.id === hit.target && e.hp > 0);
   if (!target) return;
-  if (actor === "pet" && state.meta.loadout.pet === "owl") interrupt(target, 1, actor, events);
-  const targets =
-    actor === "companion" && state.meta.loadout.companion === "sable"
-      ? livingEnemies(battle)
-      : [target];
+  const source =
+    hit.source ?? (actor === "pet" ? state.meta.loadout.pet : state.meta.loadout.companion);
+  if (actor === "pet" && source === "owl") interrupt(target, 1, actor, events);
+  let bonus = 0;
+  if (
+    actor === "companion" &&
+    source === "mira" &&
+    hit.signalMark !== undefined &&
+    battle.mark?.serial === hit.signalMark &&
+    battle.mark.target === target.id &&
+    battle.mark.remaining > 0
+  ) {
+    bonus = hit.signalBonus ?? 0;
+    battle.mark = null;
+    events.push({ type: "combo", effect: "hunters-signal", actor, target: target.id });
+  }
+  const targets = actor === "companion" && source === "sable" ? livingEnemies(battle) : [target];
   for (const foe of targets)
     damageEnemy(
       state,
       foe,
-      hit.damage,
+      hit.damage + bonus,
       actor,
       events,
       false,
-      actor === "companion" && state.meta.loadout.companion === "sable",
+      actor === "companion" && source === "sable",
     );
+  if (
+    actor === "pet" &&
+    source === "fox" &&
+    !hit.legacy &&
+    target.hp > 0 &&
+    activeSynergies(state).includes("hunters-signal")
+  ) {
+    battle.markSerial = (battle.markSerial ?? 0) + 1;
+    battle.mark = {
+      target: target.id,
+      remaining: COMBO_TUNING.markSeconds,
+      serial: battle.markSerial,
+    };
+    events.push({ type: "combo", effect: "mark", actor, target: target.id });
+  }
 }
 export function stepGame(state: GameState, dt: number): GameEvent[] {
   const events: GameEvent[] = [];
@@ -1191,6 +1368,32 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
   if (state.phase.kind !== "battle") return events;
   const battle = state.phase;
   const stats = heroStats(state);
+  if (battle.mark) {
+    battle.mark.remaining -= dt;
+    if (
+      battle.mark.remaining <= 0 ||
+      !battle.enemies.some((foe) => foe.id === battle.mark?.target && foe.hp > 0)
+    )
+      battle.mark = null;
+  }
+  for (const reaction of [...(battle.reactions ?? [])]) {
+    reaction.remaining -= dt;
+    if (reaction.remaining > 0) continue;
+    battle.reactions = battle.reactions!.filter((queued) => queued !== reaction);
+    const target = battle.enemies.find((foe) => foe.id === reaction.target && foe.hp > 0);
+    if (target)
+      damageEnemy(
+        state,
+        target,
+        reaction.damage,
+        reaction.actor,
+        events,
+        false,
+        false,
+        reaction.effect,
+      );
+    if (finishWave(state, battle, events)) return events;
+  }
   battle.heroCooldown -= dt;
   if (systemUnlocked(state, "company")) battle.companionCooldown -= dt;
   if (systemUnlocked(state, "pets")) battle.petCooldown -= dt;
@@ -1215,9 +1418,11 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       if (foe.pendingHit.remaining <= 0) {
         const raw = foe.pendingHit.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
         foe.pendingHit = null;
+        foe.braced = false;
         const incoming = Math.max(1, raw - stats.armor);
         const absorbed = Math.min(state.run.shield, incoming);
         state.run.shield -= absorbed;
+        if (state.run.shieldCast) state.run.shieldCast.absorbed += absorbed;
         const damage = Math.min(state.run.hp, incoming - absorbed);
         state.run.hp = Math.max(0, state.run.hp - damage);
         events.push({
@@ -1229,10 +1434,34 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
           critical: false,
         });
         if (state.run.hp <= 0) {
+          state.run.shieldCast = null;
           state.meta.defeats++;
           state.phase = { kind: "defeat", enemy: foe.name };
           events.push({ type: "defeat" });
           return events;
+        }
+        if (absorbed > 0 && state.run.shield === 0 && state.run.shieldCast) {
+          const cast = state.run.shieldCast;
+          state.run.shieldCast = null;
+          const targets = livingEnemies(battle).slice(0, COMBO_TUNING.shatterTargets);
+          const budget = Math.min(
+            cast.absorbed * COMBO_TUNING.shatterAbsorbed,
+            cast.attack * COMBO_TUNING.shatterAttackCap,
+          );
+          battle.reactions = targets.map((target) => ({
+            target: target.id,
+            remaining: COMBO_TUNING.shardFlight,
+            damage: budget / targets.length,
+            actor: "hero",
+            effect: "shatterguard",
+          }));
+          for (const target of targets)
+            events.push({
+              type: "combo",
+              effect: "shatterguard",
+              actor: "hero",
+              target: target.id,
+            });
         }
         if (rank(state, "thorns")) {
           damageEnemy(state, foe, rank(state, "thorns") * 5, "hero", events);
@@ -1249,6 +1478,7 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
     battle.heroHit = {
       remaining: 0.22,
       damage: stats.damage * (critical ? 1.8 : 1) * execution,
+      source: "hero",
       critical,
       target: front.id,
       projectile: false,
@@ -1263,12 +1493,21 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
     });
   }
   if (systemUnlocked(state, "company") && battle.companionCooldown <= 0 && !battle.companionHit) {
-    const target = state.meta.loadout.companion === "mira" ? rearTarget(battle) : front;
+    const mark = battle.mark;
+    const marked = mark && livingEnemies(battle).find((foe) => foe.id === mark.target);
+    const target = state.meta.loadout.companion === "mira" ? (marked ?? rearTarget(battle)) : front;
     const projectile = state.meta.loadout.companion !== "bram";
     if (target) {
       battle.companionHit = {
         remaining: projectile ? 0.5 : 0.25,
         damage: stats.companionDamage,
+        source: state.meta.loadout.companion,
+        ...(state.meta.loadout.companion === "mira" && marked && mark
+          ? {
+              signalMark: mark.serial,
+              signalBonus: stats.companionDamage * COMBO_TUNING.signalBonus,
+            }
+          : {}),
         critical: false,
         target: target.id,
         projectile,
@@ -1294,6 +1533,7 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       battle.petHit = {
         remaining: 0.3,
         damage: stats.petDamage,
+        source: state.meta.loadout.pet,
         critical: false,
         target: target.id,
         projectile: false,
@@ -1738,7 +1978,7 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
   );
 }
 
-export function validState(value: unknown): value is GameState {
+export function validV4State(value: unknown): value is GameState {
   if (
     !record(value) ||
     !validAdventureLedger(value.adventures) ||
@@ -1785,6 +2025,117 @@ export function migrateV3State(value: unknown): GameState {
     oaths: 0,
   };
   state.run.context = { kind: "campaign", routes: [], junctionFloor: state.run.cleared };
-  if (!validState(state)) throw new Error("The journey could not be upgraded safely.");
+  if (!validV4State(state)) throw new Error("The journey could not be upgraded safely.");
   return state;
+}
+
+/** Released v4 rules above intentionally ignore v5 combat fields. Migrations never reset a journey. */
+export function migrateV4State(value: unknown): GameState {
+  if (!validV4State(value)) throw new Error("The existing version-four journey is invalid.");
+  const state = structuredClone(value);
+  state.run.shieldCast = null;
+  if (state.phase.kind === "battle") {
+    const battle = state.phase;
+    battle.mark = null;
+    battle.markSerial = 0;
+    battle.reactions = [];
+    for (const enemy of battle.enemies) enemy.braced = false;
+    for (const [field, source] of [
+      ["heroHit", "hero"],
+      ["companionHit", state.meta.loadout.companion],
+      ["petHit", state.meta.loadout.pet],
+    ] as const) {
+      const hit = battle[field];
+      if (hit) {
+        hit.source = source;
+        hit.legacy = true;
+      }
+    }
+  }
+  if (!validState(state))
+    throw new Error("The journey's combat checkpoint could not be upgraded safely.");
+  return state;
+}
+export function validState(value: unknown): value is GameState {
+  if (!validV4State(value)) return false;
+  const state = value;
+  const cast = state.run.shieldCast;
+  if (
+    !(
+      cast === null ||
+      (record(cast) &&
+        state.run.shield > 0 &&
+        number(cast.absorbed, 0, 3000) &&
+        number(cast.attack, 0, heroStats(state).damage) &&
+        cast.absorbed + state.run.shield <= heroStats(state).hp * 0.3 + 1e-8)
+    )
+  )
+    return false;
+  if (state.phase.kind !== "battle") return cast === null;
+  const battle = state.phase;
+  if (
+    !battle.enemies.every((foe) => typeof foe.braced === "boolean") ||
+    !number(battle.markSerial, 0, 1e9, true)
+  )
+    return false;
+  const target = (id: unknown) => battle.enemies.some((foe) => foe.id === id);
+  if (
+    !(
+      battle.mark === null ||
+      (record(battle.mark) &&
+        target(battle.mark.target) &&
+        battle.enemies.some((foe) => foe.id === battle.mark?.target && foe.hp > 0) &&
+        number(battle.mark.remaining, Number.MIN_VALUE, COMBO_TUNING.markSeconds) &&
+        number(battle.mark.serial, 1, battle.markSerial, true))
+    )
+  )
+    return false;
+  if (
+    !Array.isArray(battle.reactions) ||
+    battle.reactions.length > COMBO_TUNING.shatterTargets ||
+    !battle.reactions.every(record) ||
+    new Set(battle.reactions.map((reaction) => reaction.target)).size !== battle.reactions.length
+  )
+    return false;
+  if (
+    battle.reactions.reduce(
+      (sum, reaction) =>
+        sum +
+        (record(reaction) && typeof reaction.damage === "number" ? reaction.damage : Infinity),
+      0,
+    ) >
+    heroStats(state).damage * COMBO_TUNING.shatterAttackCap + 1e-8
+  )
+    return false;
+  if (
+    !battle.reactions.every(
+      (reaction) =>
+        record(reaction) &&
+        target(reaction.target) &&
+        reaction.actor === "hero" &&
+        reaction.effect === "shatterguard" &&
+        number(reaction.remaining, Number.MIN_VALUE, COMBO_TUNING.shardFlight) &&
+        number(reaction.damage, 0, 10000),
+    )
+  )
+    return false;
+  for (const [field, source] of [
+    ["heroHit", "hero"],
+    ["companionHit", state.meta.loadout.companion],
+    ["petHit", state.meta.loadout.pet],
+  ] as const) {
+    const hit = battle[field];
+    if (!hit) continue;
+    if (hit.source !== source || (hit.legacy !== undefined && hit.legacy !== true)) return false;
+    if (hit.signalMark !== undefined || hit.signalBonus !== undefined) {
+      if (
+        hit.source !== "mira" ||
+        hit.legacy ||
+        !number(hit.signalMark, 1, battle.markSerial, true) ||
+        hit.signalBonus !== hit.damage * COMBO_TUNING.signalBonus
+      )
+        return false;
+    }
+  }
+  return true;
 }

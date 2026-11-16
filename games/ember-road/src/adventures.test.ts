@@ -18,6 +18,7 @@ import {
   heroStats,
   initialState,
   migrateV3State,
+  migrateV4State,
   retreatToCamp,
   returnToCamp,
   skipPerk,
@@ -359,13 +360,13 @@ describe("calendar adventures", () => {
       expect(validState(bad)).toBe(false);
     }
     expect(
-      new TextEncoder().encode(JSON.stringify({ version: 4, savedAt: 0, state })).byteLength,
+      new TextEncoder().encode(JSON.stringify({ version: 5, savedAt: 0, state })).byteLength,
     ).toBeLessThan(65536);
     const old = initialState();
     delete old.adventures;
     delete old.run.context;
     expect(validV3State(old)).toBe(true);
-    const upgraded = migrateV3State(old);
+    const upgraded = migrateV4State(migrateV3State(old));
     expect(validState(upgraded)).toBe(true);
     expect(upgraded.meta).toEqual(old.meta);
   });
