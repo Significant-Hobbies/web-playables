@@ -17,7 +17,7 @@ import {
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import styles from "./account.css?inline";
-import type { PlayablesCloud } from "./runtime";
+import { type PlayablesCloud, STORAGE_WARNING } from "./runtime";
 
 const phaseLabels = {
   checking: "Checking account",
@@ -90,7 +90,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
   useEffect(() => () => cloud.setPanelOpen(false), [cloud]);
   useEffect(() => {
     let current = true;
-    if (open && accountId)
+    if (open && accountId && !state.authRequired)
       void cloud
         .list()
         .then((rows) => {
@@ -105,7 +105,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
     return () => {
       current = false;
     };
-  }, [cloud, open, accountId]);
+  }, [cloud, open, accountId, state.authRequired]);
   async function run(action: () => void | Promise<void>) {
     if (busy) return false;
     setBusy(true);
@@ -177,6 +177,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                 : state.phase === "saved"
                   ? "Your checkpoint is saved to your account. Pick up the road wherever you play."
                   : state.message || "Your checkpoint stays on this device while you play.";
+  const displayMessage = !state.storageAvailable && message === STORAGE_WARNING ? null : message;
   return (
     <div data-theme="paper" className={`cloud-shell${ember ? " ember-cloud" : ""}`}>
       <Button
@@ -240,11 +241,19 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             <Badge variant="secondary">{phaseLabels[state.phase]}</Badge>
           </div>
         )}
-        <div role="status" aria-live="polite" className="account-message">
-          {message}
-        </div>
+        {displayMessage && (
+          <div role="status" aria-live="polite" className="account-message">
+            {displayMessage}
+          </div>
+        )}
+        {!state.storageAvailable && (
+          <p role="alert" className="account-error">
+            {STORAGE_WARNING}
+          </p>
+        )}
         {ember &&
           state.localSavedAt &&
+          state.storageAvailable &&
           !state.reloadRequired &&
           state.phase !== "update-required" &&
           !(!importing && conflict) && (
@@ -394,18 +403,22 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             <div className="account-actions">
               {state.user ? (
                 <>
-                  <Button disabled={busy} onClick={() => void run(() => cloud.checkpoint())}>
-                    <Cloud />
-                    Save now
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => void run(() => cloud.refreshSession())}
-                  >
-                    <RefreshCw />
-                    Refresh account
-                  </Button>
+                  {!state.authRequired && (
+                    <>
+                      <Button disabled={busy} onClick={() => void run(() => cloud.checkpoint())}>
+                        <Cloud />
+                        Save now
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => void run(() => cloud.refreshSession())}
+                      >
+                        <RefreshCw />
+                        Refresh account
+                      </Button>
+                    </>
+                  )}
                   {state.phase === "offline" && (
                     <Button
                       variant="outline"
@@ -432,6 +445,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
           recovery={state.reloadRequired || state.phase === "update-required"}
         >
           {ember &&
+            !state.authRequired &&
             !conflict &&
             !state.reloadRequired &&
             state.phase !== "update-required" &&
@@ -460,6 +474,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
               </section>
             )}
           {!conflict &&
+            !state.authRequired &&
             !state.reloadRequired &&
             (!ember || state.phase !== "update-required") &&
             state.user &&

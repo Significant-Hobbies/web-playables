@@ -55,16 +55,17 @@ test("Ember account prompt suspends and restores decisions without changing the 
       head = null,
       expireWrites = false,
       signInAttempts = 0,
-      releaseIdentity;
-    const identityGate = storageBlocked
-      ? new Promise((resolve) => {
-          releaseIdentity = resolve;
-        })
-      : Promise.resolve();
+      playerRequests = 0;
     await context.addInitScript(
       ({ raw, storageBlocked }) => {
         localStorage.setItem("save:ember-road:v1", raw);
         if (storageBlocked) {
+          const getItem = Storage.prototype.getItem,
+            setItem = Storage.prototype.setItem;
+          window.restoreFixtureStorage = () => {
+            Storage.prototype.getItem = getItem;
+            Storage.prototype.setItem = setItem;
+          };
           Storage.prototype.getItem = () => {
             throw new DOMException("Storage denied", "SecurityError");
           };
@@ -100,7 +101,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
         signedIn = false;
         return reply(200, { success: true });
       }
-      if (path === "/api/player") await identityGate;
+      if (path === "/api/player") playerRequests++;
       if (!signedIn) return reply(401, {});
       if (path === "/api/player")
         return reply(200, {
@@ -108,7 +109,10 @@ test("Ember account prompt suspends and restores decisions without changing the 
           csrfToken: "fixture-csrf",
         });
       if (request.method() === "PUT") {
-        if (expireWrites) return reply(401, {});
+        if (expireWrites) {
+          signedIn = false;
+          return reply(401, {});
+        }
         const body = request.postDataJSON();
         assert.equal(body.expectedRevision, head?.revision || 0);
         const { envelope } = body;
@@ -132,11 +136,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto(`${origin}/play/ember-road/`, { waitUntil: "domcontentloaded" });
-    if (storageBlocked)
-      await page.waitForFunction(() =>
-        window.playablesCloud?.getState().message?.includes("Browser storage is unavailable"),
-      );
-    else await page.waitForFunction(() => window.playablesCloud?.getState().phase === "guest");
+    await page.waitForFunction(() => window.playablesCloud?.getState().phase === "guest");
     return {
       context,
       page,
@@ -149,7 +149,12 @@ test("Ember account prompt suspends and restores decisions without changing the 
         expireWrites = true;
       },
       signInAttempts: () => signInAttempts,
-      releaseIdentity,
+      playerRequests: () => playerRequests,
+      reauthorize: async () => {
+        signedIn = true;
+        expireWrites = false;
+        await page.evaluate(() => window.playablesCloud.refreshSession());
+      },
       futureCloud: () => {
         const data = JSON.stringify({ version: 6, savedAt: Date.now(), state });
         head = {
@@ -314,9 +319,26 @@ test("Ember account prompt suspends and restores decisions without changing the 
           "Unavailable storage must not show a saved checkpoint checkmark",
         );
         await s.page.screenshot({ path: join(evidence, "storage-unavailable.png") });
+        await s.page.evaluate(() => {
+          window.restoreFixtureStorage();
+          return window.playablesCloud.checkpoint();
+        });
+        await s.page.locator(".ember-checkpoint").waitFor();
+        assert.equal(
+          await s.page
+            .getByText(
+              "Browser storage is unavailable. Keep this tab open; progress cannot be saved here.",
+              { exact: true },
+            )
+            .count(),
+          0,
+        );
+        assert.equal(
+          (await checkpoint(s.page)).meta.experience.introSeen,
+          true,
+          "A recovered storage permission must persist the current journey before showing a saved checkpoint",
+        );
       } finally {
-        s.releaseIdentity();
-        await s.page.waitForFunction(() => window.playablesCloud.getState().phase === "guest");
         await s.context.close();
       }
     }
@@ -331,6 +353,20 @@ test("Ember account prompt suspends and restores decisions without changing the 
       await s.page
         .getByText("Your session expired. Sign in again; local progress is kept.", { exact: true })
         .waitFor();
+      const identityChecks = s.playerRequests();
+      await s.page.getByText("Save options", { exact: true }).click();
+      assert.equal(
+        await s.page.getByRole("button", { name: "Refresh account", exact: true }).count(),
+        0,
+      );
+      assert.equal(
+        await s.page.getByRole("button", { name: "Sign in again", exact: true }).count(),
+        1,
+      );
+      assert.equal(
+        await s.page.getByRole("heading", { name: "Cloud journeys", exact: true }).count(),
+        0,
+      );
       await s.page
         .getByRole("dialog")
         .filter({ has: s.page.getByRole("button", { name: "Sign in again", exact: true }) })
@@ -343,6 +379,11 @@ test("Ember account prompt suspends and restores decisions without changing the 
         s.signInAttempts(),
         1,
         "Expired sessions must re-authenticate instead of switching to a guest journey",
+      );
+      assert.equal(
+        s.playerRequests(),
+        identityChecks,
+        "Expired sessions must not refresh identity into a guest switch",
       );
       assert.equal(
         await s.page.evaluate(() => window.playablesCloud.getState().reloadRequired),
@@ -358,6 +399,18 @@ test("Ember account prompt suspends and restores decisions without changing the 
         "Expired cloud sessions must still permit local play",
       );
       assert.equal(await s.page.locator("#playables-account-host dialog[open]").count(), 0);
+      const priorRevision = s.head().revision;
+      await s.reauthorize();
+      await s.page.evaluate(() => window.playablesCloud.checkpoint());
+      await s.page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
+      assert(
+        s.head().revision > priorRevision,
+        "A verified session must resume publishing the retained local progress",
+      );
+      assert.equal(
+        await s.page.evaluate(() => window.playablesCloud.getState().reloadRequired),
+        false,
+      );
       await s.context.close();
     }
     assert.deepEqual(errors, []);

@@ -32,7 +32,10 @@ export interface CloudState {
   reloadRequired: boolean;
   message: string | null;
   authRequired: boolean;
+  storageAvailable: boolean;
 }
+export const STORAGE_WARNING =
+  "Browser storage is unavailable. Keep this tab open; progress cannot be saved here.";
 export interface PersistenceHost {
   loadData(key: string): Promise<string | null>;
   saveData(key: string, data: string): Promise<void>;
@@ -118,6 +121,7 @@ export class PlayablesCloud implements PersistenceHost {
       reloadRequired: false,
       message: null,
       authRequired: false,
+      storageAvailable: true,
     };
   }
   getState = (): CloudState => structuredClone(this.#state);
@@ -246,10 +250,19 @@ export class PlayablesCloud implements PersistenceHost {
   #persist(copy: LocalCopy) {
     const key = this.#key(copy.owner);
     const raw = JSON.stringify(copy);
-    this.#options.storage.setItem(key, raw);
-    if (this.#options.storage.getItem(key) !== raw) throw new Error("Local save did not persist");
+    try {
+      this.#options.storage.setItem(key, raw);
+      if (this.#options.storage.getItem(key) !== raw) throw new Error("Local save did not persist");
+    } catch (error) {
+      this.#update({ storageAvailable: false });
+      throw error;
+    }
     this.#copy = copy;
-    this.#update({ localSavedAt: copy.savedAt });
+    this.#update({
+      localSavedAt: copy.savedAt,
+      storageAvailable: true,
+      ...(this.#state.message === STORAGE_WARNING ? { message: null } : {}),
+    });
   }
   #backup(copy = this.#copy, storageKey = this.#storageKey) {
     if (!copy) return;
@@ -349,8 +362,8 @@ export class PlayablesCloud implements PersistenceHost {
       this.#copy = null;
       this.#update({
         phase: "offline",
-        message:
-          "Browser storage is unavailable. Keep this tab open; progress cannot be saved here.",
+        message: STORAGE_WARNING,
+        storageAvailable: false,
       });
     }
     this.#update({ localSavedAt: this.#copy?.savedAt || null });
