@@ -344,7 +344,6 @@ export class WorldRenderer {
     if (direction === "moon") this.moonWorld(s);
     else if (direction === "tabletop") this.tableWorld(s);
     else this.emberWorld(s);
-    this.roadLights(s);
     this.scene = s;
     this.drawActors(s);
     this.drawEffects(s);
@@ -1802,30 +1801,6 @@ export class WorldRenderer {
       this.backdrops.set(chapter, image);
     }
     return image;
-  }
-
-  private roadLights(s: Scene) {
-    const c = this.ctx;
-    const ground = this.height * 0.73;
-    c.save();
-    for (let i = 0; i < 4; i++) {
-      const x = 80 + i * 265 - ((s.distance * 9) % 70);
-      const lit = i <= Math.floor((s.beacons ?? 0) / 3);
-      this.line(x, ground, x, ground - 60, s.chapter === 4 ? "#687f91" : "#534b38", 4);
-      if (lit) {
-        const glow = c.createRadialGradient(x, ground - 52, 1, x, ground - 52, 38);
-        glow.addColorStop(0, "#ffcd8877");
-        glow.addColorStop(1, "#ffb95f00");
-        c.fillStyle = glow;
-        c.fillRect(x - 40, ground - 92, 80, 80);
-      }
-      c.fillStyle = lit ? "#ffda8b" : "#485854";
-      c.fillRect(x - 5, ground - 59, 10, 15);
-      c.strokeStyle = "#3d4039";
-      c.lineWidth = 2;
-      c.strokeRect(x - 7, ground - 61, 14, 19);
-    }
-    c.restore();
   }
 
   private equipment(s: Scene, x: number, ground: number, scale: number) {

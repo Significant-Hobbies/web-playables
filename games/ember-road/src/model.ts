@@ -4,6 +4,7 @@ import {
   activityPreview,
   advanceAdventures,
   currentRoute,
+  DISCOVERY_CHAPTERS,
   EXPEDITIONS,
   initialAdventures,
   nextJunction,
@@ -951,11 +952,13 @@ export function chooseRoute(state: GameState, path: RouteId): boolean {
   }
   if (path === "rescue") {
     if (discoveries.mira) p.trailmarks = Math.min(1e9, p.trailmarks + 5);
-    discoveries.mira = true;
+    else if (state.run.chapter >= DISCOVERY_CHAPTERS.mira) discoveries.mira = true;
+    else p.trailmarks = Math.min(1e9, p.trailmarks + 3);
   }
   if (path === "tracks") {
     if (discoveries.cinder) p.trailmarks = Math.min(1e9, p.trailmarks + 5);
-    discoveries.cinder = true;
+    else if (state.run.chapter >= DISCOVERY_CHAPTERS.cinder) discoveries.cinder = true;
+    else p.trailmarks = Math.min(1e9, p.trailmarks + 3);
   }
   if (path === "shrine") discoveries.whirlwind = true;
   state.phase = { kind: "travel", remaining: 0.9 };

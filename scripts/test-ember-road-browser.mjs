@@ -188,6 +188,64 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await page.locator("#depart").click();
   }
   try {
+    for (const member of ["mira", "cinder"]) {
+      const arrival = freshState(42);
+      arrival.meta.experience.introSeen = true;
+      for (const key of Object.keys(arrival.meta.experience.lessons))
+        arrival.meta.experience.lessons[key] = true;
+      arrival.meta.unlockedChapter = member === "mira" ? 2 : 3;
+      if (member === "cinder")
+        Object.assign(arrival.adventures.discoveries, { mira: false, whirlwind: true });
+      assert(startRun(arrival, arrival.meta.unlockedChapter));
+      arrival.run.cleared = member === "mira" ? 3 : 9;
+      arrival.phase = { kind: "route", at: arrival.run.cleared };
+      if (member === "cinder")
+        arrival.run.context.routes = [
+          { at: 3, path: "spring" },
+          { at: 6, path: "shrine" },
+        ];
+      const arrivalContext = await context(await fixture(arrival));
+      const arrivalPage = await arrivalContext.newPage();
+      await ready(arrivalPage);
+      await arrivalPage
+        .locator(`[data-route="${member === "mira" ? "rescue" : "tracks"}"]`)
+        .click();
+      const title = member === "mira" ? "Mira joins the company." : "Cinder joins the company.";
+      await arrivalPage.getByRole("dialog", { name: title, exact: true }).waitFor();
+      if (member === "cinder")
+        assert.equal(
+          await arrivalPage
+            .getByRole("dialog", { name: title, exact: true })
+            .getByText(/pair Cinder with Mira/)
+            .count(),
+          0,
+          "Cinder's solo introduction does not assume Mira was rescued",
+        );
+      const first = await stored(arrivalPage);
+      assert.equal(first.state.adventures.discoveries[member], true);
+      await arrivalPage.waitForTimeout(2200);
+      assert.equal(
+        (await stored(arrivalPage)).state.run.time,
+        first.state.run.time,
+        "A new companion introduction pauses the journey",
+      );
+      await arrivalPage.screenshot({ path: join(evidence, `arrival-${member}.png`) });
+      await arrivalPage.getByRole("button", { name: "Continue the journey", exact: true }).click();
+      await arrivalPage
+        .getByRole("dialog", { name: title, exact: true })
+        .waitFor({ state: "hidden" });
+      await arrivalPage.reload();
+      await arrivalPage.waitForFunction(
+        () => !document.querySelector("#save-status")?.textContent.includes("Loading"),
+      );
+      assert.equal(
+        await arrivalPage.locator(".company-arrival[open]").count(),
+        0,
+        "Earned discoveries do not replay on load",
+      );
+      assert.equal((await stored(arrivalPage)).state.adventures.discoveries[member], true);
+      await arrivalContext.close();
+    }
     const originContext = await context();
     await originContext.addInitScript(() => {
       window.__audioContexts = [];
@@ -382,6 +440,17 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         }),
         `Actual atlas covers the bottom pixel row at ${viewport.width}x${viewport.height}`,
       );
+      assert(
+        await page.evaluate(() => {
+          const world = document.querySelector("#world").getBoundingClientRect();
+          const hud = document.querySelector(".battle-status").getBoundingClientRect();
+          const belt = document.querySelector(".toon-shell > .powers-belt").getBoundingClientRect();
+          return (
+            world.bottom <= hud.top + 1 && hud.bottom <= innerHeight && belt.bottom <= innerHeight
+          );
+        }),
+        "Combat controls own a complete bottom rail outside the battlefield",
+      );
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#pause").click();
@@ -401,6 +470,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     result.groupedFrontRearCompanionPetAndArrows = await page.evaluate(() => window.__draws);
     await page.screenshot({ path: join(evidence, "battle-1440.png") });
     await page.locator(".decision--choice[open]").waitFor({ timeout: 30000 });
+    assert.equal(
+      await page.locator(".decision--choice[open] .perk-art").count(),
+      3,
+      "Every offered oath has its own game illustration",
+    );
     const beforeSkip = await stored(page);
     const originalOptions = await page
       .locator("[data-perk]")

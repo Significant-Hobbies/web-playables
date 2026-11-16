@@ -101,7 +101,10 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
   }
   const conflict = state.conflict;
   return (
-    <div data-theme="paper" className="cloud-shell">
+    <div
+      data-theme="paper"
+      className={`cloud-shell${state.gameId === "ember-road" ? " ember-cloud" : ""}`}
+    >
       <Button
         variant="outline"
         size="sm"

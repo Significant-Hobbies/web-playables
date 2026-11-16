@@ -88,6 +88,26 @@ export const ROUTES: Record<
     reward: "Cinder joins permanently; already found? Gain 5 Trailmarks",
   },
 };
+export const DISCOVERY_CHAPTERS = { mira: 2, cinder: 3 } as const;
+
+export function routeDetails(state: GameState, path: RouteId) {
+  const discoveries = state.adventures?.discoveries;
+  if (path === "rescue" && !discoveries?.mira && state.run.chapter < DISCOVERY_CHAPTERS.mira)
+    return {
+      ...ROUTES[path],
+      name: "A ribbon on the road",
+      risk: "Mira passed this way. Her trail leads toward the monastery.",
+      reward: "Follow her trail · gain 3 Trailmarks. Find Mira in chapter 2.",
+    };
+  if (path === "tracks" && !discoveries?.cinder && state.run.chapter < DISCOVERY_CHAPTERS.cinder)
+    return {
+      ...ROUTES[path],
+      name: "Little ember footprints",
+      risk: "Small tracks cross the road, then vanish into the distant marsh.",
+      reward: "Scout the trail · gain 3 Trailmarks. Meet Cinder in chapter 3.",
+    };
+  return ROUTES[path];
+}
 export function initialAdventures(): AdventureLedger {
   return {
     day: 0,

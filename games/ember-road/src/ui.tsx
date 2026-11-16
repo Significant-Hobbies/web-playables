@@ -37,6 +37,7 @@ import {
   DAY_MS,
   ROUTES,
   type RouteId,
+  routeDetails,
   routeOptions,
   runLength,
   TIERS,
@@ -70,6 +71,7 @@ import {
   xpNeeded,
 } from "./model";
 import { synergyStatus } from "./model.ts";
+import { PerkArt } from "./perk-art";
 import { companyPower } from "./power";
 import {
   companyLevel,
@@ -87,6 +89,7 @@ import { journeyStory } from "./story";
 const chapterIsland = new URL("../assets/toon-island.png", import.meta.url).href;
 const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
 const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
+const roadAtlas = new URL("../assets/toon-roads.png", import.meta.url).href;
 function PerkSymbol({ family }: { family: Perk["family"] }) {
   return family === "steel" ? <Sword /> : family === "vitality" ? <Heart /> : <Flame />;
 }
@@ -529,6 +532,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       ? activityPreview(state, state.run.context.kind, state.run.context.tier, state.run.context)
       : null;
   const discoveries = state.adventures?.discoveries;
+  const miraFound = discoveries?.mira ?? false;
+  const cinderFound = discoveries?.cinder ?? false;
+  const knownCompany = useRef<{ mira: boolean; cinder: boolean } | null>(null);
+  const [newDiscovery, setNewDiscovery] = useState<"mira" | "cinder" | null>(null);
+  useEffect(() => {
+    if (!v.loaded) return;
+    const before = knownCompany.current;
+    if (before && !before.mira && miraFound) setNewDiscovery("mira");
+    else if (before && !before.cinder && cinderFound) setNewDiscovery("cinder");
+    knownCompany.current = { mira: miraFound, cinder: cinderFound };
+  }, [v.loaded, miraFound, cinderFound]);
   const companyReady = systemUnlocked(state, "company");
   const skillReady = systemUnlocked(state, "skills");
   const petsReady = systemUnlocked(state, "pets");
@@ -595,9 +609,21 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           campOpen ||
           retreat ||
           introChapter !== null ||
+          newDiscovery !== null ||
           section !== "Camp",
       ),
-    [a, settings, detail, campOpen, retreat, introChapter, section, showPrologue, adventureOpen],
+    [
+      a,
+      settings,
+      detail,
+      campOpen,
+      retreat,
+      introChapter,
+      newDiscovery,
+      section,
+      showPrologue,
+      adventureOpen,
+    ],
   );
   useEffect(() => {
     if (inCamp) {
@@ -1117,6 +1143,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                         .join(" · ")
                     : "Carry the light onward."}
                 </p>
+                <ol
+                  className="encounter-track"
+                  aria-label={`${state.run.cleared} of ${runLength(state)} encounters cleared`}
+                >
+                  {Array.from({ length: runLength(state) }, (_, index) => index + 1).map((i) => (
+                    <li
+                      key={i}
+                      className={`${i <= state.run.cleared ? "cleared" : ""} ${i === state.run.cleared + 1 ? "current" : ""} ${i % 3 === 0 ? "milestone" : ""}`}
+                    >
+                      <span>{i}</span>
+                    </li>
+                  ))}
+                </ol>
               </div>
               <div className="battle-actions">
                 <Button variant="outline" onClick={() => go("Camp")}>
@@ -1148,7 +1187,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </div>
               <div className="health-stat">
                 <span>
-                  Level {state.run.level}
+                  Journey level {state.run.level}
                   <small>
                     {state.run.xp} / {xpNeeded(state)} XP
                   </small>
@@ -1159,13 +1198,21 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   aria-label="Experience"
                 />
               </div>
-              <Button variant="outline" onClick={() => setDetail("stats")}>
+              <Button
+                variant="outline"
+                aria-label="Current stats"
+                onClick={() => setDetail("stats")}
+              >
                 <Sword />
-                Current stats
+                Stats
               </Button>
-              <Button variant="outline" onClick={() => setDetail("powers")}>
+              <Button
+                variant="outline"
+                aria-label="Current powers"
+                onClick={() => setDetail("powers")}
+              >
                 <Flame />
-                Current powers
+                Powers
               </Button>
               {skillReady ? (
                 <Button
@@ -1201,7 +1248,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <span className="trail-history" title="Chosen trail">
                   {state.run.context.routes.map((r) => (
                     <span key={r.at}>
-                      {ROUTES[r.path].symbol} {ROUTES[r.path].name}
+                      {ROUTES[r.path].symbol} {routeDetails(state, r.path).name}
                     </span>
                   ))}
                 </span>
@@ -1213,6 +1260,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               )}
             </div>
           )}
+          {!showPrologue &&
+            !dashboard &&
+            state.phase.kind === "travel" &&
+            state.run.cleared === 0 &&
+            state.run.time < 2.8 && (
+              <div className="arrival-banner" aria-live="polite">
+                <span>{activity ? "A NEW TRAIL" : `CHAPTER ${state.run.chapter}`}</span>
+                <strong>{activity?.name ?? place.name}</strong>
+                <small>{activity ? activity.rule : story.title}</small>
+              </div>
+            )}
           {!showPrologue &&
             !dashboard &&
             active &&
@@ -1232,9 +1290,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             state.phase.kind === "battle" &&
             (tip === "battle" || tip === "skill") && (
               <aside className="tutorial-card" aria-label="First battle guidance">
-                <span className="guide-mira" aria-hidden="true" />
+                <span className={companyReady ? "guide-mira" : "guide-rook"} aria-hidden="true" />
                 <div>
-                  <span className="sheet-kicker">MIRA’S FIELD NOTES</span>
+                  <span className="sheet-kicker">
+                    {companyReady ? "MIRA’S FIELD NOTES" : "ROOK’S FIELD NOTES"}
+                  </span>
                   <h3>
                     {tip === "battle" ? "The first steps are yours." : `${skill.name} is ready.`}
                   </h3>
@@ -1704,16 +1764,40 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         close={() => setIntroChapter(null)}
         className="chapter-opening"
       >
-        <div className="story-letter">
-          <span className="story-ranger" role="img" aria-label="Mira, your ranger companion" />
-          <div>
-            <span className="eyebrow">FROM MIRA’S JOURNAL · CHAPTER {introChapter ?? chapter}</span>
-            <blockquote>{journeyStory(introChapter ?? chapter).opening}</blockquote>
-            <p className="story-goal">
-              <BookOpen />
-              {journeyStory(introChapter ?? chapter).goal}
-            </p>
+        <div className="departure-scene">
+          <img
+            className="departure-landscape"
+            src={roadAtlas}
+            alt=""
+            style={{
+              transform: `translate(-${(((introChapter ?? chapter) - 1) % 2) * 50}%, -${((Math.floor(((introChapter ?? chapter) - 1) / 2) + 0.5) * 100) / 3}%)`,
+            }}
+          />
+          <span className="departure-rook" aria-hidden="true" />
+          <div className="departure-location">
+            <span>CHAPTER {introChapter ?? chapter} · THE ROAD AHEAD</span>
+            <h3>{CHAPTERS[(introChapter ?? chapter) - 1]!.name}</h3>
           </div>
+        </div>
+        <div className="departure-brief">
+          <span className="eyebrow">
+            {companyReady ? "FROM MIRA’S JOURNAL" : "A LETTER LEFT FOR ROOK"}
+          </span>
+          <blockquote>{journeyStory(introChapter ?? chapter).opening}</blockquote>
+          <p className="departure-goal">
+            <GameIcon kind="quests" />
+            {journeyStory(introChapter ?? chapter).goal}
+          </p>
+          <div className="departure-stakes">
+            <span>12 encounters</span>
+            <i /> <span>3 branching trails</span>
+            <i />
+            <span>1 guardian</span>
+          </div>
+          <small>
+            Your journey level and oaths restart. Company levels, discoveries and gear stay with
+            you.
+          </small>
         </div>
         {introChapter !== null && saveWarning}
         <div className="dialog-actions">
@@ -1734,6 +1818,36 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <ArrowRight />
           </Button>
         </div>
+      </Modal>
+      <Modal
+        open={newDiscovery !== null}
+        title={newDiscovery === "mira" ? "Mira joins the company." : "Cinder joins the company."}
+        className={`company-arrival arrival-${newDiscovery ?? "mira"}`}
+        close={() => setNewDiscovery(null)}
+      >
+        <div className="company-arrival-art" aria-hidden="true">
+          <span className="join-ring" />
+          <span className={`join-portrait join-${newDiscovery ?? "mira"}`} />
+        </div>
+        <span className="eyebrow">
+          {newDiscovery === "mira" ? "A RANGER’S PROMISE" : "A SMALL FLAME, A LOYAL FRIEND"}
+        </span>
+        <h3>
+          {newDiscovery === "mira"
+            ? "You don’t have to walk alone."
+            : "Some lights find their way to you."}
+        </h3>
+        <p>
+          {newDiscovery === "mira"
+            ? "Mira found your lantern. Her arrows now join Rook’s attacks. You can inspect and train your companion back at camp."
+            : miraFound
+              ? "Cinder followed the ember footprints home. Your first pet joins the fight; pair Cinder with Mira to mark targets for her next arrow."
+              : "Cinder followed the ember footprints home. Your first pet joins Rook’s attacks. A loyal friend for every road ahead."}
+        </p>
+        <small>A permanent discovery. Your companion stays with the company across journeys.</small>
+        <Button onClick={() => setNewDiscovery(null)}>
+          Continue the journey <ArrowRight />
+        </Button>
       </Modal>
       <Modal
         open={settings}
@@ -1977,11 +2091,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <Card key={path} className={`trail-option trail-${path}`}>
                 <CardHeader>
                   <span className="trail-symbol">{ROUTES[path].symbol}</span>
-                  <CardTitle>{ROUTES[path].name}</CardTitle>
+                  <CardTitle>{routeDetails(state, path).name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p>{ROUTES[path].risk}</p>
-                  <strong>{ROUTES[path].reward}</strong>
+                  <p>{routeDetails(state, path).risk}</p>
+                  <strong>{routeDetails(state, path).reward}</strong>
                   <Button autoFocus={i === 0} data-route={path} onClick={() => a.route(path)}>
                     Take this trail <ArrowRight />
                   </Button>
@@ -1997,10 +2111,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         title="Choose your next oath."
         className="decision--choice"
       >
-        <span className="eyebrow">LEVEL {state.run.level} · ONE CHOICE</span>
+        <div className="oath-intro">
+          <span className="eyebrow">JOURNEY LEVEL {state.run.level} · A GIFT FROM THE ROAD</span>
+          <p>Bind one power. Carry its strength to the end of this journey.</p>
+        </div>
         {tip === "oath" && (
           <div className="oath-guidance">
-            <span className="guide-mira" aria-hidden="true" />
             <p>
               These oaths shape this journey. Blue is rare, violet is epic, and gold is legendary.
               Pick a power that helps your build, inspect your stats, or skip the choice.
@@ -2010,27 +2126,6 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </Button>
           </div>
         )}
-        <p>Every journey is a different build. Choose a power, or continue without one.</p>
-        <PowerBelt state={state} />
-        <div className="choice-tools">
-          <Button
-            variant="outline"
-            data-reroll=""
-            disabled={state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0}
-            onClick={a.reroll}
-          >
-            <RefreshCw />{" "}
-            {state.phase.kind === "choice" && (state.phase.rerolls ?? 1) > 0
-              ? "Refresh choices · 1 free"
-              : "Refresh used"}
-          </Button>
-          <Button variant="outline" onClick={() => setDetail("stats")}>
-            Current stats
-          </Button>
-          <Button variant="outline" onClick={() => setDetail("powers")}>
-            Current powers
-          </Button>
-        </div>
         <div className="choice-grid">
           {state.phase.kind === "choice" &&
             state.phase.options.map((id, i) => {
@@ -2038,17 +2133,25 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               return (
                 <Card key={id} className={`choice-card rarity-${p.rarity}`}>
                   <CardHeader>
-                    <div className="card-heading">
-                      <PerkSymbol family={p.family} />
-                      <RarityBadge rarity={p.rarity} />
+                    <div className="oath-relic">
+                      <span className="relic-halo" />
+                      <PerkArt id={id} />
+                      <span className="relic-spark spark-a" />
+                      <span className="relic-spark spark-b" />
                     </div>
+                    <RarityBadge rarity={p.rarity} />
                     <CardTitle>{p.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <small>{p.caption}</small>
                     <p>{p.description}</p>
-                    <span>
+                    <span className="oath-ranks">
                       Rank {rank(state, id) + 1} / {p.max}
+                      <span aria-hidden="true">
+                        {Array.from({ length: p.max }, (_, index) => index + 1).map((n) => (
+                          <i key={n} className={n <= rank(state, id) + 1 ? "filled" : ""} />
+                        ))}
+                      </span>
                     </span>
                     <Button
                       data-perk={id}
@@ -2058,23 +2161,43 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                         a.choose(id);
                       }}
                     >
-                      Choose oath <kbd>{i + 1}</kbd>
+                      Bind oath <kbd>{i + 1}</kbd>
                     </Button>
                   </CardContent>
                 </Card>
               );
             })}
         </div>
-        <Button
-          variant="ghost"
-          id="skip-perk"
-          onClick={() => {
-            setTip(null);
-            a.skip();
-          }}
-        >
-          Skip this choice <ArrowRight />
-        </Button>
+        <div className="choice-tools">
+          <Button
+            variant="outline"
+            data-reroll=""
+            disabled={state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0}
+            onClick={a.reroll}
+          >
+            <RefreshCw />
+            {state.phase.kind === "choice" && (state.phase.rerolls ?? 1) > 0
+              ? "Refresh choices · 1 free"
+              : "Refresh used"}
+          </Button>
+          <Button variant="ghost" onClick={() => setDetail("stats")}>
+            <Sword /> Current stats
+          </Button>
+          <Button variant="ghost" onClick={() => setDetail("powers")}>
+            <Flame /> Current powers
+          </Button>
+          <Button
+            variant="ghost"
+            id="skip-perk"
+            onClick={() => {
+              setTip(null);
+              a.skip();
+            }}
+          >
+            Skip this choice <ArrowRight />
+          </Button>
+        </div>
+        <PowerBelt state={state} />
       </Modal>
       <Modal
         open={

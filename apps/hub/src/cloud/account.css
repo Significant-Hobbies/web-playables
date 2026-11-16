@@ -16,6 +16,25 @@
   line-height: 1.5;
   color: var(--foreground);
 }
+.cloud-shell.ember-cloud {
+  --background: #102239;
+  --foreground: #e5f1fc;
+  --card: #142c42;
+  --card-foreground: #e5f1fc;
+  --popover: #142c42;
+  --popover-foreground: #e5f1fc;
+  --primary: #f1bd53;
+  --primary-foreground: #102239;
+  --secondary: #244b5a;
+  --secondary-foreground: #d9fff4;
+  --muted: #19374d;
+  --muted-foreground: #adc6d8;
+  --border: #426b84;
+  --input: #426b84;
+  --ring: #70d4c1;
+  --accent: #244b5a;
+  --accent-foreground: #d9fff4;
+}
 .account-trigger {
   gap: 8px;
 }
