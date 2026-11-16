@@ -382,6 +382,17 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         }),
         `Actual atlas covers the bottom pixel row at ${viewport.width}x${viewport.height}`,
       );
+      assert(
+        await page.evaluate(() => {
+          const world = document.querySelector("#world").getBoundingClientRect();
+          const hud = document.querySelector(".battle-status").getBoundingClientRect();
+          const belt = document.querySelector(".toon-shell > .powers-belt").getBoundingClientRect();
+          return (
+            world.bottom <= hud.top + 1 && hud.bottom <= innerHeight && belt.bottom <= innerHeight
+          );
+        }),
+        "Combat controls own a complete bottom rail outside the battlefield",
+      );
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#pause").click();
@@ -401,6 +412,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     result.groupedFrontRearCompanionPetAndArrows = await page.evaluate(() => window.__draws);
     await page.screenshot({ path: join(evidence, "battle-1440.png") });
     await page.locator(".decision--choice[open]").waitFor({ timeout: 30000 });
+    assert.equal(
+      await page.locator(".decision--choice[open] .perk-art").count(),
+      3,
+      "Every offered oath has its own game illustration",
+    );
     const beforeSkip = await stored(page);
     const originalOptions = await page
       .locator("[data-perk]")

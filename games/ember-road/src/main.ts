@@ -44,6 +44,7 @@ import "./toon.css";
 import "./collection.css";
 import "./experience.css";
 import "./progression.css";
+import "./journey.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");

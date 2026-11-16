@@ -69,11 +69,11 @@ export function systemUnlocked(state: GameState, system: SystemId): boolean {
 }
 export function nextUnlock(state: GameState) {
   const objectives = [
-    ["company", "Rescue Mira", "Follow the ranger’s signal after fight 3."],
     ["skills", "Discover Whirlwind", "Choose 2 oaths, or visit the wind shrine after fight 6."],
-    ["pets", "Find Cinder", "Follow fox tracks after fight 9."],
     ["daily", "Daily expeditions", "Clear chapter 1 to open six-fight daily adventures."],
+    ["company", "Rescue Mira", "Find the ranger’s signal in chapter 2, after fight 3."],
     ["weekly", "Weekly boss hunt", "Clear chapter 2 to open three-round boss hunts."],
+    ["pets", "Find Cinder", "Follow ember footprints in chapter 3, after fight 9."],
   ] as const;
   const next = objectives.find(([id]) => !systemUnlocked(state, id));
   return next ? { title: next[1], description: next[2], level: SYSTEMS[next[0]].level } : undefined;

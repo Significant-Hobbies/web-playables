@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import * as A from "../src/adventures.ts";
 import * as M from "../src/model.ts";
 import { useSkill as castSkill } from "../src/model.ts";
+import { train } from "../src/progression.ts";
 import * as Q from "../src/quests.ts";
 
 const args = process.argv.slice(2);
@@ -12,6 +13,8 @@ const option = (name, fallback) => {
   return i < 0 ? fallback : args[i + 1];
 };
 const samples = Number(option("--samples", "12"));
+const progression = option("--progression", "fresh");
+assert(["fresh", "released"].includes(progression), "Choose fresh or released progression");
 assert(
   Number.isInteger(samples) && samples >= 2 && samples <= 24,
   "Use 2–24 deterministic samples",
@@ -159,7 +162,7 @@ const fixture = JSON.parse(
   await readFile(new URL("../test-fixtures/earned-progression.v4.json", import.meta.url), "utf8"),
 );
 assert.equal(fixture.version, 4);
-const checkpoints = fixture.checkpoints.map((state) => M.migrateV4State(state));
+let checkpoints = fixture.checkpoints.map((state) => M.migrateV4State(state));
 for (const state of checkpoints)
   assert(M.validState(state), "The earned entry checkpoint migrates safely");
 
@@ -259,6 +262,31 @@ function finish(state, build, policy, now, validate = true) {
     endingHp: state.run.hp,
     perks: state.run.perks,
   };
+}
+
+// Earn current checkpoints through the actual commands. No gear, currency or discoveries are granted.
+const earningTrail = [];
+if (progression === "fresh") {
+  checkpoints = [];
+  const state = M.initialState(927113);
+  for (let chapter = 1; chapter <= 5; chapter++) {
+    for (let i = 0; i < 25; i++)
+      for (const id of ["blade", "mail", "charm"]) M.buyUpgrade(state, id);
+    for (let i = 0; i < 5; i++) for (const id of ["companion", "pet", "skill"]) train(state, id);
+    assert(M.validState(state));
+    checkpoints.push(clone(state));
+    assert(M.startRun(state, chapter));
+    const result = finish(state, builds.balanced, "immediate", fixedDay * A.DAY_MS);
+    assert(result.win, `Earned progression must reach chapter ${chapter + 1}`);
+    earningTrail.push({
+      chapter,
+      seconds: result.seconds,
+      discoveries: clone(state.adventures.discoveries),
+      upgrades: clone(state.meta.upgrades),
+      training: clone(state.meta.progression.training),
+    });
+    assert(M.returnToCamp(state));
+  }
 }
 
 const scenarios = [];
@@ -394,7 +422,9 @@ assert(
   "Faster clearing must leave a meaningful survival tradeoff",
 );
 const report = {
-  sourceFixture: fixture.sourceCommit,
+  sourceFixture: progression === "released" ? fixture.sourceCommit : "current-model-earned",
+  progression,
+  earningTrail,
   runtime: process.version,
   samples,
   scenarios: scenarios.length,

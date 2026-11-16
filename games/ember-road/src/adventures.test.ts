@@ -69,7 +69,7 @@ function launch(state: GameState, kind: "daily" | "hunt", tier: 1 | 2 | 3, now =
   return offer;
 }
 describe("adventure routes and discoveries", () => {
-  it("plays a fresh full chapter through three saved route decisions and discovers a company", () => {
+  it("plays the first chapter solo, finding clues and Whirlwind before company discoveries", () => {
     const state = initialState(927113);
     startRun(state);
     finish(state);
@@ -84,8 +84,8 @@ describe("adventure routes and discoveries", () => {
       ],
     });
     expect(state.adventures!.discoveries).toMatchObject({
-      mira: true,
-      cinder: true,
+      mira: false,
+      cinder: false,
       whirlwind: true,
     });
     expect(systemUnlocked(state, "daily")).toBe(true);
@@ -110,7 +110,8 @@ describe("adventure routes and discoveries", () => {
     expect(adventureEnemies(elite).reduce((n, e) => n + e.gold, 0)).toBeGreaterThan(
       adventureEnemies(rescue).reduce((n, e) => n + e.gold, 0),
     );
-    expect(systemUnlocked(rescue, "company")).toBe(true);
+    expect(systemUnlocked(rescue, "company")).toBe(false);
+    expect(rescue.meta.progression!.trailmarks).toBe(3);
     expect(systemUnlocked(spring, "company")).toBe(false);
     const restored = JSON.parse(JSON.stringify(spring)),
       before = structuredClone(restored);
@@ -137,6 +138,39 @@ describe("adventure routes and discoveries", () => {
     skipped.phase = { kind: "choice", options: ["edge"] };
     skipPerk(skipped);
     expect(systemUnlocked(skipped, "skills")).toBe(false);
+  });
+  it("spaces new discoveries across chapters without taking away already-earned company", () => {
+    const state = initialState();
+    state.meta.unlockedChapter = 3;
+    startRun(state, 2);
+    state.run.cleared = 3;
+    state.phase = { kind: "route", at: 3 };
+    expect(chooseRoute(state, "rescue")).toBe(true);
+    expect(systemUnlocked(state, "company")).toBe(true);
+    state.run.cleared = 6;
+    state.phase = { kind: "route", at: 6 };
+    expect(chooseRoute(state, "shrine")).toBe(true);
+    state.run.cleared = 9;
+    state.phase = { kind: "route", at: 9 };
+    expect(chooseRoute(state, "tracks")).toBe(true);
+    expect(systemUnlocked(state, "pets")).toBe(false);
+    state.phase = { kind: "camp" };
+    startRun(state, 3);
+    state.run.cleared = 3;
+    state.phase = { kind: "route", at: 3 };
+    expect(chooseRoute(state, "rescue")).toBe(true);
+    state.run.cleared = 6;
+    state.phase = { kind: "route", at: 6 };
+    expect(chooseRoute(state, "shrine")).toBe(true);
+    state.run.cleared = 9;
+    state.phase = { kind: "route", at: 9 };
+    expect(chooseRoute(state, "tracks")).toBe(true);
+    expect(systemUnlocked(state, "pets")).toBe(true);
+    expect(validState(state)).toBe(true);
+    state.phase = { kind: "camp" };
+    startRun(state, 1);
+    expect(systemUnlocked(state, "company")).toBe(true);
+    expect(systemUnlocked(state, "pets")).toBe(true);
   });
 });
 describe.each(["daily", "hunt"] as const)("%s return journey", (kind) => {

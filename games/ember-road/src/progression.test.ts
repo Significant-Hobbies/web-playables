@@ -54,10 +54,10 @@ describe("permanent company progression", () => {
     }
     expect(state.phase.kind).toBe("victory");
     expect(companyLevel(state)).toBe(4);
-    expect(progressionOf(state)).toMatchObject({ renown: 48, trailmarks: 12, embers: 4 });
+    expect(progressionOf(state)).toMatchObject({ renown: 48, trailmarks: 18, embers: 4 });
     expect(returnToCamp(state)).toBe(true);
-    expect(train(state, "companion")).toBe(true);
-    expect(train(state, "pet")).toBe(true);
+    expect(train(state, "companion")).toBe(false);
+    expect(train(state, "pet")).toBe(false);
     expect(train(state, "skill")).toBe(true);
     const earned = structuredClone(progressionOf(state));
     expect(startRun(state, 2)).toBe(true);
