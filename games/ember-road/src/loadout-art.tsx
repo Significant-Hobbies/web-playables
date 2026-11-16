@@ -16,6 +16,16 @@ export function LoadoutArt({ slot, id }: { slot: keyof Loadout; id: string }) {
                 <path d="m91 57 20 14" stroke="#edc45c" strokeWidth="8" />
                 <path d="m43 120 10 8" stroke="#f4d78a" />
               </>
+            ) : id === "greatsword" ? (
+              <>
+                <path d="m54 103-25-24 54-62 44-4-2 43Z" fill="#8ca6cf" />
+                <path d="m43 82 52-55 22-2-9 23-54 56Z" fill="#dce9ec" strokeWidth="3" />
+                <path d="m83 39 9 8m-23 7 9 8" stroke="#5c779c" strokeWidth="4" />
+                <path d="m28 74 37 31-7 12-40-33Z" fill="#efb64c" />
+                <path d="m35 104-17 23 14 12 19-25Z" fill="#8b5140" />
+                <path d="m18 128 14 12" stroke="#f4c860" strokeWidth="10" />
+                <circle cx="43" cy="95" r="5" fill="#e88854" strokeWidth="3" />
+              </>
             ) : (
               <>
                 <path
