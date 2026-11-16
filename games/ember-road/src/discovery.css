@@ -1,0 +1,272 @@
+/* A field journal shares the world's navy, weathered teal and lantern gold. */
+.discovery-journal {
+  margin-top: 16px;
+}
+.discovery-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.toon-shell .discovery-tabs [data-slot="button"] {
+  min-height: 44px;
+  height: auto;
+  padding: 9px 13px;
+  border: 1px solid #355669;
+  background: #102638;
+  color: #c4d9e4;
+  box-shadow: none;
+}
+.toon-shell .discovery-tabs [aria-pressed="true"] {
+  border-color: #e3b451;
+  background: #3b3427;
+  color: #ffda7e;
+}
+.discovery-tabs small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+.discovery-feature {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.8fr) minmax(0, 1.3fr);
+  overflow: hidden;
+  border: 1px solid #4c6b79;
+  border-radius: 14px;
+  background: linear-gradient(125deg, #173c47, #0d2035 70%);
+  box-shadow:
+    inset 0 1px #a2d7ce12,
+    0 5px #06111e;
+}
+.discovery-illustration {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 280px;
+  padding: 24px 12px 42px;
+  isolation: isolate;
+  background: radial-gradient(ellipse at 50% 60%, #65bca126, transparent 70%);
+}
+.discovery-halo {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 1px solid #e8c26870;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 9px #e8c2680a,
+    0 0 0 24px #e8c26805;
+  z-index: -1;
+}
+.discovery-character {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  display: block;
+  filter: drop-shadow(0 8px 8px #04121d66);
+}
+.portrait-mira {
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+}
+.portrait-cinder {
+  background: url("../assets/toon-pets.png") 0 0 / 400% 300% no-repeat;
+}
+.discovery-illustration .loadout-art {
+  width: 195px;
+  height: 195px;
+}
+.discovery-caption {
+  position: absolute;
+  bottom: 20px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #a1c4c9;
+}
+.discovery-story {
+  align-self: center;
+  padding: 26px 28px 26px 12px;
+}
+.toon-shell .discovery-story h2 {
+  margin: 7px 0 13px;
+  color: #ffe0a0;
+  font: 800 28px / 1.14 var(--game-font);
+}
+.discovery-story .sheet-kicker {
+  color: #90d8c9;
+  font-size: 10px;
+}
+.toon-shell .game-dialog .discovery-clue {
+  margin: 8px 0 14px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #d4e7ed;
+}
+.toon-shell .game-dialog .discovery-directions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 0;
+  margin: 0;
+  border-block: 1px solid #375667;
+  color: #f2d99f;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.discovery-directions svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #93d9c9;
+}
+.toon-shell .game-dialog .discovery-outcome {
+  margin: 14px 0 18px;
+  color: #a8c7d4;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.toon-shell .discovery-story [data-slot="button"] {
+  min-height: 44px;
+  height: auto;
+  padding: 10px 16px;
+  font-size: 13px;
+  background: linear-gradient(#edc260, #c99b3e);
+  color: #162638;
+  border: 1px solid #ffda85;
+  box-shadow: 0 3px #06111e;
+}
+.toon-shell .discovery-story [data-slot="button"]:disabled {
+  background: #20394a;
+  color: #94aebc;
+  border-color: #3c586a;
+}
+.valley-beacons {
+  margin-top: 26px;
+}
+.valley-beacons .sheet-kicker {
+  color: #87cdbf;
+}
+.valley-beacons p {
+  margin: 5px 0 18px;
+  color: #adc9d7;
+  font-size: 13px;
+}
+.valley-beacons ol {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.valley-beacons li {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 0 6px;
+  color: #7c9aaa;
+}
+.valley-beacons li:not(:last-child)::after {
+  position: absolute;
+  content: "";
+  height: 2px;
+  left: calc(50% + 17px);
+  right: calc(-50% + 17px);
+  top: 15px;
+  background: #2e4a5c;
+}
+.valley-beacons li svg {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border: 1px solid #38576b;
+  border-radius: 50%;
+  background: #122638;
+}
+.valley-beacons li span {
+  font-size: 11px;
+  line-height: 1.3;
+}
+.valley-beacons li small {
+  font-size: 9px;
+}
+.valley-beacons .is-lit {
+  color: #ebc46e;
+}
+.valley-beacons .is-lit svg {
+  color: #ffe29a;
+  background: #59452a;
+  border-color: #d7ab50;
+  box-shadow: 0 0 18px #e4ae3b22;
+}
+.toon-shell .discovery-promise {
+  margin: 22px 0 0;
+  color: #87acbc;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.departure-discoveries {
+  padding: 14px 16px;
+  border: 1px solid #456a74;
+  border-radius: 8px;
+  background: #102838;
+  margin-bottom: 18px;
+}
+.departure-discoveries .sheet-kicker {
+  color: #8ed1c3;
+  font-size: 10px;
+}
+.departure-discoveries p {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: #bed4de;
+  line-height: 1.6;
+  margin: 9px 0 0;
+}
+.departure-discoveries svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #eac16b;
+}
+.departure-discoveries strong {
+  color: #f6d591;
+}
+@media (max-width: 600px) {
+  .discovery-feature {
+    grid-template-columns: 1fr;
+  }
+  .discovery-illustration {
+    min-height: 190px;
+    padding-block: 10px 34px;
+  }
+  .discovery-character {
+    width: 150px;
+    height: 150px;
+  }
+  .discovery-halo {
+    width: 130px;
+    height: 130px;
+  }
+  .discovery-illustration .loadout-art {
+    width: 145px;
+    height: 145px;
+  }
+  .discovery-story {
+    padding: 8px 20px 24px;
+  }
+  .toon-shell .discovery-story h2 {
+    font-size: 25px;
+  }
+  .discovery-tabs small {
+    display: none;
+  }
+  .valley-beacons li span {
+    font-size: 9px;
+  }
+  .valley-beacons li small {
+    display: none;
+  }
+}

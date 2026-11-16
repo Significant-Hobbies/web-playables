@@ -53,6 +53,8 @@ import {
   type Tier,
 } from "./adventures";
 import type { AudioStatus, SoundCue } from "./audio";
+import { discoveriesOnRoad, journalDiscoveries } from "./discoveries";
+import { DiscoveryJournal } from "./discovery-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
 import { GameIcon } from "./game-icon";
@@ -582,7 +584,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
-  const [missionTab, setMissionTab] = useState<QuestScope>("story");
+  const [missionTab, setMissionTab] = useState<QuestScope | "discoveries">("story");
   const [campOpen, setCampOpen] = useState(false);
   const [adventureOpen, setAdventureOpen] = useState(false);
   const [adventureKind, setAdventureKind] = useState<ActivityKind>("daily");
@@ -1061,12 +1063,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setMissionTab("story");
+                      setMissionTab("discoveries");
                       go("Journey");
                     }}
                   >
                     <GameIcon kind="quests" />
-                    <span>Story missions</span>
+                    <span>Discoveries</span>
                   </Button>
                   <Button
                     variant="ghost"
@@ -1405,7 +1407,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         open={dashboard && section !== "Camp"}
         title={
           section === "Journey"
-            ? "Missions & rewards"
+            ? missionTab === "discoveries"
+              ? "The wayfarer’s journal"
+              : "Missions & rewards"
             : section === "Companions"
               ? "Your company"
               : section === "Equipment"
@@ -1425,59 +1429,67 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         )}
         {section !== "Camp" && saveWarning}
-        <div className="collection-banner">
-          <GameIcon
-            kind={
-              section === "Journey"
-                ? missionTab === "daily"
-                  ? "daily"
-                  : missionTab === "weekly"
-                    ? "weekly"
-                    : "quests"
-                : section === "Equipment"
-                  ? "equipment"
-                  : section === "Companions"
-                    ? "company"
-                    : section === "Skills"
-                      ? "skills"
-                      : "pet"
-            }
-          />
-          <div>
-            <span className="sheet-kicker">
-              {section === "Journey" ? "THE WAYFARER’S JOURNAL" : "PREPARE FOR THE ROAD"}
-            </span>
-            <h3>
-              {section === "Equipment"
-                ? "Every adventure starts at the forge."
-                : section === "Companions"
-                  ? "No one walks this road alone."
-                  : section === "Pets"
-                    ? "Small paws. Brave hearts."
-                    : section === "Skills"
-                      ? "Give your next battle an edge."
-                      : "A little further. A little stronger."}
-            </h3>
-            <p>
-              {section === "Equipment"
-                ? `${weapon.name} · ${armor.name}`
-                : section === "Companions"
-                  ? `${company.name}, your ${company.role.toLowerCase()}, is ready.`
-                  : section === "Pets"
-                    ? `${pet.name} is by your side.`
-                    : section === "Skills"
-                      ? `${skill.name} equipped · ${effectiveSkillCooldown(state).toFixed(1)}s cooldown`
-                      : `${missions[missionTab].filter((q) => q.claimed).length} / ${missions[missionTab].length} rewards collected · ${missions[missionTab].filter((q) => q.ready).length} ready to claim`}
-            </p>
-          </div>
-          {section !== "Journey" && (
-            <span className="collection-power">
-              <GameIcon kind="battle" />
-              <b>{power.total.toLocaleString()}</b>
-              <small>COMPANY POWER</small>
-            </span>
-          )}
-        </div>
+        {!(section === "Journey" && missionTab === "discoveries") && (
+          <>
+            <div className="collection-banner">
+              <GameIcon
+                kind={
+                  section === "Journey"
+                    ? missionTab === "daily"
+                      ? "daily"
+                      : missionTab === "weekly"
+                        ? "weekly"
+                        : "quests"
+                    : section === "Equipment"
+                      ? "equipment"
+                      : section === "Companions"
+                        ? "company"
+                        : section === "Skills"
+                          ? "skills"
+                          : "pet"
+                }
+              />
+              <div>
+                <span className="sheet-kicker">
+                  {section === "Journey" ? "THE WAYFARER’S JOURNAL" : "PREPARE FOR THE ROAD"}
+                </span>
+                <h3>
+                  {section === "Equipment"
+                    ? "Every adventure starts at the forge."
+                    : section === "Companions"
+                      ? "No one walks this road alone."
+                      : section === "Pets"
+                        ? "Small paws. Brave hearts."
+                        : section === "Skills"
+                          ? "Give your next battle an edge."
+                          : missionTab === "discoveries"
+                            ? "The road has more to give."
+                            : "A little further. A little stronger."}
+                </h3>
+                <p>
+                  {section === "Equipment"
+                    ? `${weapon.name} · ${armor.name}`
+                    : section === "Companions"
+                      ? `${company.name}, your ${company.role.toLowerCase()}, is ready.`
+                      : section === "Pets"
+                        ? `${pet.name} is by your side.`
+                        : section === "Skills"
+                          ? `${skill.name} equipped · ${effectiveSkillCooldown(state).toFixed(1)}s cooldown`
+                          : missionTab === "discoveries"
+                            ? `${journalDiscoveries(state).filter((d) => d.found).length} discoveries found · a valley worth restoring`
+                            : `${missions[missionTab].filter((q) => q.claimed).length} / ${missions[missionTab].length} rewards collected · ${missions[missionTab].filter((q) => q.ready).length} ready to claim`}
+                </p>
+              </div>
+              {section !== "Journey" && (
+                <span className="collection-power">
+                  <GameIcon kind="battle" />
+                  <b>{power.total.toLocaleString()}</b>
+                  <small>COMPANY POWER</small>
+                </span>
+              )}
+            </div>
+          </>
+        )}
         {dashboard && section === "Companions" && (
           <>
             <Training state={state} id="companion" actions={a} />
@@ -1602,13 +1614,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <nav className="mission-tabs" aria-label="Mission schedule">
               {(
                 [
+                  ["discoveries", "Discoveries"],
                   ["story", "Story missions"],
                   ["daily", "Daily quests"],
                   ["weekly", "Weekly quests"],
                 ] as const
               )
                 .filter(
-                  ([scope]) => scope === "story" || (scope === "daily" ? dailyReady : weeklyReady),
+                  ([scope]) =>
+                    scope === "discoveries" ||
+                    scope === "story" ||
+                    (scope === "daily" ? dailyReady : weeklyReady),
                 )
                 .map(([scope, label]) => (
                   <Button
@@ -1621,141 +1637,161 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     }}
                   >
                     {label}
-                    <span className="mission-tab-count">
-                      {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
-                    </span>
+                    {scope !== "discoveries" && (
+                      <span className="mission-tab-count">
+                        {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
+                      </span>
+                    )}
                   </Button>
                 ))}
             </nav>
-            <div className="mission-schedule">
-              <p>
-                {missionTab === "story"
-                  ? "Five chapters. Recover the light, then bring your company home."
-                  : missionTab === "daily"
-                    ? "Three small goals for today's journey. Progress counts across your runs."
-                    : "Longer goals for your company. Replayed chapters count toward victories."}
+            {missionTab === "discoveries" ? (
+              <DiscoveryJournal
+                state={state}
+                onPlan={(targetChapter) => {
+                  setChapter(targetChapter);
+                  setSection("Camp");
+                  setIntroChapter(targetChapter);
+                }}
+                onVisit={(id) =>
+                  go(id === "mira" ? "Companions" : id === "cinder" ? "Pets" : "Skills")
+                }
+              />
+            ) : (
+              <>
+                <div className="mission-schedule">
+                  <p>
+                    {missionTab === "story"
+                      ? "Five chapters. Recover the light, then bring your company home."
+                      : missionTab === "daily"
+                        ? "Three small goals for today's journey. Progress counts across your runs."
+                        : "Longer goals for your company. Replayed chapters count toward victories."}
+                  </p>
+                  {missionTab !== "story" && (
+                    <span>
+                      Resets{" "}
+                      {new Intl.DateTimeFormat("en-GB", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: "UTC",
+                      }).format(new Date(resetAt(state.quests, missionTab)))}{" "}
+                      UTC
+                    </span>
+                  )}
+                </div>
+                <div className="mission-list">
+                  {missions[missionTab].map((quest: QuestCard, i) => {
+                    const chapter = missionTab === "story" ? i + 1 : null;
+                    const locked = chapter !== null && chapter > state.meta.unlockedChapter;
+                    const progress =
+                      chapter !== null
+                        ? quest.progress > 0
+                          ? ENCOUNTERS_PER_CHAPTER
+                          : state.run.chapter === chapter
+                            ? state.run.cleared
+                            : 0
+                        : quest.progress;
+                    const target = chapter !== null ? ENCOUNTERS_PER_CHAPTER : quest.target;
+                    return (
+                      <Card
+                        key={quest.id}
+                        data-quest={quest.id}
+                        className={`mission-row ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
+                      >
+                        <div className="mission-marker">
+                          {quest.claimed ? (
+                            <Check />
+                          ) : locked ? (
+                            <LockKeyhole />
+                          ) : (
+                            (chapter ??
+                            (quest.id.includes("foes") ? (
+                              <Sword />
+                            ) : quest.id.includes("skills") ? (
+                              <Zap />
+                            ) : (
+                              <Flame />
+                            )))
+                          )}
+                        </div>
+                        <div className="mission-copy">
+                          <div className="mission-title">
+                            <h2>{chapter !== null ? CHAPTERS[i]!.name : quest.title}</h2>
+                            <Badge variant="outline">
+                              {quest.claimed
+                                ? "Claimed"
+                                : quest.ready
+                                  ? "Reward ready"
+                                  : locked
+                                    ? "Locked"
+                                    : chapter !== null
+                                      ? `Chapter ${chapter}`
+                                      : "In progress"}
+                            </Badge>
+                          </div>
+                          <p>{chapter !== null ? journeyStory(chapter).goal : quest.description}</p>
+                          <div className="mission-progress">
+                            <NativeProgress
+                              aria-label={`${chapter !== null ? CHAPTERS[i]!.name : quest.title} progress`}
+                              max={target}
+                              value={progress}
+                            />
+                            <small>
+                              {progress}/{target} {chapter !== null ? "waves" : ""}
+                            </small>
+                          </div>
+                        </div>
+                        <div className="mission-reward">
+                          <span>
+                            <Coins /> {quest.reward} gold
+                          </span>
+                          {quest.ready ? (
+                            <Button
+                              data-claim-quest={quest.id}
+                              disabled={!v.loaded || v.saveWarning}
+                              onClick={() => a.claim(missionTab, quest.id, quest.period)}
+                            >
+                              Claim reward
+                            </Button>
+                          ) : chapter !== null && !locked ? (
+                            <Button
+                              variant="outline"
+                              disabled={!inCamp}
+                              onClick={() => {
+                                setChapter(chapter);
+                                go("Camp");
+                              }}
+                            >
+                              {inCamp
+                                ? quest.claimed
+                                  ? "Revisit road"
+                                  : "Prepare journey"
+                                : "Journey underway"}
+                            </Button>
+                          ) : (
+                            <Button variant="outline" disabled>
+                              {quest.claimed
+                                ? "Reward claimed"
+                                : locked
+                                  ? `Reach chapter ${chapter}`
+                                  : "Keep adventuring"}
+                            </Button>
+                          )}
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {missionTab !== "discoveries" && (
+              <p className="mission-feedback" role="status">
+                {v.note}
               </p>
-              {missionTab !== "story" && (
-                <span>
-                  Resets{" "}
-                  {new Intl.DateTimeFormat("en-GB", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    timeZone: "UTC",
-                  }).format(new Date(resetAt(state.quests, missionTab)))}{" "}
-                  UTC
-                </span>
-              )}
-            </div>
-            <div className="mission-list">
-              {missions[missionTab].map((quest: QuestCard, i) => {
-                const chapter = missionTab === "story" ? i + 1 : null;
-                const locked = chapter !== null && chapter > state.meta.unlockedChapter;
-                const progress =
-                  chapter !== null
-                    ? quest.progress > 0
-                      ? ENCOUNTERS_PER_CHAPTER
-                      : state.run.chapter === chapter
-                        ? state.run.cleared
-                        : 0
-                    : quest.progress;
-                const target = chapter !== null ? ENCOUNTERS_PER_CHAPTER : quest.target;
-                return (
-                  <Card
-                    key={quest.id}
-                    data-quest={quest.id}
-                    className={`mission-row ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
-                  >
-                    <div className="mission-marker">
-                      {quest.claimed ? (
-                        <Check />
-                      ) : locked ? (
-                        <LockKeyhole />
-                      ) : (
-                        (chapter ??
-                        (quest.id.includes("foes") ? (
-                          <Sword />
-                        ) : quest.id.includes("skills") ? (
-                          <Zap />
-                        ) : (
-                          <Flame />
-                        )))
-                      )}
-                    </div>
-                    <div className="mission-copy">
-                      <div className="mission-title">
-                        <h2>{chapter !== null ? CHAPTERS[i]!.name : quest.title}</h2>
-                        <Badge variant="outline">
-                          {quest.claimed
-                            ? "Claimed"
-                            : quest.ready
-                              ? "Reward ready"
-                              : locked
-                                ? "Locked"
-                                : chapter !== null
-                                  ? `Chapter ${chapter}`
-                                  : "In progress"}
-                        </Badge>
-                      </div>
-                      <p>{chapter !== null ? journeyStory(chapter).goal : quest.description}</p>
-                      <div className="mission-progress">
-                        <NativeProgress
-                          aria-label={`${chapter !== null ? CHAPTERS[i]!.name : quest.title} progress`}
-                          max={target}
-                          value={progress}
-                        />
-                        <small>
-                          {progress}/{target} {chapter !== null ? "waves" : ""}
-                        </small>
-                      </div>
-                    </div>
-                    <div className="mission-reward">
-                      <span>
-                        <Coins /> {quest.reward} gold
-                      </span>
-                      {quest.ready ? (
-                        <Button
-                          data-claim-quest={quest.id}
-                          disabled={!v.loaded || v.saveWarning}
-                          onClick={() => a.claim(missionTab, quest.id, quest.period)}
-                        >
-                          Claim reward
-                        </Button>
-                      ) : chapter !== null && !locked ? (
-                        <Button
-                          variant="outline"
-                          disabled={!inCamp}
-                          onClick={() => {
-                            setChapter(chapter);
-                            go("Camp");
-                          }}
-                        >
-                          {inCamp
-                            ? quest.claimed
-                              ? "Revisit road"
-                              : "Prepare journey"
-                            : "Journey underway"}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" disabled>
-                          {quest.claimed
-                            ? "Reward claimed"
-                            : locked
-                              ? `Reach chapter ${chapter}`
-                              : "Keep adventuring"}
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-            <p className="mission-feedback" role="status">
-              {v.note}
-            </p>
+            )}
           </section>
         )}
 
@@ -1812,6 +1848,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <i />
             <span>1 guardian</span>
           </div>
+          {discoveriesOnRoad(state, introChapter ?? chapter).length > 0 && (
+            <div className="departure-discoveries">
+              <span className="sheet-kicker">OPTIONAL TRAILS · PERMANENT DISCOVERIES</span>
+              {discoveriesOnRoad(state, introChapter ?? chapter).map((discovery) => (
+                <p key={discovery.id}>
+                  <Flame size={15} />
+                  <span>
+                    <strong>{discovery.character}</strong> · {discovery.route}
+                  </span>
+                </p>
+              ))}
+            </div>
+          )}
           <small>
             Your journey level and oaths restart. Company levels, discoveries and gear stay with
             you.
