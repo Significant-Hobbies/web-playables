@@ -18,6 +18,7 @@ import {
   migrateV1State,
   migrateV2State,
   PERKS,
+  rerollPerks,
   retreatToCamp,
   returnToCamp,
   skipPerk,
@@ -27,6 +28,7 @@ import {
   validState,
   validV2State,
 } from "./model";
+import { prepareProgression, train } from "./progression";
 import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
 import { WorldRenderer } from "./renderer";
 import { mountUi, type UiActions, type UiSnapshot } from "./ui";
@@ -34,6 +36,7 @@ import "./style.css";
 import "./toon.css";
 import "./collection.css";
 import "./experience.css";
+import "./progression.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -295,6 +298,20 @@ const actions: UiActions = {
       changed(true);
     }
   },
+  reroll() {
+    if (loaded && !renderer?.settling && rerollPerks(state)) {
+      audio.play("page");
+      note = "A different path. Choose a new oath.";
+      changed();
+    }
+  },
+  train(id) {
+    if (loaded && train(state, id)) {
+      audio.play("forge");
+      note = "Training complete. Your company grows stronger.";
+      changed();
+    }
+  },
   skip() {
     if (loaded && !renderer?.settling && skipPerk(state)) {
       prepareExperience(state).lessons.oath = true;
@@ -467,6 +484,7 @@ try {
   state = initialState();
 }
 prepareExperience(state);
+prepareProgression(state);
 inspecting = !experienceOf(state).introSeen;
 loaded = true;
 advanceQuests(state.quests, Date.now());

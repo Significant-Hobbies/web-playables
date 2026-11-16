@@ -1,0 +1,567 @@
+:root {
+  --background: #0c1728;
+  --foreground: #e5f1fc;
+  --card: #13243a;
+  --card-foreground: #e5f1fc;
+  --popover: #13243a;
+  --popover-foreground: #e5f1fc;
+  --primary: #f1bd53;
+  --primary-foreground: #172437;
+  --secondary: #214856;
+  --secondary-foreground: #d8fff5;
+  --accent: #214856;
+  --accent-foreground: #e4fff7;
+  --muted: #1a3048;
+  --muted-foreground: #a4bed1;
+  --border: #3b6078;
+  --input: #42657e;
+  --ring: #70e4d0;
+}
+.toon-shell .game-topbar {
+  background: #101e32;
+  color: #e5f1fc;
+}
+.toon-shell .game-wordmark {
+  color: #f1bd53;
+}
+.toon-shell .game-dialog,
+.toon-shell .collection-dialog .dialog-heading {
+  background: #102239;
+  color: #e5f1fc;
+}
+.toon-shell .game-dialog {
+  border-color: #426b84;
+  box-shadow:
+    inset 0 0 0 4px #1b3850,
+    0 8px 0 #071321,
+    0 24px 80px #040b14bb;
+}
+.toon-shell .game-dialog::backdrop {
+  background: #040d1ac4;
+}
+.toon-shell .dialog-heading {
+  border-color: #31536b;
+}
+.toon-shell .dialog-heading h2,
+.toon-shell .game-dialog h3,
+.toon-shell .game-dialog [data-slot="card-title"] {
+  color: #edf6ff;
+}
+.toon-shell .game-dialog p,
+.toon-shell .game-dialog .section-note,
+.toon-shell .game-dialog .power-explainer {
+  color: #b4ccdc;
+}
+.toon-shell .game-dialog [data-slot="card"],
+.toon-shell .collection-dialog .selection-card,
+.toon-shell .collection-skills .oath-card {
+  background: #182f47;
+  border-color: #36576d;
+  box-shadow: 0 3px #081729;
+}
+.toon-shell .game-dialog [data-slot="button"] {
+  background: #244b5a;
+  color: #d9fff4;
+  border-color: #4d8892;
+  box-shadow: 0 3px #081929;
+}
+.toon-shell .game-dialog .dialog-heading > button {
+  background: #873f4f;
+  color: #fff;
+  border-color: #d77788;
+}
+.toon-shell .game-dialog [data-slot="badge"],
+.toon-shell .selection-card .selection-top [data-slot="badge"] {
+  background: #213b54;
+  color: #bed6e5;
+  border-color: #45677c;
+}
+.toon-shell .collection-dialog {
+  --collection-accent: #62cdb7;
+  --collection-soft: #1b4350;
+}
+.toon-shell .collection-equipment {
+  --collection-accent: #e5b858;
+  --collection-soft: #384740;
+}
+.toon-shell .collection-skills {
+  --collection-accent: #b292f4;
+  --collection-soft: #373759;
+}
+.toon-shell .collection-pets {
+  --collection-accent: #5fcec7;
+  --collection-soft: #1a454a;
+}
+.toon-shell .collection-journey {
+  --collection-accent: #75baf3;
+  --collection-soft: #203e5b;
+}
+.toon-shell .selection-card.selected {
+  border-color: #60d1ba;
+}
+.toon-shell .collection-dialog .selection-card [data-slot="button"],
+.toon-shell .game-dialog .equipment-tabs > button[aria-pressed="true"],
+.toon-shell .mission-tabs > button[aria-pressed="true"] {
+  background: #f1bd53;
+  color: #182333;
+  border-color: #e6a93e;
+}
+.toon-shell .collection-dialog .selection-card.selected [data-slot="button"] {
+  background: #27594f;
+  color: #a2f1d6;
+}
+.toon-shell .collection-dialog .selection-card.is-locked [data-slot="button"] {
+  background: #243349;
+  color: #a1b6c8;
+}
+.toon-shell .stage-ring,
+.toon-shell .forge-emblem {
+  background: #244458;
+  border-color: #416479;
+  box-shadow: none;
+}
+.toon-shell .item-facts > span,
+.toon-shell .stats-grid > div,
+.toon-shell .mission-reward > span,
+.toon-shell .power-row > .loadout-art,
+.toon-shell .power-row > svg {
+  background: #203b54;
+  color: #bcd7e9;
+}
+.toon-shell .sheet-kicker,
+.toon-shell .item-role,
+.toon-shell .item-power,
+.toon-shell .stats-grid dt,
+.toon-shell .power-breakdown > div,
+.toon-shell .power-summary h3 small,
+.toon-shell .audio-state {
+  color: #9ebed0;
+}
+.toon-shell .item-power b,
+.toon-shell .collection-power b,
+.toon-shell .power-summary h3,
+.toon-shell .stats-grid dd,
+.toon-shell .power-breakdown b {
+  color: #edf6ff;
+}
+.toon-shell .game-dialog .equipment-tabs > button,
+.toon-shell .mission-tabs > button {
+  background: #1c3851;
+  color: #c6dce9;
+}
+.toon-shell .mission-row {
+  background: #172e46;
+  border-color: #31526a;
+}
+.toon-shell .mission-row.is-locked {
+  background: #14273b;
+}
+.toon-shell .mission-row.is-locked .mission-marker {
+  background: #263c50;
+  color: #9db3c5;
+}
+.toon-shell .mission-row.is-ready .mission-marker {
+  background: #22584f;
+  color: #9ff0d7;
+}
+.toon-shell .rarity-common {
+  --rarity: #8cba9c;
+  --rarity-soft: #1c3b3b;
+}
+.toon-shell .rarity-rare {
+  --rarity: #58b5ff;
+  --rarity-soft: #173853;
+}
+.toon-shell .rarity-epic {
+  --rarity: #bf8bfa;
+  --rarity-soft: #352c52;
+}
+.toon-shell .rarity-legendary {
+  --rarity: #f1bd53;
+  --rarity-soft: #433b28;
+}
+.toon-shell .game-dialog .choice-card {
+  background: var(--rarity-soft);
+  border-color: var(--rarity);
+}
+.toon-shell .choice-card [data-slot="card-content"] > button {
+  background: var(--rarity);
+  color: #101e32;
+  text-shadow: none;
+  border-color: var(--rarity);
+}
+.toon-shell .choice-card [data-slot="card-title"] {
+  color: #edf6ff;
+}
+.toon-shell .game-dialog .rarity {
+  color: #102239;
+  text-shadow: none;
+}
+.toon-shell .tutorial-card,
+.toon-shell .oath-guidance {
+  background: #122d41;
+  border-color: #5ab2a5;
+  box-shadow: 0 4px #081929;
+}
+.toon-shell .tutorial-card h3 {
+  color: #e8fff7;
+}
+.toon-shell .tutorial-card p {
+  color: #b4d4dc;
+}
+.toon-shell .tutorial-card button {
+  background: #24554f;
+  color: #cbfff0;
+  border-color: #62baa7;
+  box-shadow: 0 2px #092c33;
+}
+.toon-shell .audio-setting label svg {
+  color: #71d7c6;
+}
+.toon-shell .audio-setting input[type="range"] {
+  accent-color: #62cdb7;
+}
+.currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #172e44;
+  padding: 8px 11px;
+  border: 2px solid #31546c;
+  border-radius: 9px;
+  color: #a5e5dc;
+  font-size: 17px;
+}
+.currency svg {
+  width: 21px;
+  height: 21px;
+}
+.currency.embers {
+  color: #e8b878;
+}
+.company-progress {
+  max-width: 390px;
+  margin: 5px auto 9px;
+  color: #e2f6ff;
+  padding: 8px 12px;
+  background: #11263bda;
+  border: 2px solid #376274;
+  border-radius: 9px;
+  font-size: 11px;
+}
+.company-progress > span {
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+.company-progress progress {
+  width: 100%;
+  height: 6px;
+  margin: 6px 0 3px;
+  accent-color: #67d9be;
+}
+.company-progress small {
+  display: block;
+  color: #b1d6db;
+  font-size: 11px;
+}
+.road-progression {
+  position: absolute;
+  top: 110px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  font-size: 10px;
+  color: #d7fff1;
+  text-shadow: 0 2px 3px #10243b;
+  pointer-events: none;
+}
+.road-progression small {
+  color: #fff;
+}
+.toon-shell .powers-belt {
+  position: absolute;
+  bottom: 106px;
+  left: 23px;
+  right: 23px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 7px 9px;
+  scrollbar-width: thin;
+  border: 2px solid #3f697a;
+  border-radius: 9px;
+  background: #0c1e31eb;
+  color: #d3e8f7;
+  z-index: 2;
+}
+.toon-shell.is-dashboard .main-content > .powers-belt {
+  bottom: 8px;
+}
+.powers-belt-label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #83b7ca;
+  font-weight: 900;
+}
+.toon-shell .powers-belt .power-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid var(--rarity, #69cdb6);
+  color: var(--rarity, #8ce9d4);
+  background: var(--rarity-soft, #1a3b46);
+  box-shadow: none;
+  border-radius: 6px;
+  font-size: 10px;
+}
+.power-chip svg {
+  width: 13px;
+  height: 13px;
+}
+.power-chip b {
+  border-left: 1px solid currentColor;
+  padding-left: 5px;
+}
+.powers-empty {
+  color: #a3bbce;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.power-tooltip[popover] {
+  pointer-events: none;
+  position: fixed;
+  inset: auto;
+  width: 280px;
+  max-width: calc(100vw - 24px);
+  min-height: 110px;
+  margin: 0;
+  padding: 13px;
+  border: 2px solid #64bcae;
+  border-radius: 10px;
+  background: #0c2034;
+  color: #d8ecfc;
+  box-shadow: 0 9px 30px #020b16aa;
+  font-size: 12px;
+  gap: 7px;
+  z-index: 100;
+}
+.power-tooltip p {
+  color: #b4d3e4;
+  line-height: 1.4;
+}
+.power-tooltip small {
+  color: #83d9c6;
+}
+.toon-shell .game-dialog .powers-belt {
+  position: relative;
+  inset: auto;
+  margin: 12px 0;
+  background: #0a1b2b;
+}
+.training-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  border: 2px solid #39726f;
+  background: linear-gradient(115deg, #163b46, #182c44);
+  border-radius: 11px;
+}
+.toon-shell .training-panel h3 {
+  font-size: 25px;
+  margin: 4px 0;
+  color: #89ead1;
+}
+.training-panel small {
+  color: #9ec6d7;
+  font-size: 11px;
+}
+.training-panel button {
+  flex: none;
+}
+.skill-locked {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b4ccdc;
+  padding: 10px;
+  font-size: 10px;
+}
+.skill-locked svg {
+  width: 16px;
+}
+.unlock-toast {
+  position: absolute;
+  top: 125px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 380px;
+  padding: 13px 18px;
+  color: #ddfff4;
+  background: #123a42ef;
+  border: 2px solid #77d5bc;
+  border-radius: 12px;
+  z-index: 3;
+  box-shadow: 0 4px #102330;
+}
+.unlock-toast svg {
+  color: #f1bd53;
+  flex: none;
+}
+.unlock-toast small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  color: #a1cec9;
+}
+@media (max-width: 1150px) {
+  .header-actions {
+    gap: 6px;
+  }
+  .game-topbar {
+    gap: 10px;
+    padding-inline: 14px;
+  }
+  .game-wordmark {
+    display: none;
+  }
+}
+@media (max-height: 760px) and (min-width: 800px) {
+  .company-progress {
+    padding: 4px 9px;
+    margin-block: 3px;
+  }
+  .chapter-center {
+    padding-top: 0;
+  }
+}
+@media (max-width: 760px) {
+  .currency {
+    font-size: 12px;
+    padding: 4px;
+    gap: 3px;
+  }
+  .currency svg {
+    width: 16px;
+    height: 16px;
+  }
+  .company-progress {
+    font-size: 9px;
+    padding: 5px;
+    margin: 3px 0;
+  }
+  .company-progress small {
+    font-size: 9px;
+  }
+  .toon-shell .powers-belt {
+    left: 8px;
+    right: 8px;
+    bottom: 145px;
+  }
+  .toon-shell.is-dashboard .main-content > .powers-belt {
+    bottom: 4px;
+  }
+  .road-progression {
+    top: 87px;
+    right: 12px;
+    max-width: 170px;
+  }
+  .training-panel {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .unlock-toast {
+    top: 145px;
+    width: 80%;
+  }
+  .hero-profile small {
+    font-size: 9px;
+  }
+}
+
+.toon-shell > .powers-belt {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  margin: 0 12px 6px;
+  padding-block: 5px;
+  min-height: 36px;
+  max-height: 44px;
+}
+.toon-shell.is-dashboard .main-content > .powers-belt {
+  position: relative;
+  inset: auto;
+}
+.toon-shell .chapter-center {
+  bottom: 8px;
+}
+@media (max-width: 760px) {
+  .toon-shell > .powers-belt {
+    margin: 0 6px 5px;
+    min-height: 34px;
+  }
+}
+
+.power-tooltip[popover]:not(:popover-open) {
+  display: none;
+}
+
+.toon-shell .game-dialog #skip-perk {
+  background: #204b57;
+  color: #d5fff2;
+  border-color: #55988f;
+  text-shadow: none;
+}
+.toon-shell .game-dialog .rarity {
+  background: var(--rarity);
+  border-color: var(--rarity);
+  color: #102239;
+  text-shadow: none;
+}
+.toon-shell progress::-webkit-progress-bar {
+  background: #243e54;
+}
+.toon-shell progress::-webkit-progress-value {
+  background: #62cdb7;
+}
+
+.toon-shell .battle-actions [data-slot="button"],
+.toon-shell .battle-status [data-slot="button"] {
+  background: #1e4054;
+  color: #dcfff5;
+  border-color: #5a9695;
+  box-shadow: 0 3px #0a2234;
+}
+.toon-shell .battle-status .cast-skill {
+  background: #237278;
+  color: #e5fff7;
+  border-color: #70d4c1;
+}
+.toon-shell .header-actions > [data-slot="button"] {
+  background: #203b50;
+  color: #d3eee9;
+  border-color: #496a80;
+}
+.toon-shell .header-actions [data-playables-account-slot] button {
+  background: #18374b;
+  color: #d4f5ed;
+  border-color: #4a7c89;
+}
+.toon-shell .game-dialog .choice-tools > button {
+  background: #244b5a;
+  color: #d9fff4;
+  border-color: #4d8892;
+}

@@ -1,7 +1,9 @@
 export type ArtDirection = "ember" | "moon" | "tabletop";
 
+import { attackMotion } from "./attack-motion";
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
 import { rank } from "./model";
+import { systemUnlocked } from "./progression";
 import { spriteBottom, visibleSpriteHeight } from "./sprite-frames";
 
 interface ActorMotion {
@@ -24,6 +26,9 @@ export interface Scene {
   reducedMotion: boolean;
   direction?: ArtDirection;
   companion: CompanionId;
+  companyReady?: boolean;
+  petsReady?: boolean;
+  weapon?: string;
   pet: PetId;
   shield: number;
   enemies: EnemyFighter[];
@@ -143,6 +148,13 @@ export class WorldRenderer {
         });
       } else if (event.type === "hit") {
         this.motion(event.target).hurt = 0;
+        if (event.actor === "hero" || event.actor === "pet")
+          this.effects.push({
+            actor: event.actor,
+            target: event.target,
+            age: 0,
+            kind: event.actor === "pet" ? "pet-impact" : `weapon-${state.meta.loadout.weapon}`,
+          });
         this.impact(event.target, event.damage, event.critical, false, event.lightning);
         if (
           event.lightning ||
@@ -191,6 +203,9 @@ export class WorldRenderer {
       thorns: rank(state, "thorns"),
       reducedMotion,
       companion: state.meta.loadout.companion,
+      companyReady: systemUnlocked(state, "company"),
+      petsReady: systemUnlocked(state, "pets"),
+      weapon: state.meta.loadout.weapon,
       pet: state.meta.loadout.pet,
       shield: state.run.shield,
       enemies,
@@ -223,11 +238,12 @@ export class WorldRenderer {
     const m = this.motion(id);
     if (m.attack < 0 || m.projectile || m.death > 0) return p;
     const target = this.position(m.target);
-    const t =
-      m.attack <= m.contact ? m.attack / m.contact : 1 - Math.min(1, (m.attack - m.contact) / 0.3);
-    const reach = id === "pet" ? 35 : 80;
-    p.x += (target.x - p.x - Math.sign(target.x - p.x) * reach) * Math.max(0, t);
-    if (id === "pet" && scene.pet === "owl") p.y -= Math.sin(Math.max(0, t) * Math.PI) * 90;
+    const pose = attackMotion(m.attack, m.contact, m.projectile, id === "pet");
+    const reach = id === "pet" ? 32 : 74;
+    p.x += (target.x - p.x - Math.sign(target.x - p.x) * reach) * pose.reach;
+    p.y -= pose.lift;
+    if (id === "pet" && scene.pet === "owl")
+      p.y -= Math.sin(Math.max(0, pose.reach) * Math.PI) * 65;
     return p;
   }
 
@@ -352,10 +368,24 @@ export class WorldRenderer {
       const m = this.motion(id);
       const foe = s.enemies.find((e) => e.id === id);
       if (foe && foe.hp <= 0 && m.death === 0) continue;
-      if (m.death >= 1) continue;
+      if (
+        m.death >= 1 ||
+        (id === "companion" && s.companyReady === false) ||
+        (id === "pet" && s.petsReady === false)
+      )
+        continue;
       const { x, y, scale } = this.posedPosition(id, s);
-      const attack = m.attack < 0 ? 0 : Math.min(0.99, m.attack / (m.contact * 2));
+      const pose = attackMotion(m.attack, m.contact, m.projectile, id === "pet");
+      const attack = m.attack < 0 ? 0 : pose.frame / 4 + 0.01;
       const hurt = m.hurt < 0 ? 0 : m.hurt / 0.24;
+      this.ctx.save();
+      if (!s.reducedMotion && m.attack >= 0) {
+        const facing = this.position(m.target).x >= x ? 1 : -1;
+        this.ctx.translate(x, y);
+        this.ctx.rotate(pose.tilt * facing);
+        this.ctx.scale(pose.sx, pose.sy);
+        this.ctx.translate(-x, -y);
+      }
       if (id === "hero" || (foe && foe.kind !== "archer")) {
         this.character(
           x,
@@ -380,15 +410,7 @@ export class WorldRenderer {
           : id === "companion"
             ? { mira: 0, bram: 1, sable: 2 }[s.companion]
             : 3;
-        const column = walking
-          ? Math.floor(s.time * 7) % 4
-          : m.attack < 0
-            ? 0
-            : m.attack < (m.projectile ? Math.min(0.2, m.contact * 0.35) : m.contact * 0.75)
-              ? 1
-              : m.attack < m.contact + 0.08
-                ? 2
-                : 3;
+        const column = walking ? Math.floor(s.time * 7) % 4 : pose.frame;
         this.atlas(
           image,
           4,
@@ -403,6 +425,7 @@ export class WorldRenderer {
           s.reducedMotion,
         );
       }
+      this.ctx.restore();
       if (foe && foe.hp > 0) {
         const visibleHeight =
           foe.kind === "archer"
@@ -509,7 +532,49 @@ export class WorldRenderer {
         q = this.posedPosition(effect.target, s);
       c.save();
       c.globalAlpha = 1 - effect.age / 0.6;
-      if (effect.kind === "lightning") {
+      if (effect.kind.startsWith("weapon-") || effect.kind === "pet-impact") {
+        if (s.reducedMotion || effect.age > 0.22) {
+          c.restore();
+          continue;
+        }
+        const t = effect.age / 0.22;
+        c.globalAlpha = (1 - t) ** 2;
+        c.strokeStyle = effect.kind === "pet-impact" ? "#ff9d55" : "#fff2a9";
+        c.lineWidth = (effect.kind === "weapon-greatsword" ? 11 : 6) * (1 - t * 0.6);
+        c.lineCap = "round";
+        if (effect.kind === "weapon-spear") {
+          this.line(
+            q.x - 78,
+            q.y - 75 * q.scale,
+            q.x + 25,
+            q.y - 105 * q.scale,
+            "#c1f4f5",
+            6 * (1 - t),
+          );
+        } else if (effect.kind === "pet-impact") {
+          for (let i = 0; i < 3; i++)
+            this.line(
+              q.x - 15 + i * 10,
+              q.y - 105 * q.scale,
+              q.x + 1 + i * 10,
+              q.y - 60 * q.scale,
+              "#ffbe70",
+              3 * (1 - t),
+            );
+        } else {
+          c.beginPath();
+          c.ellipse(
+            q.x,
+            q.y - 95 * q.scale,
+            (44 + t * 25) * q.scale,
+            (60 + t * 18) * q.scale,
+            -0.4,
+            -0.9,
+            1.3,
+          );
+          c.stroke();
+        }
+      } else if (effect.kind === "lightning") {
         c.strokeStyle = "#d8bcff";
         c.lineWidth = 4;
         c.beginPath();

@@ -1,4 +1,6 @@
-import { type GameState, heroStats, rank, SKILLS } from "./model";
+import { effectiveSkillCooldown, type GameState, heroStats, rank, SKILLS } from "./model";
+
+import { systemUnlocked } from "./progression";
 
 /** A comparative build rating, not damage or a promise of combat outcome. */
 export function companyPower(state: GameState) {
@@ -24,12 +26,14 @@ export function companyPower(state: GameState) {
       s.petDamage / s.petInterval) *
       8,
   );
-  const technique = Math.round(
-    ((skill.id === "aegis"
-      ? s.hp * 0.3 + 24
-      : s.damage * (skill.id === "volley" ? 1.75 : 1.35) * 2) /
-      skill.cooldown) *
-      8,
-  );
+  const technique = !systemUnlocked(state, "skills")
+    ? 0
+    : Math.round(
+        ((skill.id === "aegis"
+          ? s.hp * 0.3 + 24
+          : s.damage * (skill.id === "volley" ? 1.75 : 1.35) * 2) /
+          effectiveSkillCooldown(state)) *
+          8,
+      );
   return { offense, defense, company, technique, total: offense + defense + company + technique };
 }

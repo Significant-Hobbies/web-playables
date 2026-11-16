@@ -1,4 +1,13 @@
 import { type Experience, initialExperience, validExperience } from "./experience.ts";
+import {
+  awardRenown,
+  awardWave,
+  initialProgression,
+  type Progression,
+  progressionOf,
+  systemUnlocked,
+  validProgression,
+} from "./progression.ts";
 import { initialQuests, type QuestLedger, validQuestLedger } from "./quests.ts";
 
 export type PerkId =
@@ -378,13 +387,14 @@ export type Phase =
   | { kind: "camp" }
   | { kind: "travel"; remaining: number }
   | BattlePhase
-  | { kind: "choice"; options: PerkId[] }
+  | { kind: "choice"; options: PerkId[]; rerolls?: number }
   | { kind: "defeat"; enemy: string }
   | { kind: "victory"; reward: number };
 export interface GameState {
   quests: QuestLedger;
   meta: {
     experience?: Experience;
+    progression?: Progression;
     gold: number;
     earnedGold: number;
     unlockedChapter: number;
@@ -455,6 +465,7 @@ export function initialState(seed = 927113): GameState {
     quests: initialQuests(),
     meta: {
       experience: initialExperience(),
+      progression: initialProgression(),
       gold: 0,
       earnedGold: 0,
       unlockedChapter: 1,
@@ -487,12 +498,15 @@ export function heroStats(state: GameState): HeroStats {
   const l = state.meta.loadout;
   const companion = COMPANIONS.find((c) => c.id === l.companion)!;
   const pet = PETS.find((p) => p.id === l.pet)!;
+  const companyReady = systemUnlocked(state, "company");
+  const petReady = systemUnlocked(state, "pets");
+  const training = progressionOf(state).training;
   return {
     hp:
       180 +
       state.meta.upgrades.mail * 25 +
       rank(state, "heart") * 35 +
-      (l.pet === "hound" ? 20 : 0) +
+      (petReady && l.pet === "hound" ? 20 : 0) +
       (l.armor === "plate" ? 20 : 0),
     damage:
       (23 + state.meta.upgrades.blade * 4) *
@@ -505,14 +519,16 @@ export function heroStats(state: GameState): HeroStats {
     armor:
       state.meta.upgrades.mail +
       rank(state, "bastion") * 3 +
-      (l.companion === "bram" ? 2 : 0) +
+      (companyReady && l.companion === "bram" ? 2 : 0) +
       (l.armor === "plate" ? 3 : 0),
     crit: Math.min(0.5, 0.12 + state.meta.upgrades.charm * 0.025),
     lifesteal: rank(state, "blood") * 0.1,
     rangedResistance: Math.min(0.8, rank(state, "ward") * 0.35 + (l.armor === "cloak" ? 0.2 : 0)),
-    companionDamage: companion.damage + state.meta.upgrades.blade * 1.5,
+    companionDamage: companyReady
+      ? (companion.damage + state.meta.upgrades.blade * 1.5) * (1 + training.companion * 0.15)
+      : 0,
     companionInterval: companion.interval,
-    petDamage: pet.damage + state.meta.upgrades.charm,
+    petDamage: petReady ? (pet.damage + state.meta.upgrades.charm) * (1 + training.pet * 0.18) : 0,
     petInterval: pet.interval,
     cleave: rank(state, "cleave") * 0.45 + (l.weapon === "greatsword" ? 0.25 : 0),
     pierce: rank(state, "pierce") * 0.4 + (l.weapon === "spear" ? 0.2 : 0),
@@ -520,6 +536,12 @@ export function heroStats(state: GameState): HeroStats {
 }
 export function equip<K extends keyof Loadout>(state: GameState, slot: K, id: Loadout[K]): boolean {
   if (state.phase.kind !== "camp") return false;
+  if (
+    (slot === "companion" && !systemUnlocked(state, "company")) ||
+    (slot === "pet" && !systemUnlocked(state, "pets")) ||
+    (slot === "skill" && !systemUnlocked(state, "skills"))
+  )
+    return false;
   const registry: Record<keyof Loadout, readonly Unlock[]> = {
     companion: COMPANIONS,
     pet: PETS,
@@ -741,9 +763,23 @@ export function skipPerk(state: GameState) {
   state.phase = { kind: "travel", remaining: 0.9 };
   return true;
 }
-function offeredPerks(state: GameState): PerkId[] {
+export function rerollPerks(state: GameState) {
+  if (state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0) return false;
+  const old = state.phase.options;
+  const alternatives = PERKS.filter((p) => rank(state, p.id) < p.max && !old.includes(p.id));
+  if (!alternatives.length) return false;
+  const options = offeredPerks(
+    state,
+    alternatives.map((p) => p.id),
+  );
+  state.phase = { kind: "choice", options, rerolls: 0 };
+  return true;
+}
+function offeredPerks(state: GameState, allowed?: PerkId[]): PerkId[] {
   const weights: Record<Rarity, number> = { common: 5, rare: 4, epic: 3, legendary: 1 };
-  const pool = PERKS.filter((p) => rank(state, p.id) < p.max).map((p) => ({
+  const pool = PERKS.filter(
+    (p) => rank(state, p.id) < p.max && (!allowed || allowed.includes(p.id)),
+  ).map((p) => ({
     id: p.id,
     score: -Math.log(Math.max(0.000001, random(state))) / weights[p.rarity],
   }));
@@ -785,6 +821,7 @@ function damageEnemy(
   });
   if (actor === "hero") heal(state, actual * heroStats(state).lifesteal, events);
   if (enemy.hp === 0) {
+    awardRenown(state, 1);
     enemy.pendingHit = null;
     awardGold(state, enemy.gold);
     events.push({ type: "kill", gold: enemy.gold, target: enemy.id });
@@ -793,6 +830,7 @@ function damageEnemy(
 function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]): boolean {
   if (livingEnemies(battle).length) return false;
   state.run.cleared++;
+  awardWave(state, state.run.cleared >= ENCOUNTERS_PER_CHAPTER);
   state.run.xp += 2;
   heal(state, heroStats(state).hp * 0.08 * rank(state, "renewal"), events);
   if (state.run.cleared >= ENCOUNTERS_PER_CHAPTER) {
@@ -809,7 +847,9 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
     state.run.xp -= xpNeeded(state);
     state.run.level++;
     const options = offeredPerks(state);
-    state.phase = options.length ? { kind: "choice", options } : { kind: "travel", remaining: 0.9 };
+    state.phase = options.length
+      ? { kind: "choice", options, rerolls: 1 }
+      : { kind: "travel", remaining: 0.9 };
     events.push({ type: "level", level: state.run.level });
   } else state.phase = { kind: "travel", remaining: 1.05 };
   return true;
@@ -820,14 +860,25 @@ function interrupt(enemy: EnemyFighter, delay: number, actor: ActorId, events: G
   enemy.cooldown = Math.max(enemy.cooldown, delay);
   events.push({ type: "interrupt", actor, target: enemy.id });
 }
+export function effectiveSkillCooldown(state: GameState, id: SkillId = state.meta.loadout.skill) {
+  return (
+    SKILLS.find((skill) => skill.id === id)!.cooldown *
+    (1 - progressionOf(state).training.skill * 0.08)
+  );
+}
 export function useSkill(state: GameState): GameEvent[] {
-  if (state.phase.kind !== "battle" || state.run.skillCooldown > 0) return [];
+  if (
+    state.phase.kind !== "battle" ||
+    state.run.skillCooldown > 0 ||
+    !systemUnlocked(state, "skills")
+  )
+    return [];
   const skill = SKILLS.find((s) => s.id === state.meta.loadout.skill)!;
   if (skill.chapter > state.meta.unlockedChapter) return [];
   const battle = state.phase;
   const stats = heroStats(state);
   const events: GameEvent[] = [{ type: "skill", skill: skill.id }];
-  state.run.skillCooldown = skill.cooldown;
+  state.run.skillCooldown = effectiveSkillCooldown(state);
   if (skill.id === "aegis") {
     state.run.shield = stats.hp * 0.3;
     events.push({ type: "shield", amount: state.run.shield });
@@ -911,8 +962,8 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
   const battle = state.phase;
   const stats = heroStats(state);
   battle.heroCooldown -= dt;
-  battle.companionCooldown -= dt;
-  battle.petCooldown -= dt;
+  if (systemUnlocked(state, "company")) battle.companionCooldown -= dt;
+  if (systemUnlocked(state, "pets")) battle.petCooldown -= dt;
   for (const actor of ["hero", "companion", "pet"] as const) {
     const field = actor === "hero" ? "heroHit" : actor === "companion" ? "companionHit" : "petHit";
     const hit = battle[field];
@@ -981,7 +1032,7 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       projectile: false,
     });
   }
-  if (battle.companionCooldown <= 0 && !battle.companionHit) {
+  if (systemUnlocked(state, "company") && battle.companionCooldown <= 0 && !battle.companionHit) {
     const target = state.meta.loadout.companion === "mira" ? rearTarget(battle) : front;
     const projectile = state.meta.loadout.companion !== "bram";
     if (target) {
@@ -1002,7 +1053,7 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       });
     }
   }
-  if (battle.petCooldown <= 0 && !battle.petHit) {
+  if (systemUnlocked(state, "pets") && battle.petCooldown <= 0 && !battle.petHit) {
     const target =
       state.meta.loadout.pet === "fox"
         ? weakestTarget(battle)
@@ -1125,6 +1176,7 @@ export function validLegacyState(value: unknown): value is LegacyState {
     return r.hp > 0 && r.cleared < ENCOUNTERS_PER_CHAPTER && number(p.remaining, -0.25, 2);
   if (p.kind === "choice")
     return (
+      (p.rerolls === undefined || number(p.rerolls, 0, 1, true)) &&
       r.hp > 0 &&
       r.cleared < ENCOUNTERS_PER_CHAPTER &&
       Array.isArray(p.options) &&
@@ -1232,7 +1284,8 @@ export function validState(value: unknown): value is GameState {
   if (!record(value)) return false;
   if (
     !record(value.meta) ||
-    (value.meta.experience !== undefined && !validExperience(value.meta.experience))
+    (value.meta.experience !== undefined && !validExperience(value.meta.experience)) ||
+    (value.meta.progression !== undefined && !validProgression(value.meta.progression))
   )
     return false;
   const quests = value.quests;
@@ -1327,6 +1380,7 @@ export function validV2State(value: unknown): value is Omit<GameState, "quests">
     return r.hp > 0 && r.cleared < ENCOUNTERS_PER_CHAPTER && number(p.remaining, -0.25, 2);
   if (p.kind === "choice")
     return (
+      (p.rerolls === undefined || number(p.rerolls, 0, 1, true)) &&
       r.hp > 0 &&
       r.cleared < ENCOUNTERS_PER_CHAPTER &&
       Array.isArray(p.options) &&

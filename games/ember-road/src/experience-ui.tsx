@@ -77,8 +77,8 @@ export function StoryOpening({
         <div className="opening-world" aria-hidden="true">
           <span className="opening-glow" />
           <span className="opening-actor opening-rook" />
-          <span className="opening-actor opening-mira" />
-          <span className="opening-actor opening-cinder" />
+          {!fresh && <span className="opening-actor opening-mira" />}
+          {!fresh && <span className="opening-actor opening-cinder" />}
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <span key={i} className={`opening-ember ember-${i}`} />
           ))}

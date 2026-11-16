@@ -17,6 +17,7 @@ import {
   LockKeyhole,
   Pause,
   Play,
+  RefreshCw,
   Settings,
   Sparkles,
   Sword,
@@ -26,7 +27,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import type { AudioStatus, SoundCue } from "./audio";
@@ -39,6 +40,7 @@ import {
   CHAPTERS,
   COMPANIONS,
   ENCOUNTERS_PER_CHAPTER,
+  effectiveSkillCooldown,
   type GameState,
   heroStats,
   type Loadout,
@@ -56,6 +58,17 @@ import {
   xpNeeded,
 } from "./model";
 import { companyPower } from "./power";
+import {
+  companyLevel,
+  levelProgress,
+  nextUnlock,
+  progressionOf,
+  SYSTEMS,
+  systemUnlocked,
+  TRAINING_CAP,
+  type TrainingId,
+  trainingCost,
+} from "./progression";
 import { type QuestCard, type QuestScope, questBoard, resetAt } from "./quests";
 import { journeyStory } from "./story";
 
@@ -90,6 +103,8 @@ export interface UiActions {
   start(chapter: number): void;
   choose(id: PerkId): void;
   skip(): void;
+  reroll(): void;
+  train(id: TrainingId): void;
   equip<K extends keyof Loadout>(slot: K, id: Loadout[K]): void;
   upgrade(id: UpgradeId): void;
   retreat(): void;
@@ -134,7 +149,7 @@ function Modal({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
     if (open && !node.open) node.showModal();
@@ -228,19 +243,21 @@ function Powers({ state }: { state: GameState }) {
   const powers = PERKS.filter((p) => rank(state, p.id) > 0);
   return (
     <div className="powers-list">
-      <div className="power-row">
-        <LoadoutArt slot="skill" id={skill.id} />
-        <div>
-          <strong>{skill.name}</strong>
-          <p>{skill.description}</p>
-          <small>
-            Equipped skill ·{" "}
-            {state.run.skillCooldown > 0
-              ? `${state.run.skillCooldown.toFixed(1)}s remaining`
-              : "Ready in combat"}
-          </small>
+      {systemUnlocked(state, "skills") && (
+        <div className="power-row">
+          <LoadoutArt slot="skill" id={skill.id} />
+          <div>
+            <strong>{skill.name}</strong>
+            <p>{skill.description}</p>
+            <small>
+              Equipped skill ·{" "}
+              {state.run.skillCooldown > 0
+                ? `${state.run.skillCooldown.toFixed(1)}s remaining`
+                : "Ready in combat"}
+            </small>
+          </div>
         </div>
-      </div>
+      )}
       <h3>Oaths on this journey</h3>
       {powers.length ? (
         powers.map((p) => (
@@ -264,6 +281,165 @@ function Powers({ state }: { state: GameState }) {
     </div>
   );
 }
+function PowerChip({
+  children,
+  description,
+  label,
+  className,
+}: {
+  children: ReactNode;
+  description: ReactNode;
+  label: string;
+  className: string;
+}) {
+  const panel = useRef<HTMLDivElement>(null);
+  const anchor = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  function show() {
+    const p = panel.current,
+      b = anchor.current;
+    if (!p || !b) return;
+    for (const other of document.querySelectorAll<HTMLElement>(".power-tooltip:popover-open"))
+      if (other !== p) other.hidePopover();
+    if (!p.matches(":popover-open")) p.showPopover();
+    const rect = b.getBoundingClientRect();
+    const size = p.getBoundingClientRect();
+    p.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - size.width - 12))}px`;
+    const above = rect.top - size.height - 10;
+    p.style.top = `${above >= 12 ? above : Math.min(rect.bottom + 10, window.innerHeight - size.height - 12)}px`;
+  }
+  function hide() {
+    if (panel.current?.matches(":popover-open")) panel.current.hidePopover();
+  }
+  return (
+    <>
+      <Button
+        ref={anchor}
+        variant="ghost"
+        className={`power-chip ${className}`}
+        aria-label={label}
+        aria-describedby={id}
+        onPointerEnter={(event) => {
+          if (event.pointerType !== "touch") show();
+        }}
+        onPointerLeave={hide}
+        onFocus={(event) => {
+          if (event.currentTarget.matches(":focus-visible")) show();
+        }}
+        onBlur={hide}
+        onClick={() => (panel.current?.matches(":popover-open") ? hide() : show())}
+      >
+        {children}
+      </Button>
+      <Card ref={panel} id={id} popover="manual" role="tooltip" className="power-tooltip">
+        {description}
+      </Card>
+    </>
+  );
+}
+function PowerBelt({ state }: { state: GameState }) {
+  const skill = SKILLS.find((s) => s.id === state.meta.loadout.skill)!;
+  const powers = PERKS.filter((p) => rank(state, p.id) > 0);
+  return (
+    <section className="powers-belt" aria-label="Current powers" data-powers-belt="">
+      <span className="powers-belt-label">POWERS</span>
+      {systemUnlocked(state, "skills") && (
+        <PowerChip
+          className="active-power"
+          label={`${skill.name}, active skill`}
+          description={
+            <>
+              <strong>{skill.name} · Active</strong>
+              <p>{skill.description}</p>
+              <small>
+                Skill level {progressionOf(state).training.skill + 1} ·{" "}
+                {effectiveSkillCooldown(state).toFixed(1)}s cooldown
+              </small>
+            </>
+          }
+        >
+          <Zap />
+          <span>{skill.name}</span>
+          <b>Q</b>
+        </PowerChip>
+      )}
+      {powers.map((p) => (
+        <PowerChip
+          key={p.id}
+          className={`rarity-${p.rarity}`}
+          label={`${p.title}, rank ${rank(state, p.id)}`}
+          description={
+            <>
+              <strong>
+                {p.title} · {rarityNames[p.rarity]}
+              </strong>
+              <p>{p.description}</p>
+              <small>
+                Rank {rank(state, p.id)} / {p.max} · This journey
+              </small>
+            </>
+          }
+        >
+          <PerkSymbol family={p.family} />
+          <span>{p.title}</span>
+          <b>{rank(state, p.id)}</b>
+        </PowerChip>
+      ))}
+      {!powers.length && (
+        <span className="powers-empty">Defeat waves to discover your first oath.</span>
+      )}
+    </section>
+  );
+}
+function Training({
+  state,
+  id,
+  actions,
+}: {
+  state: GameState;
+  id: TrainingId;
+  actions: UiActions;
+}) {
+  const p = progressionOf(state),
+    level = p.training[id] + 1,
+    cost = trainingCost(state, id);
+  const currency = id === "skill" ? "Embers" : "Trailmarks";
+  const balance = id === "skill" ? p.embers : p.trailmarks;
+  const capped = p.training[id] >= TRAINING_CAP;
+  const levelLocked = companyLevel(state) < p.training[id] + 2;
+  return (
+    <section className="training-panel" aria-label={`${id} training`}>
+      <div>
+        <span className="sheet-kicker">PERMANENT TRAINING</span>
+        <h3>
+          Level {level} / {TRAINING_CAP + 1}
+        </h3>
+        <p>
+          {id === "skill"
+            ? "Each level reduces active skill cooldown by 8%."
+            : `Each level improves ${id === "companion" ? "companion damage by 15%" : "pet damage by 18%"}.`}
+        </p>
+        <small>
+          {balance} {currency} kept ·{" "}
+          {id === "skill" ? "Earn 4 from each chapter victory." : "Earn 1 from each cleared wave."}
+        </small>
+      </div>
+      <Button
+        data-train={id}
+        disabled={state.phase.kind !== "camp" || capped || levelLocked || balance < cost}
+        onClick={() => actions.train(id)}
+      >
+        {capped
+          ? "Fully trained"
+          : state.phase.kind !== "camp"
+            ? "Train at camp"
+            : levelLocked
+              ? `Company level ${p.training[id] + 2}`
+              : `Train · ${cost} ${currency}`}
+      </Button>
+    </section>
+  );
+}
 function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: UiActions }) {
   const { state } = v;
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -272,6 +448,31 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   }, [a]);
   const [replayIntro, setReplayIntro] = useState(false);
   const experience = experienceOf(state);
+  const level = levelProgress(state);
+  const progression = progressionOf(state);
+  const upcoming = nextUnlock(state);
+  const companyReady = systemUnlocked(state, "company");
+  const skillReady = systemUnlocked(state, "skills");
+  const petsReady = systemUnlocked(state, "pets");
+  const dailyReady = systemUnlocked(state, "daily");
+  const weeklyReady = systemUnlocked(state, "weekly");
+  const previousLevel = useRef<number | null>(null);
+  const [unlockMessage, setUnlockMessage] = useState<{ title: string; until: number } | null>(null);
+  useEffect(() => {
+    if (!v.loaded) return;
+    const before = previousLevel.current;
+    previousLevel.current = level.level;
+    if (before !== null && level.level > before) {
+      const unlocked = Object.values(SYSTEMS).find(
+        (system) => system.level > before && system.level <= level.level,
+      );
+      setUnlockMessage({
+        title: unlocked?.title ?? `Company level ${level.level}`,
+        until: state.run.time + 6,
+      });
+    }
+  }, [v.loaded, level.level, state.run.time]);
+  const [tip, setTip] = useState<Lesson | null>(null);
   const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
@@ -297,9 +498,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const place = CHAPTERS[state.run.chapter - 1]!;
   const story = journeyStory(state.run.chapter);
   const missions = questBoard(state.quests);
-  const readyRewards = [...missions.story, ...missions.daily, ...missions.weekly].filter(
-    (q) => q.ready,
-  ).length;
+  const readyRewards = [
+    ...missions.story,
+    ...(dailyReady ? missions.daily : []),
+    ...(weeklyReady ? missions.weekly : []),
+  ].filter((q) => q.ready).length;
   useEffect(
     () =>
       a.inspect(
@@ -319,11 +522,59 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       setChapter(state.run.chapter);
     }
   }, [inCamp, state.run.chapter]);
+  useEffect(() => {
+    if (!v.loaded || showPrologue || tip || settings || detail || section !== "Camp") return;
+    const lesson: Lesson | null =
+      !dashboard && state.phase.kind === "battle"
+        ? !experience.lessons.battle
+          ? "battle"
+          : skillReady && !experience.lessons.skill
+            ? "skill"
+            : null
+        : !dashboard && state.phase.kind === "choice" && !experience.lessons.oath
+          ? "oath"
+          : dashboard && state.meta.earnedGold > 0 && !experience.lessons.camp
+            ? "camp"
+            : null;
+    if (lesson) {
+      setTip(lesson);
+      a.learn(lesson);
+    }
+  }, [
+    a,
+    v.loaded,
+    showPrologue,
+    tip,
+    settings,
+    detail,
+    section,
+    dashboard,
+    state.phase.kind,
+    state.meta.earnedGold,
+    experience.lessons,
+    skillReady,
+  ]);
+  useEffect(() => {
+    if (
+      ((tip === "battle" || tip === "skill") && state.phase.kind !== "battle") ||
+      (tip === "oath" && state.phase.kind !== "choice") ||
+      (tip === "camp" && !dashboard) ||
+      (tip === "skill" && state.run.skillCooldown > 0)
+    )
+      setTip(null);
+  }, [tip, state.phase.kind, dashboard, state.run.skillCooldown]);
   const go = (next: Section) => {
     if (next === "Journey") a.refreshMissions();
     setSection(next);
     if (!inCamp) setCampOpen(true);
   };
+  function dismissTip() {
+    setTip(null);
+  }
+  function skipTips() {
+    setTip(null);
+    a.skipGuidance();
+  }
   function launch() {
     setIntroChapter(hubChapter);
   }
@@ -418,7 +669,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                                   `${attributes.petDamage} damage`,
                                   `${attributes.petInterval}s attack`,
                                 ]
-                              : [`${SKILLS[index]!.cooldown}s cooldown`, "Q · active"];
+                              : [
+                                  `${effectiveSkillCooldown(state, SKILLS[index]!.id).toFixed(1)}s cooldown`,
+                                  "Q · active",
+                                ];
                     return facts.map((fact) => <span key={fact}>{fact}</span>);
                   })()}
                 </div>
@@ -460,6 +714,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   );
   return (
     <div
+      data-company-level={level.level}
       className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
     >
       <header className="game-topbar">
@@ -472,7 +727,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           <span className="toon-portrait" />
           <span>
             <strong>ROOK</strong>
-            <small>Level {state.run.level}</small>
+            <small>Company Lv. {level.level}</small>
           </span>
         </Button>
         <Button
@@ -491,6 +746,24 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <GameIcon kind="gold" />
             <b id="gold">{state.meta.gold}</b>
           </span>
+          {companyReady && (
+            <span
+              className="currency trailmarks"
+              title="Trailmarks · Earned from cleared waves. Train companions and pets."
+            >
+              <Tent />
+              <b data-currency="trailmarks">{progression.trailmarks}</b>
+            </span>
+          )}
+          {skillReady && (
+            <span
+              className="currency embers"
+              title="Embers · Earned from chapter victories. Train active skills."
+            >
+              <Flame />
+              <b data-currency="embers">{progression.embers}</b>
+            </span>
+          )}
           {v.web && <span data-playables-account-slot="" />}
           {v.audioControls && (
             <Button
@@ -538,39 +811,49 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 variant="ghost"
                 aria-label="Missions and quests"
                 onClick={() => {
-                  setMissionTab("daily");
+                  setMissionTab(dailyReady ? "daily" : "story");
                   go("Journey");
                 }}
               >
                 <GameIcon kind="quests" />
                 <span>
-                  <strong>WAYFARER’S CALLING</strong>
-                  <small>{missions.daily[0]!.description}</small>
+                  <strong>COMPANY LEVEL {level.level}</strong>
+                  <small>
+                    {upcoming
+                      ? `Next: ${upcoming.title} · Level ${upcoming.level}`
+                      : "A seasoned company. The road still calls."}
+                  </small>
                   <span className="bounty-track">
                     <NativeProgress
-                      max={missions.daily[0]!.target}
-                      value={missions.daily[0]!.progress}
-                      aria-label="Daily foe quest progress"
+                      max={level.needed ?? 1}
+                      value={level.needed === null ? 1 : level.current}
+                      aria-label="Company renown"
                     />
                     <b>
-                      {missions.daily[0]!.progress} / {missions.daily[0]!.target}
+                      {level.needed === null
+                        ? "MASTERED"
+                        : `${level.current} / ${level.needed} RENOWN`}
                     </b>
                   </span>
                 </span>
                 <span className="bounty-reward">
-                  <GameIcon kind="gold" />
-                  <b>{missions.daily[0]!.reward}</b>
+                  <GameIcon kind="skills" />
+                  <b>{level.level}</b>
                 </span>
               </Button>
               <aside className="hub-rail rail-left" aria-label="Build your company">
-                <Button variant="ghost" onClick={() => go("Companions")}>
-                  <GameIcon kind="company" />
-                  <span>Company</span>
-                </Button>
-                <Button variant="ghost" onClick={() => go("Pets")}>
-                  <GameIcon kind="pet" />
-                  <span>Pets</span>
-                </Button>
+                {companyReady && (
+                  <Button variant="ghost" onClick={() => go("Companions")}>
+                    <GameIcon kind="company" />
+                    <span>Company</span>
+                  </Button>
+                )}
+                {petsReady && (
+                  <Button variant="ghost" onClick={() => go("Pets")}>
+                    <GameIcon kind="pet" />
+                    <span>Pets</span>
+                  </Button>
+                )}
                 <Button variant="ghost" onClick={() => setDetail("stats")}>
                   <GameIcon kind="battle" />
                   <span>Stats</span>
@@ -607,22 +890,26 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     role="img"
                     aria-label="Rook ready for the journey"
                   />
-                  <span
-                    className="island-companion toon-actor"
-                    style={{
-                      backgroundPosition: `0 ${{ mira: 0, bram: 100 / 3, sable: 200 / 3 }[state.meta.loadout.companion]}%`,
-                    }}
-                    role="img"
-                    aria-label={`${company.name} ready for the journey`}
-                  />
-                  <span
-                    className="island-pet toon-actor"
-                    style={{
-                      backgroundPosition: `0 ${{ fox: 0, hound: 50, owl: 100 }[state.meta.loadout.pet]}%`,
-                    }}
-                    role="img"
-                    aria-label={`${pet.name} ready for the journey`}
-                  />
+                  {companyReady && (
+                    <span
+                      className="island-companion toon-actor"
+                      style={{
+                        backgroundPosition: `0 ${{ mira: 0, bram: 100 / 3, sable: 200 / 3 }[state.meta.loadout.companion]}%`,
+                      }}
+                      role="img"
+                      aria-label={`${company.name} ready for the journey`}
+                    />
+                  )}
+                  {petsReady && (
+                    <span
+                      className="island-pet toon-actor"
+                      style={{
+                        backgroundPosition: `0 ${{ fox: 0, hound: 50, owl: 100 }[state.meta.loadout.pet]}%`,
+                      }}
+                      role="img"
+                      aria-label={`${pet.name} ready for the journey`}
+                    />
+                  )}
                   <Button
                     className="chapter-prev chapter-arrow"
                     variant="ghost"
@@ -657,7 +944,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      setMissionTab("weekly");
+                      setMissionTab("story");
                       go("Journey");
                     }}
                   >
@@ -687,30 +974,34 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 )}
               </div>
               <aside className="hub-rail rail-right" aria-label="Missions and rewards">
-                <Button
-                  variant="ghost"
-                  aria-label="Open daily quests"
-                  onClick={() => {
-                    setMissionTab("daily");
-                    go("Journey");
-                  }}
-                >
-                  <GameIcon kind="daily" />
-                  <span>Daily quests</span>
-                  {missions.daily.some((q) => q.ready) && <b className="notification">!</b>}
-                </Button>
-                <Button
-                  variant="ghost"
-                  aria-label="Open weekly quests"
-                  onClick={() => {
-                    setMissionTab("weekly");
-                    go("Journey");
-                  }}
-                >
-                  <GameIcon kind="weekly" />
-                  <span>Weekly quests</span>
-                  {missions.weekly.some((q) => q.ready) && <b className="notification">!</b>}
-                </Button>
+                {dailyReady && (
+                  <Button
+                    variant="ghost"
+                    aria-label="Open daily quests"
+                    onClick={() => {
+                      setMissionTab("daily");
+                      go("Journey");
+                    }}
+                  >
+                    <GameIcon kind="daily" />
+                    <span>Daily quests</span>
+                    {missions.daily.some((q) => q.ready) && <b className="notification">!</b>}
+                  </Button>
+                )}
+                {weeklyReady && (
+                  <Button
+                    variant="ghost"
+                    aria-label="Open weekly quests"
+                    onClick={() => {
+                      setMissionTab("weekly");
+                      go("Journey");
+                    }}
+                  >
+                    <GameIcon kind="weekly" />
+                    <span>Weekly quests</span>
+                    {missions.weekly.some((q) => q.ready) && <b className="notification">!</b>}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   aria-label="Open story missions"
@@ -793,48 +1084,74 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <Flame />
                 Current powers
               </Button>
-              <Button
-                className="cast-skill"
-                disabled={
-                  !active ||
-                  state.phase.kind !== "battle" ||
-                  v.paused ||
-                  state.run.skillCooldown > 0
-                }
-                onClick={a.skill}
-              >
-                <Zap />
-                {skill.name}
-                <span>
-                  {state.run.skillCooldown > 0 ? `${state.run.skillCooldown.toFixed(1)}s` : "Q"}
+              {skillReady ? (
+                <Button
+                  className="cast-skill"
+                  disabled={
+                    !active ||
+                    state.phase.kind !== "battle" ||
+                    v.paused ||
+                    state.run.skillCooldown > 0
+                  }
+                  onClick={a.skill}
+                >
+                  <Zap />
+                  {skill.name}
+                  <span>
+                    {state.run.skillCooldown > 0 ? `${state.run.skillCooldown.toFixed(1)}s` : "Q"}
+                  </span>
+                </Button>
+              ) : (
+                <span className="skill-locked">
+                  <LockKeyhole /> Skill at company Lv. 3
                 </span>
-              </Button>
+              )}
             </div>
+          )}
+          {!showPrologue && !dashboard && (
+            <div className="road-progression">
+              <span>
+                COMPANY LV. {level.level} ·{" "}
+                {level.needed === null ? "MASTERED" : `${level.current}/${level.needed} RENOWN`}
+              </span>
+              {upcoming && (
+                <small>
+                  Next: {upcoming.title} · Lv. {upcoming.level}
+                </small>
+              )}
+            </div>
+          )}
+          {!showPrologue && unlockMessage && state.run.time < unlockMessage.until && (
+            <aside className="unlock-toast" role="status">
+              <Sparkles />
+              <span>
+                {unlockMessage.title}
+                <small>Company level {level.level} · A new part of your journey</small>
+              </span>
+            </aside>
           )}
 
           {!showPrologue &&
             !dashboard &&
             state.phase.kind === "battle" &&
-            (!experience.lessons.battle || !experience.lessons.skill) && (
+            (tip === "battle" || tip === "skill") && (
               <aside className="tutorial-card" aria-label="First battle guidance">
                 <span className="guide-mira" aria-hidden="true" />
                 <div>
                   <span className="sheet-kicker">MIRA’S FIELD NOTES</span>
                   <h3>
-                    {!experience.lessons.battle ? "We fight together." : `${skill.name} is ready.`}
+                    {tip === "battle" ? "The first steps are yours." : `${skill.name} is ready.`}
                   </h3>
                   <p>
-                    {!experience.lessons.battle
-                      ? `Rook fights automatically at the front. ${company.name}: ${company.description}`
+                    {tip === "battle"
+                      ? "Rook fights automatically. Clear the first waves to earn Renown and find your company."
                       : `Press Q or the skill button to cast ${skill.name}. ${skill.description}`}
                   </p>
                   <div>
-                    <Button
-                      onClick={() => a.learn(!experience.lessons.battle ? "battle" : "skill")}
-                    >
-                      {!experience.lessons.battle ? "Got it" : "Keep going"}
+                    <Button onClick={dismissTip}>
+                      {tip === "battle" ? "Got it" : "Keep going"}
                     </Button>
-                    <Button variant="ghost" onClick={a.skipGuidance}>
+                    <Button variant="ghost" onClick={skipTips}>
                       Skip tips
                     </Button>
                   </div>
@@ -845,27 +1162,27 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             dashboard &&
             section === "Camp" &&
             state.meta.earnedGold > 0 &&
-            !experience.lessons.camp && (
+            tip === "camp" && (
               <aside className="tutorial-card camp-guide" aria-label="Camp guidance">
                 <span className="guide-mira" aria-hidden="true" />
                 <div>
                   <span className="sheet-kicker">A STRONGER COMPANY</span>
                   <h3>The road rewards preparation.</h3>
                   <p>
-                    Your gold stays with you. Forge permanent upgrades, choose equipment, and check
-                    the daily quests before your next march.
+                    Your gold stays with you. Forge permanent upgrades and choose equipment before
+                    your next march. New company systems open as your Renown grows.
                   </p>
                   <div>
                     <Button
                       onClick={() => {
-                        a.learn("camp");
+                        dismissTip();
                         setEquipmentTab("forge");
                         go("Equipment");
                       }}
                     >
                       Visit the forge
                     </Button>
-                    <Button variant="ghost" onClick={() => a.learn("camp")}>
+                    <Button variant="ghost" onClick={dismissTip}>
                       Later
                     </Button>
                   </div>
@@ -882,6 +1199,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
+      {!showPrologue && <PowerBelt state={state} />}
       {dashboard && (
         <nav className="game-dock" aria-label="Camp sections">
           {(
@@ -892,17 +1210,21 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               ["Skills", "skills", "Skills"],
               ["Pets", "pet", "Pets"],
             ] as const
-          ).map(([name, icon, label]) => (
-            <Button
-              key={name}
-              variant="ghost"
-              aria-current={section === name ? "page" : undefined}
-              onClick={() => go(name)}
-            >
-              <GameIcon kind={icon} />
-              <span>{label}</span>
-            </Button>
-          ))}
+          )
+            .filter(([name]) => name !== "Companions" || companyReady)
+            .filter(([name]) => name !== "Skills" || skillReady)
+            .filter(([name]) => name !== "Pets" || petsReady)
+            .map(([name, icon, label]) => (
+              <Button
+                key={name}
+                variant="ghost"
+                aria-current={section === name ? "page" : undefined}
+                onClick={() => go(name)}
+              >
+                <GameIcon kind={icon} />
+                <span>{label}</span>
+              </Button>
+            ))}
         </nav>
       )}
       <Modal
@@ -970,7 +1292,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   : section === "Pets"
                     ? `${pet.name} is by your side.`
                     : section === "Skills"
-                      ? `${skill.name} equipped · ${skill.cooldown}s cooldown`
+                      ? `${skill.name} equipped · ${effectiveSkillCooldown(state).toFixed(1)}s cooldown`
                       : `${missions[missionTab].filter((q) => q.claimed).length} / ${missions[missionTab].length} rewards collected · ${missions[missionTab].filter((q) => q.ready).length} ready to claim`}
             </p>
           </div>
@@ -982,14 +1304,25 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </span>
           )}
         </div>
-        {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
-        {dashboard && section === "Pets" && selection("pet", PETS)}
+        {dashboard && section === "Companions" && (
+          <>
+            <Training state={state} id="companion" actions={a} />
+            {selection("companion", COMPANIONS)}
+          </>
+        )}
+        {dashboard && section === "Pets" && (
+          <>
+            <Training state={state} id="pet" actions={a} />
+            {selection("pet", PETS)}
+          </>
+        )}
         {dashboard && section === "Skills" && (
           <>
             <p className="section-note">
               Equip one active skill. Press Q or tap its button during combat. Your oaths add
               passive powers on each journey.
             </p>
+            <Training state={state} id="skill" actions={a} />
             {selection("skill", SKILLS)}
             <Card className="oath-card">
               <CardHeader>
@@ -1099,22 +1432,26 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   ["daily", "Daily quests"],
                   ["weekly", "Weekly quests"],
                 ] as const
-              ).map(([scope, label]) => (
-                <Button
-                  key={scope}
-                  variant={missionTab === scope ? "secondary" : "ghost"}
-                  aria-pressed={missionTab === scope}
-                  onClick={() => {
-                    a.refreshMissions();
-                    setMissionTab(scope);
-                  }}
-                >
-                  {label}
-                  <span className="mission-tab-count">
-                    {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
-                  </span>
-                </Button>
-              ))}
+              )
+                .filter(
+                  ([scope]) => scope === "story" || (scope === "daily" ? dailyReady : weeklyReady),
+                )
+                .map(([scope, label]) => (
+                  <Button
+                    key={scope}
+                    variant={missionTab === scope ? "secondary" : "ghost"}
+                    aria-pressed={missionTab === scope}
+                    onClick={() => {
+                      a.refreshMissions();
+                      setMissionTab(scope);
+                    }}
+                  >
+                    {label}
+                    <span className="mission-tab-count">
+                      {missions[scope].filter((q) => q.claimed).length}/{missions[scope].length}
+                    </span>
+                  </Button>
+                ))}
             </nav>
             <div className="mission-schedule">
               <p>
@@ -1449,25 +1786,39 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </Button>
       </Modal>
       <Modal
-        open={!dashboard && v.decisionReady && state.phase.kind === "choice"}
+        open={
+          !dashboard && !detail && !settings && v.decisionReady && state.phase.kind === "choice"
+        }
         title="Choose your next oath."
         className="decision--choice"
       >
         <span className="eyebrow">LEVEL {state.run.level} · ONE CHOICE</span>
-        {!experience.lessons.oath && (
+        {tip === "oath" && (
           <div className="oath-guidance">
             <span className="guide-mira" aria-hidden="true" />
             <p>
               These oaths shape this journey. Blue is rare, violet is epic, and gold is legendary.
               Pick a power that helps your build, inspect your stats, or skip the choice.
             </p>
-            <Button variant="ghost" onClick={() => a.learn("oath")}>
+            <Button variant="ghost" onClick={dismissTip}>
               Got it
             </Button>
           </div>
         )}
         <p>Every journey is a different build. Choose a power, or continue without one.</p>
+        <PowerBelt state={state} />
         <div className="choice-tools">
+          <Button
+            variant="outline"
+            data-reroll=""
+            disabled={state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0}
+            onClick={a.reroll}
+          >
+            <RefreshCw />{" "}
+            {state.phase.kind === "choice" && (state.phase.rerolls ?? 1) > 0
+              ? "Refresh choices · 1 free"
+              : "Refresh used"}
+          </Button>
           <Button variant="outline" onClick={() => setDetail("stats")}>
             Current stats
           </Button>
@@ -1494,7 +1845,14 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     <span>
                       Rank {rank(state, id) + 1} / {p.max}
                     </span>
-                    <Button data-perk={id} onClick={() => a.choose(id)}>
+                    <Button
+                      data-perk={id}
+                      autoFocus={i === 0}
+                      onClick={() => {
+                        setTip(null);
+                        a.choose(id);
+                      }}
+                    >
                       Choose oath <kbd>{i + 1}</kbd>
                     </Button>
                   </CardContent>
@@ -1502,7 +1860,14 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               );
             })}
         </div>
-        <Button variant="ghost" id="skip-perk" onClick={a.skip}>
+        <Button
+          variant="ghost"
+          id="skip-perk"
+          onClick={() => {
+            setTip(null);
+            a.skip();
+          }}
+        >
           Skip this choice <ArrowRight />
         </Button>
       </Modal>

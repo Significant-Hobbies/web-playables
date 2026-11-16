@@ -11,9 +11,9 @@ import {
   encounter,
   encounterGroup,
   equip,
+  initialState as freshState,
   type GameState,
   heroStats,
-  initialState,
   type LegacyState,
   livingEnemies,
   migrateV1State,
@@ -33,6 +33,12 @@ import {
   validV2State,
   WEAPONS,
 } from "./model";
+
+function initialState(seed?: number) {
+  const state = freshState(seed);
+  delete state.meta.progression;
+  return state;
+}
 
 function battle(state = initialState()): BattlePhase {
   startRun(state);
