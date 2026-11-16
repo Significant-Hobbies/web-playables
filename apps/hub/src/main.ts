@@ -65,12 +65,12 @@ function createCard(game: GameMeta) {
   const artUrl = COVER_ART[game.id];
   if (artUrl) {
     const cover = document.createElement("img");
-    cover.className = "game-card__cover";
+    cover.className = `game-card__cover${game.id === "ember-road" ? " game-card__cover--diorama" : ""}`;
     cover.src = artUrl;
     cover.alt = "";
     cover.fetchPriority = "high";
-    cover.width = 1200;
-    cover.height = 525;
+    cover.width = game.id === "ember-road" ? 450 : 1200;
+    cover.height = game.id === "ember-road" ? 340 : 525;
     art.append(cover);
   } else {
     const cover = document.createElement("canvas");

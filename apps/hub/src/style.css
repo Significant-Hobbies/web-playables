@@ -259,3 +259,8 @@ h1 {
 studio-footer p[aria-hidden="true"].absolute {
   bottom: 0.14em;
 }
+
+.game-card__cover--diorama {
+  object-fit: contain;
+  background: #658747;
+}

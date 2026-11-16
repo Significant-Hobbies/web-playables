@@ -2,7 +2,7 @@ export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
 import { rank } from "./model";
-import { spriteBottom } from "./sprite-frames";
+import { spriteBottom, visibleSpriteHeight } from "./sprite-frames";
 
 interface ActorMotion {
   attack: number;
@@ -389,7 +389,18 @@ export class WorldRenderer {
           s.reducedMotion,
         );
       }
-      if (foe && foe.hp > 0) this.healthBar(x, y - 205 * scale, 74, foe.hp, foe.maxHp);
+      if (foe && foe.hp > 0) {
+        const visibleHeight =
+          foe.kind === "archer"
+            ? 270 * visibleSpriteHeight("party", 3, 0)
+            : 300 *
+              visibleSpriteHeight(
+                "enemies",
+                0,
+                { raider: 0, sentinel: 1, hexer: 2, warden: 3 }[foe.kind],
+              );
+        this.healthBar(x, y - (visibleHeight + 16) * scale, 74, foe.hp, foe.maxHp);
+      }
     }
     if (s.shield > 0) {
       const p = this.posedPosition("hero", s);
@@ -588,7 +599,7 @@ export class WorldRenderer {
         sw,
         sh,
         (1000 - w) / 2 + drift,
-        Math.min(h * 0.73 - hh * 0.74, h - hh),
+        Math.max(h - hh, Math.min(0, h * 0.73 - hh * 0.74)),
         w,
         hh,
       );

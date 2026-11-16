@@ -2011,3 +2011,16 @@
     height: 105px;
   }
 }
+
+.toon-shell progress[aria-label="Health"]::-webkit-progress-value {
+  background: #78ce65 !important;
+}
+.toon-shell progress[aria-label="Health"]::-moz-progress-bar {
+  background: #78ce65 !important;
+}
+.toon-shell progress[aria-label="Experience"]::-webkit-progress-value {
+  background: #65bcf3 !important;
+}
+.toon-shell progress[aria-label="Experience"]::-moz-progress-bar {
+  background: #65bcf3 !important;
+}

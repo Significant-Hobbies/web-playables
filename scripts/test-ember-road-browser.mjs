@@ -58,6 +58,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
         archer: 0,
         arrows: 0,
         group: false,
+        backdrops: 0,
       };
       let frame = {};
       const draw = CanvasRenderingContext2D.prototype.drawImage;
@@ -74,6 +75,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
         if (this.canvas.id === "world") {
           let key;
+          if (/\/toon-roads-/.test(image.src || "")) window.__draws.backdrops++;
           if (/\/toon-knight-/.test(image.src || "")) key = "hero";
           if (/\/toon-enemies-/.test(image.src || "")) key = "foe";
           if (/\/toon-pets-/.test(image.src || "")) key = "pet";
@@ -200,6 +202,28 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     await page.keyboard.press("Escape");
     await depart(page);
+    await page.waitForFunction(() => window.__draws.backdrops > 0);
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 768, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      );
+      assert(
+        await page.locator("#world").evaluate((canvas) => {
+          const row = canvas
+            .getContext("2d")
+            .getImageData(0, canvas.height - 1, canvas.width, 1).data;
+          for (let i = 3; i < row.length; i += 4) if (row[i] !== 255) return false;
+          return true;
+        }),
+        `Actual atlas covers the bottom pixel row at ${viewport.width}x${viewport.height}`,
+      );
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator("#pause").click();
     await page.getByRole("dialog", { name: "The road can wait.", exact: true }).waitFor();
     const paused = await page.locator("#world").evaluate((c) => c.toDataURL());
@@ -254,7 +278,8 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Mid-run gear cannot change",
     );
     await page.keyboard.press("Escape");
-    await page.locator("#start").getByText("RESUME", { exact: true }).waitFor();
+    await page.locator("#start").waitFor();
+    assert.match(await page.locator("#start").innerText(), /^RESUME/);
     const inspectedBefore = await stored(page);
     await page.waitForTimeout(350);
     assert.equal(
@@ -418,13 +443,11 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
           document.querySelector(".chapter-hub"),
       );
       if (phase === "camp") await assertCampActors(p);
-      else {
-        assert.equal(
-          await p.evaluate(() => window.__draws.foe + window.__draws.archer),
-          0,
-          `${phase} reload draws no phantom foes`,
-        );
-      }
+      assert.equal(
+        await p.evaluate(() => window.__draws.foe + window.__draws.archer),
+        0,
+        `${phase} reload draws no phantom foes`,
+      );
       await terminal.close();
     }
     const squad = initialState();
