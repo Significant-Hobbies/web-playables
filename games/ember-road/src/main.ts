@@ -29,6 +29,7 @@ import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
 import { WorldRenderer } from "./renderer";
 import { mountUi, type UiActions, type UiSnapshot } from "./ui";
 import "./style.css";
+import "./toon.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -112,6 +113,7 @@ function snapshot(): UiSnapshot {
     saveMessage,
     saveWarning,
     paused: userPaused,
+    motionPaused: userPaused || platformPaused || inspecting,
     reducedMotion,
     decisionReady: loaded && !renderer?.settling,
     note,

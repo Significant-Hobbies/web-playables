@@ -60,11 +60,11 @@ export class WorldRenderer {
   private backdrops = new Map<number, HTMLImageElement>();
   private lightningAge = 1;
   private readonly places = [
-    [new URL("../assets/cinder-march.png", import.meta.url).href, 0.77],
-    [new URL("../assets/lantern-ruins.png", import.meta.url).href, 0.71],
-    [new URL("../assets/hollow-marsh.png", import.meta.url).href, 0.61],
-    [new URL("../assets/frostbound-keep.png", import.meta.url).href, 0.69],
-    [new URL("../assets/last-threshold.png", import.meta.url).href, 0.67],
+    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.77],
+    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.71],
+    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.61],
+    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.69],
+    [new URL("../assets/toon-roads.png", import.meta.url).href, 0.67],
   ] as const;
   private width = 1000;
   private height = 520;
@@ -77,11 +77,11 @@ export class WorldRenderer {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("The game needs a browser with Canvas 2D support.");
     this.ctx = ctx;
-    this.heroImage.src = new URL("../assets/hero-knight.png", import.meta.url).href;
-    this.enemyImage.src = new URL("../assets/enemies.png", import.meta.url).href;
-    this.partyImage.src = new URL("../assets/party-atlas.png", import.meta.url).href;
-    this.petImage.src = new URL("../assets/pet-atlas.png", import.meta.url).href;
-    this.walkImage.src = new URL("../assets/party-walk-atlas.png", import.meta.url).href;
+    this.heroImage.src = new URL("../assets/toon-knight.png", import.meta.url).href;
+    this.enemyImage.src = new URL("../assets/toon-enemies.png", import.meta.url).href;
+    this.partyImage.src = new URL("../assets/toon-party.png", import.meta.url).href;
+    this.petImage.src = new URL("../assets/toon-pets.png", import.meta.url).href;
+    this.walkImage.src = new URL("../assets/toon-walk.png", import.meta.url).href;
     this.backdrop(1);
   }
 
@@ -183,6 +183,7 @@ export class WorldRenderer {
   ) {
     this.campView = camp;
     this.capture(state);
+    if (camp) return;
     const enemies = !camp && (state.phase.kind === "battle" || this.settling) ? this.foes : [];
     this.draw({
       time,
@@ -576,14 +577,21 @@ export class WorldRenderer {
     const image = this.backdrop(s.chapter);
     if (image.complete && image.naturalWidth) {
       const img = image;
-      const scale = Math.max(1000 / img.width, (h * 1.2) / img.height);
-      const w = img.width * scale;
-      const hh = img.height * scale;
-      const drift = Math.sin(s.distance * 0.15) * Math.min(25, Math.max(0, (w - 1000) / 2));
+      const index = Math.max(0, Math.min(4, s.chapter - 1));
+      const sw = img.naturalWidth / 2;
+      const sh = img.naturalHeight / 3;
+      const scale = Math.max(1000 / sw, h / sh);
+      const w = sw * scale;
+      const hh = sh * scale;
+      const drift = Math.sin(s.distance * 0.15) * Math.min(22, Math.max(0, (w - 1000) / 2));
       c.drawImage(
         img,
+        (index % 2) * sw,
+        Math.floor(index / 2) * sh,
+        sw,
+        sh,
         (1000 - w) / 2 + drift,
-        h * 0.73 - hh * (this.places[s.chapter - 1]?.[1] ?? 0.77),
+        h * 0.73 - hh * 0.74,
         w,
         hh,
       );

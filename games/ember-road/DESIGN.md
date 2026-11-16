@@ -1,0 +1,11 @@
+# Ember Road
+
+Ember Road lets a player lead Rook, a companion and a pet through five chapters by shaping a build, fighting groups, choosing oaths and returning stronger after defeat.
+
+The owner selected the cartoon idle-RPG reference on 16 November 2026 after rejecting the sidebar-and-cards composition as a SaaS dashboard. The reference establishes chunky characters, thick outlines, saturated colors, illustrated chapter dioramas, large icon navigation and a dominant Start action. Its artwork, economy, offers and progression are not copied.
+
+The chapter hub is a game screen. The current chapter and its company own the center. Top chrome shows actual damage, gold and account access. Side actions open real story, daily and weekly quests or company inspection. The bottom dock opens equipment, companions, skills and pets. Detail surfaces are modal; the document never scrolls. Desktop1440×900 and1280×720 are primary. Smaller widths retain usable start/navigation and internally scrolling dialogs.
+
+Fleet React components continue to own buttons, dialogs, progress, badges and switches. Game-specific tokens, artwork and motion give these controls their identity. Original SVG game icons are art inside Fleet buttons. Strong rarity colors remain paired with names and shapes. Notifications appear only for real available rewards. Equipment stays camp-only; inspections pause combat; retreat remains explicit and preserves permanent progress.
+
+Original cartoon sheets retain ready, anticipation, contact, recovery and walking poses. Combat uses the same model timings, target positions, projectiles, hit reactions and active skills. Camp motion is ambient and stops for platform/user pause, inspections and reduced-motion preference. Each chapter has distinct original environment art. Do not restore the old dashboard structure or mix painterly characters into the cartoon world.
