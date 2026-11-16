@@ -1031,7 +1031,7 @@
 .toon-shell .choice-grid {
   gap: 16px;
 }
-.toon-shell .choice-card {
+.toon-shell .game-dialog .choice-card {
   border-color: var(--rarity);
   background: var(--rarity-soft);
   box-shadow: 0 4px var(--rarity);
@@ -1729,7 +1729,7 @@
   .toon-shell .choice-grid {
     grid-template-columns: 1fr;
   }
-  .toon-shell .choice-card {
+  .toon-shell .game-dialog .choice-card {
     display: grid;
     grid-template-columns: 1fr 1fr;
     align-items: center;
@@ -2023,4 +2023,10 @@
 }
 .toon-shell progress[aria-label="Experience"]::-moz-progress-bar {
   background: #65bcf3 !important;
+}
+
+.toon-shell .game-dialog .rarity-legendary [data-slot="card-content"] > button,
+.toon-shell .game-dialog .rarity.rarity-legendary {
+  color: #33230f;
+  text-shadow: none;
 }

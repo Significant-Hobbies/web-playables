@@ -587,7 +587,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <div>
                 <span className="eyebrow" id="enemy-label">
                   {state.phase.kind === "battle"
-                    ? `ENCOUNTER ${state.run.cleared + 1}`
+                    ? `ENCOUNTER ${state.run.cleared + 1} / ${ENCOUNTERS_PER_CHAPTER}`
                     : "THE OLD ROAD"}
                 </span>
                 <h1>{place.name}</h1>
