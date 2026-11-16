@@ -1,0 +1,807 @@
+.toon-shell .story-opening {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  background: #162939;
+  color: #fff3d5;
+  font-family: var(--game-font);
+}
+.story-opening::backdrop {
+  background: #142937;
+}
+.opening-topline {
+  position: absolute;
+  inset: 28px 38px auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 4;
+}
+.opening-topline > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #f2c66a;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+}
+.opening-topline > span svg {
+  width: 25px;
+  height: 25px;
+  fill: #eba452;
+}
+.toon-shell .opening-topline button {
+  background: #263c48;
+  border-color: #55717b;
+  color: #d6e0d4;
+  font-size: 12px;
+  box-shadow: none;
+}
+.opening-scene {
+  height: 100%;
+  position: relative;
+  animation: story-arrive 0.5s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.opening-world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 64%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(#233851 0%, #626681 58%, #687461 100%);
+}
+.opening-world::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent 45%, #162939 100%),
+    linear-gradient(0deg, #162939 0%, transparent 25%, #16293955 95%);
+  pointer-events: none;
+}
+
+.opening-glow {
+  position: absolute;
+  width: 60%;
+  height: 45%;
+  left: 12%;
+  bottom: 11%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #efb7536b, transparent 65%);
+  animation: hearth-glow 3s ease-in-out infinite alternate;
+}
+
+.opening-actor {
+  position: absolute;
+  bottom: 18%;
+  background-repeat: no-repeat;
+  transform-origin: 50% 90%;
+  animation: companion-idle 3.2s ease-in-out infinite;
+  z-index: 2;
+}
+.opening-rook {
+  width: 34%;
+  aspect-ratio: 1;
+  left: 32%;
+  background: url("../assets/toon-knight.png") 0 0 / 400% 200% no-repeat;
+}
+.opening-mira {
+  width: 29%;
+  aspect-ratio: 1;
+  left: 12%;
+  bottom: 23%;
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+  animation-delay: -0.8s;
+}
+.opening-cinder {
+  width: 21%;
+  aspect-ratio: 1;
+  left: 54%;
+  bottom: 17%;
+  background: url("../assets/toon-pets.png") 0 0 / 400% 300% no-repeat;
+  animation-delay: -1.6s;
+}
+.opening-darkness .opening-actor {
+  opacity: 0;
+}
+.opening-promise .opening-cinder {
+  opacity: 0;
+}
+.opening-caption {
+  position: absolute;
+  width: 39%;
+  right: 6%;
+  top: 50%;
+  transform: translateY(-43%);
+  z-index: 3;
+}
+.opening-chapter {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+  color: #deb86b;
+}
+.toon-shell .opening-caption h1 {
+  font-size: clamp(38px, 4.2vw, 65px);
+  line-height: 1.03;
+  color: #fff0c7;
+  margin: 17px 0 25px;
+  text-shadow: 0 5px #101c29;
+  -webkit-text-stroke: 1px #eed6a4;
+  letter-spacing: -0.035em;
+}
+.opening-speaker {
+  color: #f4c875;
+  font-size: 14px;
+  font-weight: 850;
+}
+.opening-caption > p {
+  color: #deded1;
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.7;
+  margin: 13px 0 27px;
+  max-width: 490px;
+}
+.toon-shell #prologue-next {
+  min-height: 52px;
+  height: auto;
+  padding: 13px 22px;
+  background: #edb94f;
+  border: 3px solid #0e202e;
+  color: #2c3540;
+  box-shadow: 0 5px #805e31;
+  font-size: 16px;
+  gap: 13px;
+}
+.opening-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: #8faaa9;
+  font-size: 11px;
+}
+.opening-progress > span {
+  margin-right: 9px;
+}
+.opening-progress i {
+  height: 5px;
+  width: 28px;
+  border-radius: 3px;
+  background: #38525b;
+}
+.opening-progress i.lit {
+  background: #e6b954;
+}
+.opening-mission {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 24px;
+  border-left: 3px solid #d8a94c;
+  padding-left: 14px;
+  color: #b2c6bc;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+}
+.opening-mission svg {
+  width: 28px;
+  height: 28px;
+  color: #e5aa47;
+}
+.opening-mission strong {
+  display: block;
+  color: #f2dfac;
+  font-size: 14px;
+  letter-spacing: 0;
+  margin-top: 5px;
+}
+.opening-audio {
+  position: absolute;
+  bottom: 22px;
+  left: 38px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: #a5b9b5;
+}
+.opening-audio svg {
+  width: 14px;
+  height: 14px;
+}
+.opening-ember {
+  position: absolute;
+  bottom: 28%;
+  left: 31%;
+  width: 5px;
+  height: 5px;
+  background: #ffd78d;
+  border-radius: 50%;
+  z-index: 3;
+  box-shadow: 0 0 10px #f6bd56;
+  animation: ember-rise 5s ease-out infinite;
+}
+.ember-1 {
+  left: 47%;
+  bottom: 22%;
+  animation-delay: -0.7s;
+}
+.ember-2 {
+  left: 20%;
+  bottom: 36%;
+  animation-delay: -2.4s;
+}
+.ember-3 {
+  left: 59%;
+  bottom: 38%;
+  animation-delay: -3.2s;
+}
+.ember-4 {
+  left: 38%;
+  bottom: 44%;
+  animation-delay: -1.8s;
+}
+.ember-5 {
+  left: 67%;
+  bottom: 19%;
+  animation-delay: -4.3s;
+}
+.toon-shell .sound-toggle {
+  width: 35px;
+  height: 35px;
+  min-height: 35px;
+  padding: 7px;
+  background: #48515b;
+  color: #efdfb4;
+  border: 3px solid #252b35;
+}
+.settings-company {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 5px 0 20px;
+  border-bottom: 2px solid #c8c7a5;
+}
+.settings-cinder {
+  flex: none;
+  width: 90px;
+  height: 90px;
+  background: url("../assets/toon-pets.png") 0 0 / 400% 300% no-repeat;
+}
+.toon-shell .settings-company h3 {
+  font-size: 23px;
+  margin: 6px 0;
+}
+.toon-shell .settings-company p {
+  margin: 0;
+}
+.audio-settings {
+  margin-top: 20px;
+}
+.audio-setting {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px 18px;
+  margin-bottom: 20px;
+}
+.audio-setting > label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 850;
+  font-size: 14px;
+}
+.audio-setting label svg {
+  width: 18px;
+  height: 18px;
+  color: #9c7939;
+}
+.toon-shell .audio-setting input[type="range"] {
+  grid-column: span 2;
+  width: 100%;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  accent-color: #a8843f;
+  background: transparent;
+}
+.toon-shell .audio-state {
+  font-size: 11px;
+  color: #7b785f;
+}
+.campfire-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.toon-shell .tutorial-card {
+  position: absolute;
+  left: 22px;
+  top: 170px;
+  display: flex;
+  gap: 10px;
+  max-width: 365px;
+  background: #fff0c7;
+  border: 3px solid #364b43;
+  border-radius: 13px;
+  box-shadow: 0 5px #30413b;
+  padding: 14px;
+  z-index: 5;
+  animation: guide-arrive 0.22s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.guide-mira {
+  display: block;
+  width: 62px;
+  height: 72px;
+  flex: none;
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+}
+.toon-shell .tutorial-card h3 {
+  font-size: 21px;
+  color: #43583e;
+  margin: 5px 0;
+}
+.toon-shell .tutorial-card p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #57624b;
+  margin-bottom: 11px;
+}
+.tutorial-card > div > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.toon-shell .tutorial-card button {
+  height: 31px;
+  min-height: 31px;
+  padding: 5px 9px;
+  font-size: 11px;
+  background: #e3bd61;
+  border: 2px solid #445242;
+  box-shadow: 0 2px #7b8061;
+}
+.toon-shell .tutorial-card.camp-guide {
+  top: auto;
+  bottom: 25px;
+  left: 25px;
+}
+.oath-guidance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 17px;
+  border: 2px solid #c5b176;
+  background: #f8e6b2;
+  border-radius: 10px;
+}
+.oath-guidance .guide-mira {
+  width: 45px;
+  height: 50px;
+}
+.toon-shell .oath-guidance p {
+  font-size: 12px;
+  margin: 0;
+}
+.toon-shell .oath-guidance button {
+  flex: none;
+}
+.toon-shell .collection-dialog .loadout-portrait {
+  animation: companion-idle 3.4s ease-in-out infinite;
+  transform-origin: 50% 92%;
+}
+.toon-shell .collection-dialog .selection-card {
+  animation: collection-arrive 0.18s cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+.toon-shell .collection-dialog .selection-card.item-1 {
+  animation-delay: 0.035s;
+}
+.toon-shell .collection-dialog .selection-card.item-2 {
+  animation-delay: 0.07s;
+}
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion)
+  .collection-dialog[open]
+  .loadout-portrait,
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion)
+  .collection-dialog[open]
+  .selection-card,
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .tutorial-card,
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .story-opening[open] * {
+  animation-play-state: running !important;
+}
+.toon-shell.presentation-paused *,
+.story-opening.presentation-paused * {
+  animation-play-state: paused !important;
+  transition-duration: 0s !important;
+}
+.toon-shell .game-dialog {
+  transition:
+    opacity 0.18s ease-out,
+    transform 0.18s cubic-bezier(0.23, 1, 0.32, 1),
+    display 0.18s allow-discrete,
+    overlay 0.18s allow-discrete;
+}
+@starting-style {
+  .toon-shell .game-dialog[open] {
+    opacity: 0;
+    transform: scale(0.975) translateY(6px);
+  }
+}
+@keyframes companion-idle {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-2px) scaleY(1.012);
+  }
+}
+@keyframes collection-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes guide-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes story-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ember-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px);
+  }
+  20% {
+    opacity: 0.8;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(15px, -60px);
+  }
+}
+@keyframes hearth-glow {
+  from {
+    opacity: 0.65;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+@media (min-width: 900px) and (max-height: 760px) {
+  .opening-caption > p {
+    font-size: 16px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .toon-shell .opening-caption h1 {
+    font-size: 46px;
+    margin-block: 13px 18px;
+  }
+  .opening-mission {
+    margin-bottom: 17px;
+  }
+  .opening-progress {
+    margin-top: 18px;
+  }
+  .toon-shell .tutorial-card {
+    top: 138px;
+    max-width: 320px;
+    padding: 11px;
+  }
+}
+@media (max-width: 899px) {
+  .opening-topline {
+    inset: 20px 22px auto;
+  }
+  .opening-topline > span {
+    font-size: 11px;
+  }
+  .opening-world {
+    width: 100%;
+    height: 58%;
+  }
+  .opening-world::after {
+    background: linear-gradient(0deg, #162939, transparent 50%);
+  }
+  .opening-rook {
+    width: 24%;
+    left: 38%;
+    bottom: 4%;
+  }
+  .opening-mira {
+    width: 21%;
+    left: 22%;
+    bottom: 10%;
+  }
+  .opening-cinder {
+    width: 16%;
+    left: 58%;
+    bottom: 2%;
+  }
+  .opening-caption {
+    width: auto;
+    inset: auto 8% 7%;
+    top: auto;
+    transform: none;
+  }
+  .toon-shell .opening-caption h1 {
+    font-size: 42px;
+    margin: 10px 0 16px;
+  }
+  .opening-caption > p {
+    font-size: 16px;
+    line-height: 1.55;
+    margin: 9px 0 19px;
+    max-width: none;
+  }
+  .opening-speaker {
+    font-size: 12px;
+  }
+  .opening-chapter {
+    font-size: 9px;
+  }
+  .opening-progress {
+    margin-top: 19px;
+  }
+  .opening-audio {
+    bottom: 13px;
+    left: 8%;
+    font-size: 9px;
+  }
+  .opening-mission {
+    margin-bottom: 18px;
+  }
+  .toon-shell #prologue-next {
+    min-height: 44px;
+    font-size: 14px;
+    padding: 10px 17px;
+  }
+  .toon-shell .tutorial-card {
+    top: 140px;
+    left: 13px;
+    max-width: 320px;
+    padding: 11px;
+  }
+  .toon-shell .tutorial-card.camp-guide {
+    bottom: 12px;
+    left: 13px;
+  }
+}
+@media (max-width: 480px) {
+  .opening-topline {
+    inset: 14px 15px auto;
+  }
+  .toon-shell .opening-topline button {
+    padding: 6px 9px;
+    font-size: 10px;
+    min-height: 32px;
+  }
+  .opening-world {
+    height: 48%;
+  }
+  .opening-rook {
+    width: 30%;
+    left: 36%;
+  }
+  .opening-mira {
+    width: 27%;
+    left: 16%;
+  }
+  .opening-cinder {
+    width: 22%;
+    left: 59%;
+  }
+  .opening-caption {
+    inset: auto 7% 7%;
+  }
+  .toon-shell .opening-caption h1 {
+    font-size: 34px;
+  }
+  .opening-caption > p {
+    font-size: 14px;
+  }
+  .opening-mission strong {
+    font-size: 12px;
+  }
+  .opening-progress {
+    margin-top: 16px;
+  }
+  .opening-audio {
+    font-size: 8px;
+  }
+  .toon-shell .tutorial-card {
+    left: 10px;
+    right: 10px;
+    max-width: none;
+    top: 150px;
+  }
+  .guide-mira {
+    width: 45px;
+    height: 60px;
+  }
+  .toon-shell .tutorial-card h3 {
+    font-size: 18px;
+  }
+  .toon-shell .tutorial-card p {
+    font-size: 11px;
+  }
+  .oath-guidance {
+    gap: 7px;
+    padding: 8px;
+  }
+  .oath-guidance .guide-mira {
+    display: none;
+  }
+  .toon-shell .oath-guidance p {
+    font-size: 11px;
+  }
+  .toon-shell .oath-guidance button {
+    font-size: 10px;
+    padding: 5px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toon-shell .story-opening *,
+  .toon-shell .tutorial-card,
+  .toon-shell .collection-dialog .selection-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.opening-topline > div {
+  display: flex;
+  gap: 10px;
+}
+.opening-topline > div button {
+  gap: 6px;
+}
+.opening-topline > div svg {
+  width: 15px;
+  height: 15px;
+}
+.opening-world {
+  width: 100%;
+  background: url("../assets/origin-dusk.png") center / cover no-repeat;
+}
+.opening-world::after {
+  background:
+    linear-gradient(90deg, #102738f2 0%, #142b39cc 30%, #142b3944 59%, transparent 85%),
+    linear-gradient(0deg, #142937aa, transparent 35%);
+}
+.opening-caption {
+  left: 6%;
+  right: auto;
+  width: 38%;
+}
+.opening-rook {
+  left: 65%;
+  bottom: 6%;
+  width: 21%;
+}
+.opening-mira {
+  left: 52%;
+  bottom: 12%;
+  width: 18%;
+}
+.opening-cinder {
+  left: 80%;
+  bottom: 5%;
+  width: 14%;
+}
+.opening-glow {
+  left: 55%;
+  bottom: 1%;
+  width: 43%;
+  height: 40%;
+}
+@media (max-width: 899px) {
+  .opening-world {
+    height: 100%;
+    background-position: 64% center;
+  }
+  .opening-world::after {
+    background: linear-gradient(0deg, #142937 0%, #142937ee 32%, #14293744 61%, #14293744);
+  }
+  .opening-caption {
+    left: 8%;
+    width: auto;
+    right: 8%;
+  }
+  .opening-rook {
+    left: 46%;
+    bottom: 47%;
+    width: 27%;
+  }
+  .opening-mira {
+    left: 26%;
+    bottom: 50%;
+    width: 24%;
+  }
+  .opening-cinder {
+    left: 69%;
+    bottom: 46%;
+    width: 20%;
+  }
+}
+@media (max-width: 480px) {
+  .opening-topline {
+    gap: 8px;
+  }
+  .opening-topline > span {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+  }
+  .opening-topline > span svg {
+    width: 18px;
+    height: 18px;
+  }
+  .opening-topline > div {
+    gap: 6px;
+  }
+  .opening-topline > div button span {
+    display: none;
+  }
+  .opening-caption {
+    left: 7%;
+    right: 7%;
+  }
+  .opening-rook {
+    left: 42%;
+    bottom: 49%;
+    width: 35%;
+  }
+  .opening-mira {
+    left: 17%;
+    bottom: 54%;
+    width: 29%;
+  }
+  .opening-cinder {
+    left: 70%;
+    bottom: 47%;
+    width: 25%;
+  }
+}

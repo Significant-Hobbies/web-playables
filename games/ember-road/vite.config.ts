@@ -3,6 +3,9 @@ import { defineConfig } from "vite";
 
 export default defineConfig(({ mode }) => ({
   base: "./",
+  optimizeDeps: {
+    include: ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "react-dom/client"],
+  },
   build: { outDir: mode === "yt" ? "dist/yt" : "dist/web", emptyOutDir: true, target: "es2022" },
   plugins: [
     tailwindcss(),

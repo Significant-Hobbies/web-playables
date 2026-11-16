@@ -5,6 +5,8 @@ import {
   type Loop,
   type Platform,
 } from "@games/gamekit";
+import { type AudioStatus, GameAudio, type SoundCue } from "./audio";
+import { type AudioPreferences, experienceOf, type Lesson, prepareExperience } from "./experience";
 import {
   buyUpgrade,
   useSkill as castSkill,
@@ -31,6 +33,7 @@ import { mountUi, type UiActions, type UiSnapshot } from "./ui";
 import "./style.css";
 import "./toon.css";
 import "./collection.css";
+import "./experience.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -54,6 +57,19 @@ let note = "Rook fights automatically. Shape your company and cast with Q.";
 let renderer: WorldRenderer | undefined;
 let loop: Loop | undefined;
 let renderUi: ReturnType<typeof mountUi> | undefined;
+let audioStatus: AudioStatus = "locked";
+const audio = new GameAudio(experienceOf(state).audio, (status) => {
+  audioStatus = status;
+  publish();
+});
+function syncAudio() {
+  audio.update(experienceOf(state).audio, {
+    paused: !loaded || userPaused || platformPaused,
+    permitted: platform.audioEnabled(),
+    inspecting,
+    battle: state.phase.kind === "battle",
+  });
+}
 const savePlatform: Platform = {
   env: platform.env,
   allowsMuteUi: platform.allowsMuteUi,
@@ -115,6 +131,10 @@ function snapshot(): UiSnapshot {
     saveWarning,
     paused: userPaused,
     motionPaused: userPaused || platformPaused || inspecting,
+    presentationPaused: userPaused || platformPaused,
+    audioStatus,
+    audioPermitted: platform.audioEnabled(),
+    audioControls: platform.allowsMuteUi,
     reducedMotion,
     decisionReady: loaded && !renderer?.settling,
     note,
@@ -122,6 +142,7 @@ function snapshot(): UiSnapshot {
   };
 }
 function publish() {
+  syncAudio();
   renderUi?.(snapshot());
 }
 function draw() {
@@ -164,6 +185,7 @@ function changed(clear = false) {
 }
 function events(events: GameEvent[]) {
   renderer?.handle(events, state);
+  audio.handle(events, state);
   for (const event of events) {
     if (event.type === "kill" || event.type === "skill")
       recordQuestProgress(state.quests, event, Date.now());
@@ -215,24 +237,82 @@ const actions: UiActions = {
     syncPause();
   },
   start: launch,
+  unlockAudio() {
+    void audio.unlock();
+  },
+  uiSound(cue: SoundCue = "page") {
+    audio.play(cue);
+  },
+  toggleSound() {
+    if (loaded && platform.allowsMuteUi) {
+      const p = prepareExperience(state).audio;
+      const enabled = !(p.musicEnabled || p.effectsEnabled);
+      p.musicEnabled = enabled;
+      p.effectsEnabled = enabled;
+      void audio.unlock();
+      changed();
+    }
+  },
+  finishIntro() {
+    if (loaded) {
+      prepareExperience(state).introSeen = true;
+      changed();
+    }
+  },
+  learn(lesson: Lesson) {
+    if (loaded) {
+      prepareExperience(state).lessons[lesson] = true;
+      changed();
+    }
+  },
+  skipGuidance() {
+    if (loaded) {
+      const e = prepareExperience(state);
+      for (const key of ["battle", "skill", "oath", "camp"] as const) e.lessons[key] = true;
+      changed();
+    }
+  },
+  audioPreference(key: keyof AudioPreferences, value: boolean | number) {
+    if (!loaded || !platform.allowsMuteUi) return;
+    const preferences = prepareExperience(state).audio;
+    if ((key === "musicEnabled" || key === "effectsEnabled") && typeof value === "boolean")
+      preferences[key] = value;
+    if (
+      (key === "musicVolume" || key === "effectsVolume") &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    )
+      preferences[key] = Math.max(0, Math.min(1, value));
+    void audio.unlock();
+    changed();
+  },
   choose(id) {
     if (loaded && !renderer?.settling && choosePerk(state, id)) {
       recordQuestProgress(state.quests, { type: "oath" }, Date.now());
+      prepareExperience(state).lessons.oath = true;
+      audio.play("oath");
       note = `${PERKS.find((p) => p.id === id)!.title} joins your build.`;
       changed(true);
     }
   },
   skip() {
     if (loaded && !renderer?.settling && skipPerk(state)) {
+      prepareExperience(state).lessons.oath = true;
       note = "Choice skipped. The company marches on.";
       changed(true);
     }
   },
   equip(slot, id) {
-    if (loaded && equip(state, slot, id)) changed(true);
+    if (loaded && equip(state, slot, id)) {
+      audio.play("equip");
+      changed(true);
+    }
   },
   upgrade(id) {
-    if (loaded && buyUpgrade(state, id)) changed();
+    if (loaded && buyUpgrade(state, id)) {
+      audio.play("forge");
+      changed();
+    }
   },
   retreat() {
     if (loaded && retreatToCamp(state)) {
@@ -250,7 +330,10 @@ const actions: UiActions = {
   },
   skill() {
     if (!loaded || userPaused || platformPaused || inspecting) return;
-    events(castSkill(state));
+    const result = castSkill(state);
+    if (result.some((event) => event.type === "skill"))
+      prepareExperience(state).lessons.skill = true;
+    events(result);
     draw();
     publish();
   },
@@ -268,6 +351,7 @@ const actions: UiActions = {
     if (reward > 0) {
       state.meta.gold += reward;
       state.meta.earnedGold += reward;
+      audio.play("claim");
       note = `Mission reward claimed · +${reward} gold for the company.`;
     } else note = "This objective has changed or its reward is already claimed.";
     changed();
@@ -302,11 +386,38 @@ loop = createLoop(
   },
   { stepMs: 1000 / 60, maxCatchUpMs: 150 },
 );
+platform.onAudioEnabledChange(() => {
+  syncAudio();
+  publish();
+});
 platform.onPauseChange((paused) => {
   platformPaused = paused;
   syncPause();
 });
+window.addEventListener("pointerdown", (event) => {
+  if (event.target instanceof Node && app.contains(event.target)) void audio.unlock();
+});
+window.addEventListener("click", (event) => {
+  const button = event.target instanceof Element ? event.target.closest("button") : null;
+  if (
+    button &&
+    app.contains(button) &&
+    !button.matches("[data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill")
+  )
+    audio.play("page");
+});
 window.addEventListener("keydown", (event) => {
+  if (
+    event.target instanceof Node &&
+    (app.contains(event.target) || event.target === document.body) &&
+    !(
+      event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target instanceof HTMLSelectElement ||
+      (event.target instanceof HTMLElement && event.target.isContentEditable)
+    )
+  )
+    void audio.unlock();
   if (
     !loaded ||
     inspecting ||
@@ -355,6 +466,8 @@ try {
   saveWarning = true;
   state = initialState();
 }
+prepareExperience(state);
+inspecting = !experienceOf(state).introSeen;
 loaded = true;
 advanceQuests(state.quests, Date.now());
 campStage = state.phase.kind === "camp";

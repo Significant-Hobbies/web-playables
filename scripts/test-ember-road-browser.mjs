@@ -101,11 +101,20 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     });
     return c;
   }
-  async function ready(page) {
+  async function ready(page, skipOpening = true) {
     await page.goto(origin);
     await page.waitForFunction(
       () => !document.getElementById("save-status")?.textContent.includes("Loading"),
     );
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+    if (skipOpening && (await page.locator("#skip-prologue").isVisible())) {
+      await page.locator("#skip-prologue").click();
+      const resume = page.locator("#start");
+      if ((await resume.isVisible()) && /^RESUME/.test(await resume.innerText()))
+        await resume.click();
+    }
   }
   async function stored(page) {
     return page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
@@ -154,6 +163,93 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await page.locator("#depart").click();
   }
   try {
+    const originContext = await context();
+    await originContext.addInitScript(() => {
+      window.__audioContexts = [];
+      window.__audioLoops = 0;
+      const Original = window.AudioContext;
+      window.AudioContext = class extends Original {
+        constructor(...args) {
+          super(...args);
+          window.__audioContexts.push(this);
+          const create = this.createBufferSource.bind(this);
+          this.createBufferSource = () => {
+            const source = create();
+            const start = source.start.bind(source);
+            source.start = (...values) => {
+              if (source.loop) window.__audioLoops++;
+              return start(...values);
+            };
+            return source;
+          };
+        }
+      };
+    });
+    const originPage = await originContext.newPage();
+    await ready(originPage, false);
+    await originPage.getByRole("dialog", { name: "How the journey began" }).waitFor();
+    assert(await originPage.getByText("The valley went dark.", { exact: true }).isVisible());
+    assert.equal(
+      await originPage.evaluate(() => window.__audioContexts.length),
+      0,
+      "Opening is silent before a gesture",
+    );
+    await originPage.screenshot({ path: join(evidence, "origin-story-1440.png") });
+    assert.equal(await originPage.evaluate(() => document.activeElement?.id), "prologue-next");
+    await originPage.keyboard.press("Enter");
+    assert(await originPage.getByText("A promise worth keeping.", { exact: true }).isVisible());
+    await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
+    await originPage.keyboard.press("Enter");
+    assert(await originPage.getByText("No one walks alone.", { exact: true }).isVisible());
+    await originPage.waitForFunction(() => document.activeElement?.id === "prologue-next");
+    await originPage.keyboard.press("Enter");
+    await originPage.waitForFunction(() => window.__audioLoops === 2);
+    assert.equal(await originPage.evaluate(() => window.__audioContexts.length), 1);
+    await originPage.getByRole("complementary", { name: "First battle guidance" }).waitFor();
+    await originPage.waitForFunction(() => !document.querySelector(".cast-skill").disabled);
+    await originPage.keyboard.press("q");
+    await originPage.waitForFunction(
+      (key) => JSON.parse(localStorage.getItem(key)).state.meta.experience.lessons.skill,
+      storageKey,
+    );
+    await originPage.locator("#settings-toggle").click();
+    await originPage.getByRole("switch", { name: "Background music", exact: true }).click();
+    await originPage.waitForFunction(
+      (key) =>
+        JSON.parse(localStorage.getItem(key)).state.meta.experience.audio.musicEnabled === false,
+      storageKey,
+    );
+    const firstSaved = await stored(originPage);
+    assert(firstSaved.state.meta.experience.introSeen);
+    assert.equal(firstSaved.state.meta.experience.audio.musicEnabled, false);
+    const pausedRun = structuredClone(firstSaved.state.run);
+    await originPage.getByRole("button", { name: "Watch the opening", exact: true }).click();
+    await originPage.getByRole("dialog", { name: "How the journey began" }).waitFor();
+    assert.deepEqual(
+      (await stored(originPage)).state.run,
+      pausedRun,
+      "The running journey stays frozen under the replayed opening",
+    );
+    await originPage.locator("#skip-prologue").click();
+    assert.match(await originPage.locator("#start").innerText(), /^RESUME/);
+    const heldRun = (await stored(originPage)).state.run;
+    assert.equal(heldRun.chapter, pausedRun.chapter);
+    assert.equal(heldRun.cleared, pausedRun.cleared);
+    assert.deepEqual(heldRun.perks, pausedRun.perks);
+    await originPage.waitForTimeout(2600);
+    assert.deepEqual(
+      (await stored(originPage)).state.run,
+      heldRun,
+      "The whole run stays frozen beyond a normal autosave interval until explicit Resume",
+    );
+    await originPage.reload();
+    await originPage.waitForFunction(
+      () => !document.getElementById("save-status")?.textContent.includes("Loading"),
+    );
+    assert.equal(await originPage.locator(".story-opening[open]").count(), 0);
+    assert.equal((await stored(originPage)).state.meta.experience.audio.musicEnabled, false);
+    result.storyOpeningGuidanceAndAudioPreferences = true;
+    await originContext.close();
     const c = await context();
     const page = await c.newPage();
     await ready(page);

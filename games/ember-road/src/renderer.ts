@@ -241,6 +241,20 @@ export class WorldRenderer {
     if (!value) return;
     if (lightning) this.lightningAge = 0;
     const { x, y, scale } = this.posedPosition(target);
+    if (!heal) {
+      for (let i = 0; i < (critical ? 7 : 3); i++) {
+        const angle = (i / (critical ? 7 : 3)) * Math.PI * 2;
+        this.sparks.push({
+          x,
+          y: y - 95 * scale,
+          age: 0,
+          life: critical ? 0.45 : 0.28,
+          vx: Math.cos(angle) * (critical ? 90 : 48),
+          vy: Math.sin(angle) * 45 - 35,
+          color: critical ? "#ffd26d" : "#f1d894",
+        });
+      }
+    }
     this.sparks.push({
       x,
       y: y - 170 * scale,

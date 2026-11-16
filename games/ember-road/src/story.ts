@@ -1,3 +1,30 @@
+export const PROLOGUE = [
+  {
+    id: "darkness",
+    chapter: "THREE NIGHTS AGO",
+    title: "The valley went dark.",
+    speaker: "A light in the window",
+    text: "One by one, the valley’s beacons fell silent. Silas, keeper of the old watchtower, never came home. His daughter left a lantern burning in the window.",
+    next: "Follow the last light",
+  },
+  {
+    id: "promise",
+    chapter: "AT THE EDGE OF THE VILLAGE",
+    title: "A promise worth keeping.",
+    speaker: "Mira, the keeper’s daughter",
+    text: "“Father left a lantern in the watchtower. If there is still a spark inside, we can wake the beacons. Rook… will you walk with me?”",
+    next: "Gather the company",
+  },
+  {
+    id: "company",
+    chapter: "THE FIRST STEP",
+    title: "No one walks alone.",
+    speaker: "Rook, Mira & Cinder",
+    text: "A small ember fox followed the lantern’s glow. Rook fastened his sword. Mira took her bow. Together, they would find Silas and bring the light home.",
+    next: "Begin the journey",
+  },
+] as const;
+
 export const JOURNEY = [
   {
     title: "The last lit window",
