@@ -5,6 +5,9 @@ import { companyPower } from "./power";
 function initialState(seed?: number) {
   const state = freshState(seed);
   delete state.meta.progression;
+  state.adventures!.discoveries.mira = true;
+  state.adventures!.discoveries.cinder = true;
+  state.adventures!.discoveries.whirlwind = true;
   return state;
 }
 

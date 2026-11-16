@@ -1,9 +1,29 @@
+import {
+  type ActivityKind,
+  type AdventureLedger,
+  activityPreview,
+  advanceAdventures,
+  currentRoute,
+  EXPEDITIONS,
+  initialAdventures,
+  nextJunction,
+  type RouteId,
+  type RunContext,
+  routeOptions,
+  runLength,
+  TIERS,
+  type Tier,
+  validAdventureLedger,
+  validRunContext,
+} from "./adventures";
 import { type Experience, initialExperience, validExperience } from "./experience.ts";
 import {
   awardRenown,
   awardWave,
   initialProgression,
+  LEVEL_THRESHOLDS,
   type Progression,
+  prepareProgression,
   progressionOf,
   systemUnlocked,
   validProgression,
@@ -387,10 +407,17 @@ export type Phase =
   | { kind: "camp" }
   | { kind: "travel"; remaining: number }
   | BattlePhase
+  | { kind: "route"; at: number }
   | { kind: "choice"; options: PerkId[]; rerolls?: number }
   | { kind: "defeat"; enemy: string }
-  | { kind: "victory"; reward: number };
+  | {
+      kind: "victory";
+      reward: number;
+      bonus?: number;
+      bonusStatus?: "earned" | "claimed" | "expired";
+    };
 export interface GameState {
+  adventures?: AdventureLedger;
   quests: QuestLedger;
   meta: {
     experience?: Experience;
@@ -404,6 +431,7 @@ export interface GameState {
     loadout: Loadout;
   };
   run: {
+    context?: RunContext;
     chapter: number;
     cleared: number;
     hp: number;
@@ -462,6 +490,7 @@ export const DEFAULT_LOADOUT: Loadout = {
 };
 export function initialState(seed = 927113): GameState {
   return {
+    adventures: initialAdventures(),
     quests: initialQuests(),
     meta: {
       experience: initialExperience(),
@@ -475,6 +504,7 @@ export function initialState(seed = 927113): GameState {
       loadout: { ...DEFAULT_LOADOUT },
     },
     run: {
+      context: { kind: "campaign", routes: [], junctionFloor: 0 },
       chapter: 1,
       cleared: 0,
       hp: 180,
@@ -491,6 +521,10 @@ export function initialState(seed = 927113): GameState {
     phase: { kind: "camp" },
   };
 }
+function companyLevelBonus(state: GameState) {
+  if (!state.adventures) return 0;
+  return LEVEL_THRESHOLDS.filter((t) => t <= progressionOf(state).renown).length - 1;
+}
 export function rank(state: GameState, id: PerkId) {
   return state.run.perks[id] ?? 0;
 }
@@ -504,12 +538,17 @@ export function heroStats(state: GameState): HeroStats {
   return {
     hp:
       180 +
+      companyLevelBonus(state) * 5 +
       state.meta.upgrades.mail * 25 +
       rank(state, "heart") * 35 +
       (petReady && l.pet === "hound" ? 20 : 0) +
       (l.armor === "plate" ? 20 : 0),
     damage:
-      (23 + state.meta.upgrades.blade * 4) *
+      (23 + state.meta.upgrades.blade * 4 + companyLevelBonus(state) * 2) *
+      (state.run.context?.kind === "campaign" &&
+      state.run.context.routes.some((r) => r.path === "shrine")
+        ? 1.2
+        : 1) *
       (1 + rank(state, "edge") * 0.25) *
       (l.weapon === "greatsword" ? 1.3 : 1),
     interval:
@@ -588,6 +627,7 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
     return false;
   const seed = state.run.seed;
   state.run = {
+    context: state.adventures ? { kind: "campaign", routes: [], junctionFloor: 0 } : undefined,
     chapter,
     cleared: 0,
     hp: 180,
@@ -607,8 +647,12 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
 }
 export function returnToCamp(state: GameState) {
   if (!["victory", "defeat"].includes(state.phase.kind)) return false;
-  if (state.phase.kind === "victory")
+  if (
+    state.phase.kind === "victory" &&
+    (!state.run.context || state.run.context.kind === "campaign")
+  )
     state.run.chapter = Math.min(state.meta.unlockedChapter, state.run.chapter + 1);
+  state.run.context = { kind: "campaign", routes: [], junctionFloor: state.run.cleared };
   state.phase = { kind: "camp" };
   state.run.perks = {};
   state.run.shield = 0;
@@ -618,10 +662,11 @@ export function returnToCamp(state: GameState) {
 }
 
 export function retreatToCamp(state: GameState): boolean {
-  if (!["travel", "battle", "choice"].includes(state.phase.kind)) return false;
+  if (!["travel", "battle", "choice", "route"].includes(state.phase.kind)) return false;
   const chapter = state.run.chapter;
   const seed = state.run.seed;
   state.run = {
+    context: state.adventures ? { kind: "campaign", routes: [], junctionFloor: 0 } : undefined,
     chapter,
     cleared: 0,
     hp: 180,
@@ -724,11 +769,152 @@ export function encounterGroup(chapter: number, cleared: number): EnemyFighter[]
     };
   });
 }
+export function startActivity(
+  state: GameState,
+  kind: ActivityKind,
+  tier: Tier,
+  period: number,
+  id: number,
+  now: number,
+): boolean {
+  advanceAdventures(state, now);
+  if (!["daily", "hunt"].includes(kind) || ![1, 2, 3].includes(tier)) return false;
+  const offer = activityPreview(state, kind, tier);
+  if (
+    !offer.unlocked ||
+    offer.period !== period ||
+    offer.id !== id ||
+    !startRun(state, Math.min(state.meta.unlockedChapter, TIERS[tier - 1]!.chapter))
+  )
+    return false;
+  state.run.context = { kind, tier, period, id };
+  state.run.seed = ((period + 1) * 2654435761 + id * 97 + tier * 17) >>> 0 || 1;
+  return true;
+}
+export function chooseRoute(state: GameState, path: RouteId): boolean {
+  const context = state.run.context;
+  if (
+    state.phase.kind !== "route" ||
+    context?.kind !== "campaign" ||
+    nextJunction(state) !== state.phase.at ||
+    !routeOptions(state.phase.at).includes(path) ||
+    !state.adventures
+  )
+    return false;
+  context.routes.push({ at: state.phase.at, path });
+  const p = prepareProgression(state),
+    discoveries = state.adventures.discoveries;
+  if (path === "spring") {
+    state.run.hp = Math.min(heroStats(state).hp, state.run.hp + heroStats(state).hp * 0.35);
+    p.trailmarks = Math.min(1e9, p.trailmarks + 2);
+  }
+  if (path === "rescue") {
+    if (discoveries.mira) p.trailmarks = Math.min(1e9, p.trailmarks + 5);
+    discoveries.mira = true;
+  }
+  if (path === "tracks") {
+    if (discoveries.cinder) p.trailmarks = Math.min(1e9, p.trailmarks + 5);
+    discoveries.cinder = true;
+  }
+  if (path === "shrine") discoveries.whirlwind = true;
+  state.phase = { kind: "travel", remaining: 0.9 };
+  return true;
+}
+function resumeTrail(state: GameState, remaining = 0.9) {
+  const at = state.adventures ? nextJunction(state) : undefined;
+  state.phase = at === undefined ? { kind: "travel", remaining } : { kind: "route", at };
+}
+export function adventureEnemies(state: GameState): EnemyFighter[] {
+  const context = state.run.context;
+  if (!context || context.kind === "campaign") {
+    const enemies = encounterGroup(state.run.chapter, state.run.cleared),
+      route = currentRoute(state);
+    for (const enemy of enemies) {
+      if (route === "spring") {
+        enemy.maxHp = Math.round(enemy.maxHp * 0.8);
+        enemy.damage = Math.max(1, Math.round(enemy.damage * 0.8));
+      }
+      if (route === "elite") {
+        enemy.maxHp = Math.round(enemy.maxHp * 1.35);
+        enemy.armor += 2;
+        enemy.gold *= 2;
+        if (enemy.row === "back") {
+          enemy.kind = "hexer";
+          enemy.name = "Elite emberguard";
+        }
+      }
+      enemy.hp = enemy.maxHp;
+    }
+    return enemies;
+  }
+  const tier = TIERS[context.tier - 1]!,
+    round = state.run.cleared;
+  let enemies: EnemyFighter[];
+  if (context.kind === "hunt") {
+    enemies = encounterGroup(context.id + 1, 11).slice(0, round + 1);
+    for (const enemy of enemies) {
+      if (enemy.slot === 0) {
+        enemy.maxHp = Math.round((120 + round * 35) * tier.factor);
+        enemy.damage = Math.round((12 + round * 3) * tier.factor);
+        enemy.interval = round === 0 ? 2.6 : round === 1 ? 2 : 1.6;
+        enemy.name = CHAPTERS[context.id]!.boss;
+      } else {
+        enemy.kind = round === 1 ? "sentinel" : "hexer";
+        enemy.name = round === 1 ? "Hunt shieldbearer" : "Hunt embercaller";
+        enemy.row = round === 1 ? "front" : "back";
+        enemy.maxHp = Math.round(38 * tier.factor);
+        enemy.damage = Math.round(6 * tier.factor);
+        enemy.interval = round === 1 ? 1.8 : 2.8;
+        enemy.armor = round === 1 ? 4 : 0;
+      }
+      enemy.hp = enemy.maxHp;
+      enemy.gold = 5 + context.tier * 2;
+    }
+    return enemies;
+  }
+  enemies = encounterGroup(state.run.chapter, round + 2);
+  const style = EXPEDITIONS[context.id]!.style;
+  for (const enemy of enemies) {
+    enemy.maxHp = Math.round(enemy.maxHp * tier.factor);
+    enemy.damage = Math.round(enemy.damage * tier.factor);
+    if (style === "arrows" && enemy.row === "back") {
+      enemy.kind = "archer";
+      enemy.name = "Storm archer";
+      enemy.interval = 1.15;
+    }
+    if (style === "armor") {
+      enemy.kind = "sentinel";
+      enemy.name = "Ironwatch sentinel";
+      enemy.armor += 4;
+      enemy.maxHp = Math.round(enemy.maxHp * 1.2);
+    }
+    if (style === "glass") {
+      enemy.maxHp = Math.round(enemy.maxHp * 0.65);
+      enemy.damage *= 2;
+      enemy.armor = 0;
+    }
+    if (style === "feral") {
+      enemy.kind = "raider";
+      enemy.name = "Feral raider";
+      enemy.row = "front";
+      enemy.interval = 0.95;
+      enemy.armor = 0;
+    }
+    if (style === "lantern" && enemy.row === "back") {
+      enemy.kind = "hexer";
+      enemy.name = "Lantern hexer";
+      enemy.damage *= 2;
+      enemy.interval = 2.8;
+    }
+    enemy.hp = enemy.maxHp;
+  }
+  return enemies;
+}
 export function beginBattle(state: GameState): BattlePhase {
   return {
     kind: "battle",
     formation: "squad",
-    enemies: encounterGroup(state.run.chapter, state.run.cleared),
+    enemies: adventureEnemies(state),
     heroCooldown: 0.22,
     companionCooldown: 0.45,
     petCooldown: 0.8,
@@ -755,12 +941,17 @@ export function choosePerk(state: GameState, id: PerkId) {
   if (!perk || rank(state, id) >= perk.max) return false;
   state.run.perks[id] = rank(state, id) + 1;
   if (id === "heart") state.run.hp = Math.min(heroStats(state).hp, state.run.hp + 35);
-  state.phase = { kind: "travel", remaining: 0.9 };
+  if (state.adventures) {
+    const d = state.adventures.discoveries;
+    d.oaths = Math.min(2, d.oaths + 1);
+    if (d.oaths === 2) d.whirlwind = true;
+  }
+  resumeTrail(state);
   return true;
 }
 export function skipPerk(state: GameState) {
   if (state.phase.kind !== "choice") return false;
-  state.phase = { kind: "travel", remaining: 0.9 };
+  resumeTrail(state);
   return true;
 }
 export function rerollPerks(state: GameState) {
@@ -830,18 +1021,48 @@ function damageEnemy(
 function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]): boolean {
   if (livingEnemies(battle).length) return false;
   state.run.cleared++;
-  awardWave(state, state.run.cleared >= ENCOUNTERS_PER_CHAPTER);
+  const campaign = !state.run.context || state.run.context.kind === "campaign";
+  const finished = state.run.cleared >= runLength(state);
+  awardWave(state, finished && campaign);
+  if (currentRoute(state) === "elite")
+    prepareProgression(state).trailmarks = Math.min(1e9, prepareProgression(state).trailmarks + 2);
   state.run.xp += 2;
   heal(state, heroStats(state).hp * 0.08 * rank(state, "renewal"), events);
-  if (state.run.cleared >= ENCOUNTERS_PER_CHAPTER) {
-    const reward = 35 + state.run.chapter * 15;
+  if (finished) {
+    let reward = 35 + state.run.chapter * 15;
+    let bonus = 0;
+    let bonusStatus: "earned" | "claimed" | "expired" | undefined;
+    if (campaign) {
+      state.meta.victories++;
+      state.meta.unlockedChapter = Math.max(
+        state.meta.unlockedChapter,
+        Math.min(CHAPTERS.length, state.run.chapter + 1),
+      );
+    } else {
+      const context = state.run.context!;
+      if (context.kind !== "campaign" && state.adventures) {
+        const preview = activityPreview(state, context.kind, context.tier),
+          ledger = state.adventures[context.kind];
+        reward = context.kind === "daily" ? 20 : 35;
+        bonusStatus =
+          context.period !== preview.period
+            ? "expired"
+            : ledger.includes(context.tier)
+              ? "claimed"
+              : "earned";
+        if (bonusStatus === "earned") {
+          ledger.push(context.tier);
+          bonus = preview.reward.gold;
+          reward += bonus;
+          const p = prepareProgression(state);
+          p.trailmarks = Math.min(1e9, p.trailmarks + preview.reward.marks);
+          p.embers = Math.min(1e9, p.embers + preview.reward.embers);
+          awardRenown(state, context.kind === "hunt" ? 12 : 6);
+        }
+      }
+    }
     awardGold(state, reward);
-    state.meta.victories++;
-    state.meta.unlockedChapter = Math.max(
-      state.meta.unlockedChapter,
-      Math.min(CHAPTERS.length, state.run.chapter + 1),
-    );
-    state.phase = { kind: "victory", reward };
+    state.phase = { kind: "victory", reward, ...(bonusStatus ? { bonus, bonusStatus } : {}) };
     events.push({ type: "victory", gold: reward });
   } else if (state.run.xp >= xpNeeded(state)) {
     state.run.xp -= xpNeeded(state);
@@ -851,7 +1072,7 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
       ? { kind: "choice", options, rerolls: 1 }
       : { kind: "travel", remaining: 0.9 };
     events.push({ type: "level", level: state.run.level });
-  } else state.phase = { kind: "travel", remaining: 1.05 };
+  } else resumeTrail(state, 1.05);
   return true;
 }
 function interrupt(enemy: EnemyFighter, delay: number, actor: ActorId, events: GameEvent[]) {
@@ -1259,7 +1480,7 @@ export function migrateV1State(value: unknown): GameState {
     run: { ...old.run, skillCooldown: 0, shield: 0 },
     phase,
   };
-  if (!validState(state)) throw new Error("The existing journey could not be migrated safely.");
+  if (!validV3State(state)) throw new Error("The existing journey could not be migrated safely.");
   return state;
 }
 function validPending(value: unknown, maxTime: number) {
@@ -1280,7 +1501,7 @@ function validAllyHit(value: unknown, battle: BattlePhase) {
         typeof value.projectile === "boolean"))
   );
 }
-export function validState(value: unknown): value is GameState {
+export function validV3State(value: unknown): value is GameState {
   if (!record(value)) return false;
   if (
     !record(value.meta) ||
@@ -1310,11 +1531,14 @@ export function migrateV2State(value: unknown): GameState {
       knownStoryChapters(value.meta.unlockedChapter, value.phase.kind, value.run.chapter),
     ),
   };
-  if (!validState(state))
+  if (!validV3State(state))
     throw new Error("The journey's mission progress could not be initialized safely.");
   return state;
 }
 export function validV2State(value: unknown): value is Omit<GameState, "quests"> {
+  return validCoreState(value, false);
+}
+function validCoreState(value: unknown, adventure: boolean): value is GameState {
   if (!record(value) || !record(value.meta) || !record(value.run) || !record(value.phase))
     return false;
   const m = value.meta,
@@ -1373,16 +1597,26 @@ export function validV2State(value: unknown): value is Omit<GameState, "quests">
   )
     return false;
   const state = value as unknown as GameState;
-  const maxHp = heroStats(state).hp;
+  const maxHp = heroStats(
+    adventure
+      ? state
+      : { ...state, adventures: undefined, run: { ...state.run, context: undefined } },
+  ).hp;
+  const length = adventure ? runLength(state) : ENCOUNTERS_PER_CHAPTER;
+  const templates = adventure ? adventureEnemies(state) : encounterGroup(r.chapter, r.cleared);
+  const legacyCheckpoint =
+    !adventure ||
+    (state.run.context?.kind === "campaign" &&
+      state.run.context.routes.length === 0 &&
+      state.run.context.junctionFloor === r.cleared);
   if (r.hp > maxHp || r.shield > maxHp * 0.3) return false;
   if (p.kind === "camp") return r.hp > 0;
-  if (p.kind === "travel")
-    return r.hp > 0 && r.cleared < ENCOUNTERS_PER_CHAPTER && number(p.remaining, -0.25, 2);
+  if (p.kind === "travel") return r.hp > 0 && r.cleared < length && number(p.remaining, -0.25, 2);
   if (p.kind === "choice")
     return (
       (p.rerolls === undefined || number(p.rerolls, 0, 1, true)) &&
       r.hp > 0 &&
-      r.cleared < ENCOUNTERS_PER_CHAPTER &&
+      r.cleared < length &&
       Array.isArray(p.options) &&
       p.options.length >= 1 &&
       p.options.length <= 3 &&
@@ -1396,18 +1630,45 @@ export function validV2State(value: unknown): value is Omit<GameState, "quests">
   if (p.kind === "defeat")
     return (
       r.hp === 0 &&
-      r.cleared < ENCOUNTERS_PER_CHAPTER &&
+      r.cleared < length &&
       typeof p.enemy === "string" &&
-      (p.enemy === encounter(r.chapter, r.cleared).name ||
-        encounterGroup(r.chapter, r.cleared).some((e) => e.name === p.enemy))
+      ((legacyCheckpoint && p.enemy === encounter(r.chapter, r.cleared).name) ||
+        templates.some((e) => e.name === p.enemy))
     );
-  if (p.kind === "victory")
-    return r.cleared === ENCOUNTERS_PER_CHAPTER && r.hp > 0 && p.reward === 35 + r.chapter * 15;
+  if (p.kind === "route")
+    return (
+      adventure && r.hp > 0 && [3, 6, 9].includes(p.at as number) && p.at === nextJunction(state)
+    );
+  if (p.kind === "victory") {
+    if (r.cleared !== length || r.hp <= 0) return false;
+    const context = state.run.context;
+    if (!adventure || context?.kind === "campaign")
+      return (
+        p.reward === 35 + r.chapter * 15 && p.bonus === undefined && p.bonusStatus === undefined
+      );
+    if (
+      !context ||
+      !state.adventures ||
+      !["earned", "claimed", "expired"].includes(p.bonusStatus as string)
+    )
+      return false;
+    const reward = activityPreview(state, context.kind, context.tier).reward.gold;
+    const earned = p.bonusStatus === "earned";
+    return (
+      p.bonus === (earned ? reward : 0) &&
+      p.reward === (context.kind === "daily" ? 20 : 35) + (earned ? reward : 0) &&
+      (!earned ||
+        context.period <
+          (context.kind === "daily" ? state.adventures.day : state.adventures.week) ||
+        state.adventures[context.kind].includes(context.tier))
+    );
+  }
   if (
     p.kind !== "battle" ||
     r.hp <= 0 ||
-    r.cleared >= ENCOUNTERS_PER_CHAPTER ||
+    r.cleared >= length ||
     !["legacy", "squad"].includes(p.formation as string) ||
+    (p.formation === "legacy" && !legacyCheckpoint) ||
     !Array.isArray(p.enemies)
   )
     return false;
@@ -1421,7 +1682,7 @@ export function validV2State(value: unknown): value is Omit<GameState, "quests">
             row: encounter(r.chapter, r.cleared).kind === "hexer" ? "back" : "front",
           },
         ]
-      : encounterGroup(r.chapter, r.cleared);
+      : templates;
   if (
     p.enemies.length !== expected.length ||
     !p.enemies.some((e) => record(e) && number(e.hp, 0, 10000) && e.hp > 0)
@@ -1466,4 +1727,55 @@ export function validV2State(value: unknown): value is Omit<GameState, "quests">
     validAllyHit(p.companionHit, battle) &&
     validAllyHit(p.petHit, battle)
   );
+}
+
+export function validState(value: unknown): value is GameState {
+  if (
+    !record(value) ||
+    !validAdventureLedger(value.adventures) ||
+    !record(value.meta) ||
+    !record(value.run) ||
+    !record(value.phase)
+  )
+    return false;
+  if (
+    (value.meta.experience !== undefined && !validExperience(value.meta.experience)) ||
+    (value.meta.progression !== undefined && !validProgression(value.meta.progression, true)) ||
+    !validQuestLedger(value.quests)
+  )
+    return false;
+  const state = value as unknown as GameState;
+  return (
+    validRunContext(state) &&
+    validCoreState(state, true) &&
+    (["companion", "pet", "skill"] as const).every(
+      (id) =>
+        progressionOf(state).training[id] === 0 ||
+        systemUnlocked(
+          state,
+          { companion: "company", pet: "pets", skill: "skills" }[id] as "company",
+        ),
+    ) &&
+    state.quests.story.completed.every(
+      (chapter) =>
+        chapter < state.meta.unlockedChapter || (chapter === 5 && state.meta.unlockedChapter === 5),
+    )
+  );
+}
+export function migrateV3State(value: unknown): GameState {
+  if (!validV3State(value)) throw new Error("The existing version-three journey is invalid.");
+  const state = structuredClone(value);
+  const legacyLevel = LEVEL_THRESHOLDS.filter((t) => t <= progressionOf(state).renown).length;
+  state.adventures = initialAdventures();
+  state.adventures.discoveries = {
+    mira: legacyLevel >= 2,
+    whirlwind: legacyLevel >= 3,
+    cinder: legacyLevel >= 4,
+    daily: legacyLevel >= 5,
+    weekly: legacyLevel >= 6,
+    oaths: 0,
+  };
+  state.run.context = { kind: "campaign", routes: [], junctionFloor: state.run.cleared };
+  if (!validState(state)) throw new Error("The journey could not be upgraded safely.");
+  return state;
 }
