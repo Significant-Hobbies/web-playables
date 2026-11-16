@@ -548,11 +548,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const place = CHAPTERS[state.run.chapter - 1]!;
   const story = journeyStory(state.run.chapter);
   const missions = questBoard(state.quests);
-  const readyRewards = [
-    ...missions.story,
-    ...(dailyReady ? missions.daily : []),
-    ...(weeklyReady ? missions.weekly : []),
-  ].filter((q) => q.ready).length;
+  const readyRewards = missions.story.filter((q) => q.ready).length;
   useEffect(
     () =>
       a.inspect(

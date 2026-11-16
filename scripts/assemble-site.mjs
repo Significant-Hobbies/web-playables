@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
@@ -10,6 +11,13 @@ if (!existsSync(hubDist)) {
   console.error("Hub build not found at apps/hub/dist. Build the hub before assembling the site.");
   process.exit(1);
 }
+
+// Save support must update with the game even when a browser cached the prior host.
+const cloudHostVersion = createHash("sha256")
+  .update(readFileSync(path.join(hubDist, "cloud-host.js")))
+  .digest("hex")
+  .slice(0, 16);
+const cloudHostScript = `/cloud-host.js?v=${cloudHostVersion}`;
 
 cpSync(hubCover, path.join(hubDist, "og-card.jpg"));
 
@@ -32,7 +40,7 @@ for (const entry of readdirSync(gamesDir, { withFileTypes: true })) {
     htmlFile,
     html.replace(
       "</head>",
-      `<script src="/cloud-host.js"></script><meta name="ai-summary" content="${description}" /><link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/${entry.name}.md" /></head>`,
+      `<script src="${cloudHostScript}"></script><meta name="ai-summary" content="${description}" /><link rel="alternate" type="text/markdown" href="https://idle.aliveville.com/play/${entry.name}.md" /></head>`,
     ),
   );
   copied += 1;
@@ -59,6 +67,6 @@ writeFileSync(
   warHtmlPath,
   readFileSync(warHtmlPath, "utf8").replace(
     "</head>",
-    '<script src="/cloud-host.js"></script></head>',
+    `<script src="${cloudHostScript}"></script></head>`,
   ),
 );
