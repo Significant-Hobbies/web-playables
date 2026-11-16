@@ -19,6 +19,13 @@ import { createSiteServer } from "./serve-site.mjs";
 function initialState(seed) {
   const state = freshState(seed);
   delete state.meta.progression;
+  Object.assign(state.adventures.discoveries, {
+    mira: true,
+    cinder: true,
+    whirlwind: true,
+    daily: true,
+    weekly: true,
+  });
   return state;
 }
 const storageKey = "save:ember-road:v1";
@@ -124,9 +131,18 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
   async function stored(page) {
     return page.evaluate((key) => JSON.parse(localStorage.getItem(key)), storageKey);
   }
+  async function chooseDiscoveryTrail(page) {
+    const route = page.locator(
+      '.decision--route[open] [data-route="rescue"], .decision--route[open] [data-route="shrine"], .decision--route[open] [data-route="tracks"]',
+    );
+    if (!(await route.count())) return false;
+    assert.equal(await route.count(), 1, "Each fork offers one explicit discovery trail");
+    await route.click();
+    return true;
+  }
   async function fixture(state) {
     assert(validState(state), "Fixture uses the real state validator");
-    return JSON.stringify({ version: 3, savedAt: Date.now(), state });
+    return JSON.stringify({ version: 4, savedAt: Date.now(), state });
   }
   async function assertCampActors(page) {
     const actors = await page.locator(".chapter-hub .toon-actor").evaluateAll(async (nodes) =>
@@ -236,6 +252,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     for (let wait = 0; wait < 70; wait++) {
       if (await originPage.locator(".cast-skill:not(:disabled)").count()) break;
+      await chooseDiscoveryTrail(originPage);
       const choice = originPage.locator(".decision--choice[open] [data-perk]").first();
       if (await choice.count()) await choice.click();
       await originPage.waitForTimeout(500);
@@ -264,12 +281,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await originPage.getByRole("dialog", { name: "How the journey began" }).waitFor();
     assert.equal(
       await originPage.locator(".opening-mira").count(),
-      firstSaved.state.meta.progression.renown >= 6 ? 1 : 0,
+      firstSaved.state.adventures.discoveries.mira ? 1 : 0,
       "Replay respects the company unlock",
     );
     assert.equal(
       await originPage.locator(".opening-cinder").count(),
-      firstSaved.state.meta.progression.renown >= 36 ? 1 : 0,
+      firstSaved.state.adventures.discoveries.cinder ? 1 : 0,
       "Replay respects the pet unlock",
     );
     assert.deepEqual(
@@ -542,10 +559,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     while (Date.now() < questDeadline) {
       earned = await stored(questPage);
       if (questBoard(earned.state.quests).daily.every((q) => q.ready)) break;
-      if (await questPage.locator(".decision--choice[open]").count())
-        await questPage.locator("[data-perk]").first().click();
-      else if (await questPage.locator(".cast-skill").isEnabled())
-        await questPage.locator(".cast-skill").click();
+      if (!(await chooseDiscoveryTrail(questPage))) {
+        if (await questPage.locator(".decision--choice[open]").count())
+          await questPage.locator("[data-perk]").first().click();
+        else if (await questPage.locator(".cast-skill").isEnabled())
+          await questPage.locator(".cast-skill").click();
+      }
       await questPage.waitForTimeout(150);
     }
     assert(
@@ -554,6 +573,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     if (await questPage.locator(".decision--choice[open]").count())
       await questPage.locator("[data-perk]").first().click();
+    await chooseDiscoveryTrail(questPage);
     await questPage.getByRole("button", { name: "Camp", exact: true }).click();
     await questPage
       .locator(".chapter-hub")
@@ -575,7 +595,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       storageKey,
     );
     const claimed = await stored(questPage);
-    assert.equal(claimed.version, 3);
+    assert.equal(claimed.version, 4);
     assert.equal(
       claimed.state.meta.gold,
       goldBeforeClaims + 45,
@@ -660,6 +680,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       }
       if (phase === "victory") {
         state.run.cleared = 12;
+        state.run.context = { kind: "campaign", routes: [], junctionFloor: 12 };
         state.meta.unlockedChapter = 2;
         state.meta.victories = 1;
         state.phase = { kind: "victory", reward: 50 };
@@ -691,6 +712,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const squad = initialState();
     startRun(squad);
     squad.run.cleared = 8;
+    squad.run.context = { kind: "campaign", routes: [], junctionFloor: 8 };
     squad.phase = beginBattle(squad);
     squad.run.hp = heroStats(squad).hp;
     const squadContext = await context(await fixture(squad));

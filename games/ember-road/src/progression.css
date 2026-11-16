@@ -583,3 +583,176 @@
   color: #d9fff4;
   border-color: #4d8892;
 }
+
+.adventure-dialog {
+  max-width: 760px;
+}
+.adventure-tabs,
+.adventure-tiers {
+  display: flex;
+  gap: 10px;
+  margin-block: 14px;
+}
+.adventure-tabs > button,
+.adventure-tiers > button {
+  flex: 1;
+}
+.adventure-tiers > button {
+  height: auto;
+  padding: 12px;
+  display: grid;
+  gap: 5px;
+}
+.adventure-tiers small {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+.adventure-poster {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 24px;
+  border: 2px solid #4f998f;
+  border-radius: 22px 22px 40px 14px;
+  background: radial-gradient(ellipse at 0% 100%, #276e69 0%, #153f50 45%, #14283f 100%);
+  box-shadow: inset 0 -8px 0 #081d3040;
+}
+.adventure-poster > .game-icon {
+  width: 94px;
+  height: 94px;
+  flex-shrink: 0;
+}
+.adventure-poster h2 {
+  font-size: 30px;
+  line-height: 1.1;
+  margin: 7px 0 12px;
+  color: #ffdb83;
+}
+.adventure-poster p {
+  margin: 0;
+}
+.adventure-hunt {
+  background: radial-gradient(ellipse at 0% 100%, #70466a 0%, #343b5a 45%, #14283f 100%);
+  border-color: #a17eaa;
+}
+.adventure-prize {
+  color: #ffdc88;
+  font-weight: 800;
+}
+.adventure-locked {
+  color: #ffbf96;
+}
+.decision--route {
+  max-width: 1050px;
+}
+.trail-fork {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  padding-top: 28px;
+  background: radial-gradient(ellipse at 50% 0%, #ffdc882b 0%, transparent 66%);
+}
+.trail-option {
+  background: #142c42;
+  border: 2px solid #3a6474;
+  border-radius: 44px 44px 18px 18px;
+  overflow: hidden;
+}
+.trail-option > div {
+  padding: 20px;
+}
+.trail-option [data-slot="card-content"] {
+  display: grid;
+  gap: 12px;
+}
+.trail-option p {
+  min-height: 50px;
+  margin: 0;
+}
+.trail-option strong {
+  display: block;
+  min-height: 64px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #f6d78c;
+}
+.trail-option button {
+  width: 100%;
+  margin-top: 16px;
+}
+.trail-symbol {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 3px solid #d9b666;
+  border-radius: 50%;
+  color: #ffe3a6;
+  background: #235c60;
+  font-size: 30px;
+  margin: 0 auto 12px;
+  box-shadow: 0 5px 0 #071d2e;
+}
+.trail-option h3 {
+  text-align: center;
+  font-size: 19px;
+}
+.trail-elite {
+  border-color: #ae7b70;
+}
+.trail-elite .trail-symbol {
+  background: #774e53;
+}
+.trail-history {
+  display: flex;
+  gap: 14px;
+  color: #ddc78c;
+  font-size: 11px;
+}
+@media (max-width: 760px) {
+  .trail-fork {
+    gap: 8px;
+  }
+  .trail-option > div {
+    padding: 12px;
+  }
+  .trail-option h3 {
+    font-size: 15px;
+  }
+  .adventure-poster {
+    padding: 16px;
+  }
+}
+
+.toon-shell .adventure-dialog .eyebrow,
+.toon-shell .decision--route .eyebrow {
+  color: #d9bf79;
+}
+.toon-shell .adventure-dialog .adventure-prize,
+.toon-shell .adventure-dialog .adventure-locked {
+  color: #ffdc88;
+}
+.toon-shell .adventure-dialog button[aria-pressed="true"] {
+  background: #f1bd53;
+  color: #182333;
+  border-color: #ffe7a3;
+}
+
+.toon-shell .decision--route .trail-option {
+  display: flex;
+  flex-direction: column;
+}
+.toon-shell .decision--route .trail-option [data-slot="card-content"] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.toon-shell .decision--route .trail-option button {
+  margin-top: auto;
+}
+
+.toon-shell .adventure-dialog button[aria-pressed="true"] small {
+  color: #182333;
+  opacity: 1;
+}

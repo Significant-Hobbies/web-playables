@@ -29,7 +29,7 @@ import {
   startRun,
   stepGame,
   validLegacyState,
-  validState,
+  validV3State as validState,
   validV2State,
   WEAPONS,
 } from "./model";
@@ -37,6 +37,8 @@ import {
 function initialState(seed?: number) {
   const state = freshState(seed);
   delete state.meta.progression;
+  delete state.adventures;
+  delete state.run.context;
   return state;
 }
 
@@ -115,7 +117,7 @@ function completeRun(state: GameState) {
   throw Error("The chapter never resolved.");
 }
 
-describe("a company on the old road", () => {
+describe("legacy combat and staged migration compatibility", () => {
   it("migrates version-two battles without crediting old totals to daily or weekly quests", () => {
     const original = initialState();
     original.meta.unlockedChapter = 3;

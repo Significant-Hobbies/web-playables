@@ -4,9 +4,11 @@ import {
   beginBattle,
   useSkill as castSkill,
   choosePerk,
+  chooseRoute,
   equip,
   heroStats,
   initialState,
+  migrateV3State,
   PERKS,
   type PerkId,
   rerollPerks,
@@ -40,6 +42,11 @@ describe("permanent company progression", () => {
         const options = state.phase.options;
         choosePerk(state, priority.find((id) => options.includes(id)) ?? options[0]!);
       }
+      if (state.phase.kind === "route")
+        chooseRoute(
+          state,
+          state.phase.at === 3 ? "rescue" : state.phase.at === 6 ? "shrine" : "tracks",
+        );
       castSkill(state);
       stepGame(state, 1 / 60);
       expect(validState(state)).toBe(true);
@@ -57,33 +64,31 @@ describe("permanent company progression", () => {
     expect(progressionOf(state)).toEqual(earned);
     expect(validState(JSON.parse(JSON.stringify(state)))).toBe(true);
   });
-  it("starts solo and reveals one new system at each early company level", () => {
+  it("starts solo, discovers systems through play and gives every company level permanent strength", () => {
     const state = initialState();
     expect(companyLevel(state)).toBe(1);
     expect(heroStats(state).companionDamage).toBe(0);
     expect(heroStats(state).petDamage).toBe(0);
     expect(companyPower(state).company).toBe(0);
-    expect(companyPower(state).technique).toBe(0);
     expect(equip(state, "companion", "mira")).toBe(false);
-    expect(equip(state, "pet", "fox")).toBe(false);
-    expect(equip(state, "skill", "whirlwind")).toBe(false);
-    for (const [renown, unlocked] of [
-      [6, ["company"]],
-      [12, ["company", "skills"]],
-      [36, ["company", "skills", "pets"]],
-      [72, ["company", "skills", "pets", "daily"]],
-      [120, Object.keys(SYSTEMS)],
-    ] as const) {
+    const previous = heroStats(state);
+    for (const renown of [6, 12, 36, 72, 120, 180, 260, 360, 500]) {
       state.meta.progression!.renown = renown;
       expect(
         Object.keys(SYSTEMS).filter((id) => systemUnlocked(state, id as keyof typeof SYSTEMS)),
-      ).toEqual(unlocked);
+      ).toEqual([]);
+      expect(heroStats(state).damage).toBeGreaterThan(previous.damage);
+      expect(heroStats(state).hp).toBeGreaterThan(previous.hp);
+      Object.assign(previous, heroStats(state));
     }
-    expect(levelProgress(state)).toEqual({ level: 6, current: 0, needed: 60 });
+    expect(levelProgress(state)).toEqual({ level: 10, current: 0, needed: null });
   });
   it("preserves old company access without inventing spendable rewards", () => {
-    const state = initialState();
-    delete state.meta.progression;
+    const legacy = initialState();
+    delete legacy.meta.progression;
+    delete legacy.adventures;
+    delete legacy.run.context;
+    const state = migrateV3State(legacy);
     const before = structuredClone(state);
     expect(systemUnlocked(state, "pets")).toBe(true);
     expect(progressionOf(state).embers).toBe(0);
@@ -119,6 +124,7 @@ describe("permanent company progression", () => {
     const state = initialState();
     const p = state.meta.progression!;
     p.renown = 36;
+    Object.assign(state.adventures!.discoveries, { mira: true, cinder: true, whirlwind: true });
     p.trailmarks = 12;
     p.embers = 4;
     const before = heroStats(state);

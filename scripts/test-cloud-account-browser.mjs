@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -138,6 +138,15 @@ test("web account controls preserve guest saves, restore real game checkpoints a
   }
   try {
     await page.goto(`${origin}/play/ember-road/`);
+    const hostVersion = digest(await readFile(join(root, "apps/hub/dist/cloud-host.js"))).slice(
+      0,
+      16,
+    );
+    assert.equal(
+      await page.locator('script[src*="cloud-host.js"]').getAttribute("src"),
+      `/cloud-host.js?v=${hostVersion}`,
+      "The page selects matching save support instead of a cached older schema host",
+    );
     await page.waitForFunction(
       () =>
         window.playablesCloud?.getState().phase === "guest" && window.playablesCloud?.exportLocal(),
@@ -161,11 +170,11 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.getByRole("button", { name: "Add this journey to cloud", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
     assert.equal(writes[0].expectedRevision, 0);
-    assert.equal(JSON.parse(writes[0].envelope.data).version, 3);
+    assert.equal(JSON.parse(writes[0].envelope.data).version, 4);
     const changed = JSON.parse(head.data);
     changed.state.meta.gold += 17;
     changed.state.meta.earnedGold += 17;
-    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "3" });
+    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "4" });
     await page.evaluate(() => window.playablesCloud.restore("main"));
     await page.getByRole("button", { name: "Continue cloud journey", exact: true }).click();
     await page.getByRole("button", { name: "Reload game", exact: true }).click();

@@ -5,28 +5,33 @@ import {
   type Loop,
   type Platform,
 } from "@games/gamekit";
+import { activityPreview, advanceAdventures } from "./adventures";
 import { type AudioStatus, GameAudio, type SoundCue } from "./audio";
 import { type AudioPreferences, experienceOf, type Lesson, prepareExperience } from "./experience";
 import {
   buyUpgrade,
   useSkill as castSkill,
   choosePerk,
+  chooseRoute,
   equip,
   type GameEvent,
   type GameState,
   initialState,
   migrateV1State,
   migrateV2State,
+  migrateV3State,
   PERKS,
   rerollPerks,
   retreatToCamp,
   returnToCamp,
   skipPerk,
+  startActivity,
   startRun,
   stepGame,
   validLegacyState,
   validState,
   validV2State,
+  validV3State,
 } from "./model";
 import { prepareProgression, train } from "./progression";
 import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
@@ -94,7 +99,8 @@ const savePlatform: Platform = {
         !(
           (envelope.version === 1 && validLegacyState(envelope.state)) ||
           (envelope.version === 2 && validV2State(envelope.state)) ||
-          (envelope.version === 3 && validState(envelope.state))
+          (envelope.version === 3 && validV3State(envelope.state)) ||
+          (envelope.version === 4 && validState(envelope.state))
         )
       )
         throw new Error("Unsupported save");
@@ -122,8 +128,8 @@ const saves = createSaveManager<GameState>({
     return state;
   },
   platform: savePlatform,
-  version: 3,
-  migrations: { 1: migrateV1State, 2: migrateV2State },
+  version: 4,
+  migrations: { 1: migrateV1State, 2: migrateV2State, 3: migrateV3State },
   initial: initialState,
 });
 function snapshot(): UiSnapshot {
@@ -181,6 +187,7 @@ function syncPause() {
   publish();
 }
 function changed(clear = false) {
+  advanceAdventures(state, Date.now());
   if (clear) renderer?.clear();
   draw();
   publish();
@@ -192,7 +199,7 @@ function events(events: GameEvent[]) {
   for (const event of events) {
     if (event.type === "kill" || event.type === "skill")
       recordQuestProgress(state.quests, event, Date.now());
-    if (event.type === "victory")
+    if (event.type === "victory" && state.run.context?.kind === "campaign")
       recordQuestProgress(
         state.quests,
         { type: "victory", chapter: state.run.chapter },
@@ -240,6 +247,27 @@ const actions: UiActions = {
     syncPause();
   },
   start: launch,
+  route(path) {
+    if (loaded && !renderer?.settling && chooseRoute(state, path)) {
+      audio.play("oath");
+      note = "A trail chosen. Your company carries its consequences.";
+      changed(true);
+    }
+  },
+  adventure(kind, tier, period, id, returnChapter) {
+    if (!loaded) return false;
+    if (startActivity(state, kind, tier, period, id, Date.now(), returnChapter)) {
+      userPaused = false;
+      note = `${activityPreview(state, kind, tier).name} · first-clear rewards are saved once per tier.`;
+      changed(true);
+      syncPause();
+      return true;
+    } else {
+      note = "This adventure changed or is locked. Review the current trail.";
+      changed();
+      return false;
+    }
+  },
   unlockAudio() {
     void audio.unlock();
   },
@@ -347,6 +375,7 @@ const actions: UiActions = {
   },
   skill() {
     if (!loaded || userPaused || platformPaused || inspecting) return;
+    advanceAdventures(state, Date.now());
     const result = castSkill(state);
     if (result.some((event) => event.type === "skill"))
       prepareExperience(state).lessons.skill = true;
@@ -358,6 +387,7 @@ const actions: UiActions = {
     if (!loaded) return;
     const previousDay = state.quests.daily.period;
     advanceQuests(state.quests, Date.now());
+    advanceAdventures(state, Date.now());
     if (previousDay !== state.quests.daily.period) changed();
     else publish();
   },
@@ -382,9 +412,10 @@ const actions: UiActions = {
 renderUi = mountUi(app, snapshot(), actions);
 loop = createLoop(
   (dt) => {
+    const calendarChanged = advanceAdventures(state, Date.now());
     const day = state.quests.daily.period;
     advanceQuests(state.quests, Date.now());
-    if (day !== state.quests.daily.period) void persist();
+    if (calendarChanged || day !== state.quests.daily.period) void persist();
     time += dt;
     renderer?.advance(dt);
     renderer?.capture(state);
@@ -488,6 +519,7 @@ prepareProgression(state);
 inspecting = !experienceOf(state).introSeen;
 loaded = true;
 advanceQuests(state.quests, Date.now());
+advanceAdventures(state, Date.now());
 campStage = state.phase.kind === "camp";
 if (!saveLocked) saveMessage = "Progress stays on this device";
 draw();

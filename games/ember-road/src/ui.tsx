@@ -30,6 +30,18 @@ import {
 import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import {
+  type ActivityKind,
+  activityPreview,
+  activityUnlocked,
+  DAY_MS,
+  ROUTES,
+  type RouteId,
+  routeOptions,
+  runLength,
+  TIERS,
+  type Tier,
+} from "./adventures";
 import type { AudioStatus, SoundCue } from "./audio";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
@@ -63,7 +75,6 @@ import {
   levelProgress,
   nextUnlock,
   progressionOf,
-  SYSTEMS,
   systemUnlocked,
   TRAINING_CAP,
   type TrainingId,
@@ -101,6 +112,14 @@ export interface UiActions {
   inspect(open: boolean): void;
   pause(): void;
   start(chapter: number): void;
+  route(path: RouteId): void;
+  adventure(
+    kind: ActivityKind,
+    tier: Tier,
+    period: number,
+    id: number,
+    returnChapter: number,
+  ): boolean;
   choose(id: PerkId): void;
   skip(): void;
   reroll(): void;
@@ -190,8 +209,8 @@ function StatList({ state }: { state: GameState }) {
     ["Ranged resistance", `${Math.round(s.rangedResistance * 100)}%`],
     ["Front-line cleave", `${Math.round(s.cleave * 100)}%`],
     ["Rear-line pierce", `${Math.round(s.pierce * 100)}%`],
-    ["Companion damage", `${s.companionDamage} / ${s.companionInterval}s`],
-    ["Pet damage", `${s.petDamage} / ${s.petInterval}s`],
+    ["Companion damage", `${Number(s.companionDamage.toFixed(1))} / ${s.companionInterval}s`],
+    ["Pet damage", `${Number(s.petDamage.toFixed(1))} / ${s.petInterval}s`],
     ["Current shield", Math.ceil(state.run.shield)],
   ];
   return (
@@ -469,7 +488,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const level = levelProgress(state);
   const progression = progressionOf(state);
   const upcoming = nextUnlock(state);
-  const milestone = Object.entries(SYSTEMS).find(([, system]) => system.level === level.level);
+  const activity =
+    state.run.context?.kind === "daily" || state.run.context?.kind === "hunt"
+      ? activityPreview(state, state.run.context.kind, state.run.context.tier, state.run.context)
+      : null;
+  const discoveries = state.adventures?.discoveries;
   const companyReady = systemUnlocked(state, "company");
   const skillReady = systemUnlocked(state, "skills");
   const petsReady = systemUnlocked(state, "pets");
@@ -486,11 +509,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       return;
     }
     if (before !== null && level.level > before) {
-      const unlocked = Object.values(SYSTEMS).find(
-        (system) => system.level > before && system.level <= level.level,
-      );
       setUnlockMessage({
-        title: unlocked?.title ?? `Company level ${level.level}`,
+        title: `Company level ${level.level} · +2 damage, +5 health`,
         until: state.run.time + 6,
       });
     }
@@ -501,6 +521,13 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
   const [missionTab, setMissionTab] = useState<QuestScope>("story");
   const [campOpen, setCampOpen] = useState(false);
+  const [adventureOpen, setAdventureOpen] = useState(false);
+  const [adventureKind, setAdventureKind] = useState<ActivityKind>("daily");
+  const [adventureTier, setAdventureTier] = useState<Tier>(1);
+  const offer = activityPreview(state, adventureKind, adventureTier);
+  const eventReset = new Date(
+    (offer.kind === "daily" ? offer.period + 1 : offer.period * 7 + 4) * DAY_MS,
+  ).toLocaleDateString("en", { day: "numeric", month: "short", timeZone: "UTC" });
   const [settings, setSettings] = useState(false);
   const [detail, setDetail] = useState<"stats" | "powers" | null>(null);
   const [retreat, setRetreat] = useState(false);
@@ -521,23 +548,20 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const place = CHAPTERS[state.run.chapter - 1]!;
   const story = journeyStory(state.run.chapter);
   const missions = questBoard(state.quests);
-  const readyRewards = [
-    ...missions.story,
-    ...(dailyReady ? missions.daily : []),
-    ...(weeklyReady ? missions.weekly : []),
-  ].filter((q) => q.ready).length;
+  const readyRewards = missions.story.filter((q) => q.ready).length;
   useEffect(
     () =>
       a.inspect(
         showPrologue ||
           settings ||
+          adventureOpen ||
           detail !== null ||
           campOpen ||
           retreat ||
           introChapter !== null ||
           section !== "Camp",
       ),
-    [a, settings, detail, campOpen, retreat, introChapter, section, showPrologue],
+    [a, settings, detail, campOpen, retreat, introChapter, section, showPrologue, adventureOpen],
   );
   useEffect(() => {
     if (inCamp) {
@@ -684,12 +708,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                           ? [`${attributes.hp} health`, `${attributes.armor} armor`]
                           : slot === "companion"
                             ? [
-                                `${attributes.companionDamage} damage`,
+                                `${Number(attributes.companionDamage.toFixed(1))} damage`,
                                 `${attributes.companionInterval}s attack`,
                               ]
                             : slot === "pet"
                               ? [
-                                  `${attributes.petDamage} damage`,
+                                  `${Number(attributes.petDamage.toFixed(1))} damage`,
                                   `${attributes.petInterval}s attack`,
                                 ]
                               : [
@@ -843,7 +867,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   <strong>COMPANY LEVEL {level.level}</strong>
                   <small>
                     {upcoming
-                      ? `Next: ${upcoming.title} · Level ${upcoming.level}`
+                      ? `${upcoming.title} · ${upcoming.description}`
                       : "A seasoned company. The road still calls."}
                   </small>
                   <span className="bounty-track">
@@ -966,14 +990,14 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   </Button>
                   <Button
                     variant="ghost"
+                    data-open-adventures=""
                     onClick={() => {
-                      setMissionTab("story");
-                      go("Journey");
+                      a.refreshMissions();
+                      setAdventureOpen(true);
                     }}
                   >
                     <GameIcon kind="rewards" />
-                    <span>Chapter rewards</span>
-                    {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
+                    <span>Adventures</span>
                   </Button>
                 </div>
                 {saveWarning}
@@ -1035,7 +1059,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 >
                   <GameIcon kind="quests" />
                   <span>Missions</span>
-                  {missions.story.some((q) => q.ready) && <b className="notification">!</b>}
+                  {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
                 </Button>
               </aside>
             </section>
@@ -1045,10 +1069,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <div>
                 <span className="eyebrow" id="enemy-label">
                   {state.phase.kind === "battle"
-                    ? `ENCOUNTER ${state.run.cleared + 1} / ${ENCOUNTERS_PER_CHAPTER}`
+                    ? `${activity ? (activity.kind === "hunt" ? "BOSS ROUND" : "EXPEDITION") : "ENCOUNTER"} ${state.run.cleared + 1} / ${runLength(state)}`
                     : "THE OLD ROAD"}
                 </span>
-                <h1>{place.name}</h1>
+                <h1>{activity?.name ?? place.name}</h1>
                 <p>
                   {state.phase.kind === "battle"
                     ? state.phase.enemies
@@ -1126,7 +1150,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 </Button>
               ) : (
                 <span className="skill-locked">
-                  <LockKeyhole /> Skill at company Lv. 3
+                  <LockKeyhole /> Choose 2 oaths to awaken Whirlwind
                 </span>
               )}
             </div>
@@ -1137,9 +1161,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 COMPANY LV. {level.level} ·{" "}
                 {level.needed === null ? "MASTERED" : `${level.current}/${level.needed} RENOWN`}
               </span>
+              {state.run.context?.kind === "campaign" && state.run.context.routes.length > 0 && (
+                <span className="trail-history" title="Chosen trail">
+                  {state.run.context.routes.map((r) => (
+                    <span key={r.at}>
+                      {ROUTES[r.path].symbol} {ROUTES[r.path].name}
+                    </span>
+                  ))}
+                </span>
+              )}
               {upcoming && (
                 <small>
-                  Next: {upcoming.title} · Lv. {upcoming.level}
+                  Next: {upcoming.title} · {upcoming.description}
                 </small>
               )}
             </div>
@@ -1153,7 +1186,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <Sparkles />
                 <span>
                   {unlockMessage.title}
-                  <small>Company level {level.level} · A new part of your journey</small>
+                  <small>Permanent strength for every adventure</small>
                 </span>
               </aside>
             )}
@@ -1813,6 +1846,115 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </Button>
       </Modal>
       <Modal
+        open={adventureOpen}
+        title="Beyond the old road"
+        close={() => setAdventureOpen(false)}
+        className="adventure-dialog"
+      >
+        <span className="eyebrow">NEW TRAILS · NO ENERGY · RETURN WHEN YOU WISH</span>
+        <div className="adventure-tabs">
+          <Button
+            aria-pressed={adventureKind === "daily"}
+            variant={adventureKind === "daily" ? "default" : "outline"}
+            onClick={() => {
+              a.refreshMissions();
+              setAdventureKind("daily");
+            }}
+          >
+            Daily expedition
+          </Button>
+          <Button
+            aria-pressed={adventureKind === "hunt"}
+            variant={adventureKind === "hunt" ? "default" : "outline"}
+            onClick={() => {
+              a.refreshMissions();
+              setAdventureKind("hunt");
+            }}
+          >
+            Weekly boss hunt
+          </Button>
+        </div>
+        <div className={`adventure-poster adventure-${offer.kind}`} data-adventure-id={offer.id}>
+          <GameIcon kind={offer.kind === "daily" ? "daily" : "battle"} />
+          <div>
+            <span className="eyebrow">
+              {offer.fights} FIGHTS · CHANGES {eventReset.toUpperCase()} AT 00:00 UTC
+            </span>
+            <h2>{offer.name}</h2>
+            <p>{offer.rule}</p>
+          </div>
+        </div>
+        <div className="adventure-tiers">
+          {TIERS.map((t) => (
+            <Button
+              key={t.tier}
+              data-adventure-tier={t.tier}
+              aria-pressed={adventureTier === t.tier}
+              variant={adventureTier === t.tier ? "default" : "outline"}
+              onClick={() => setAdventureTier(t.tier)}
+            >
+              {t.name}
+              <small>{t.chapter === 1 ? "After chapter 1" : `Reach chapter ${t.chapter}`}</small>
+            </Button>
+          ))}
+        </div>
+        <p className="adventure-prize" data-adventure-reward="">
+          {offer.claimed
+            ? "First-clear bonus claimed for this tier"
+            : `First clear · ${offer.reward.gold} Gold + ${offer.reward.marks} Trailmarks + ${offer.reward.embers} Embers`}
+        </p>
+        <p className="muted">
+          Every clear also earns {offer.kind === "daily" ? 20 : 35} completion Gold plus foe Gold.
+          Replays keep base rewards. Finish after rollover to keep base Gold; the expired
+          first-clear bonus ends.
+        </p>
+        {!offer.unlocked && (
+          <p className="adventure-locked">
+            {!activityUnlocked(state, offer.kind)
+              ? `Clear chapter ${offer.kind === "daily" ? 1 : 2} to open this trail.`
+              : `Reach chapter ${TIERS[adventureTier - 1]!.chapter} for this difficulty.`}
+          </p>
+        )}
+        <Button
+          data-start-adventure=""
+          disabled={!offer.unlocked || !inCamp}
+          onClick={() => {
+            if (a.adventure(offer.kind, offer.tier, offer.period, offer.id, hubChapter))
+              setAdventureOpen(false);
+          }}
+        >
+          {offer.claimed ? "Replay for base rewards" : "Start adventure"}
+        </Button>
+      </Modal>
+      <Modal
+        open={!dashboard && !detail && !settings && v.decisionReady && state.phase.kind === "route"}
+        title="The road forks."
+        className="decision--route"
+      >
+        <span className="eyebrow">
+          AFTER FIGHT {state.run.cleared} · CHOOSE YOUR NEXT THREE FIGHTS
+        </span>
+        <p>One trail, one consequence. Your choice stays with this journey.</p>
+        <div className="trail-fork">
+          {state.phase.kind === "route" &&
+            routeOptions(state.phase.at).map((path, i) => (
+              <Card key={path} className={`trail-option trail-${path}`}>
+                <CardHeader>
+                  <span className="trail-symbol">{ROUTES[path].symbol}</span>
+                  <CardTitle>{ROUTES[path].name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p>{ROUTES[path].risk}</p>
+                  <strong>{ROUTES[path].reward}</strong>
+                  <Button autoFocus={i === 0} data-route={path} onClick={() => a.route(path)}>
+                    Take this trail <ArrowRight />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
+      </Modal>
+      <Modal
         open={
           !dashboard && !detail && !settings && v.decisionReady && state.phase.kind === "choice"
         }
@@ -1909,37 +2051,49 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       >
         <span className="eyebrow">
           {state.phase.kind === "victory"
-            ? "CHAPTER COMPLETE"
+            ? activity
+              ? "ADVENTURE COMPLETE"
+              : "CHAPTER COMPLETE"
             : "THE MARCH ENDS. THE OATH REMAINS."}
         </span>
         <p>
           {state.phase.kind === "victory"
-            ? story.outcome
+            ? activity
+              ? `${activity.name} complete. The story road waits for your return.`
+              : story.outcome
             : `${state.phase.kind === "defeat" ? state.phase.enemy : "The road"} stopped you after ${state.run.cleared} waves. Your gold and forged gear are safe.`}
         </p>
         {state.phase.kind === "victory" && (
           <>
             <p>
-              <Coins /> {state.phase.reward} chapter gold · {state.meta.gold} gold kept
+              <Coins /> {state.phase.reward}{" "}
+              {activity ? "total clear gold (includes first-clear bonus)" : "chapter gold"} ·{" "}
+              {state.meta.gold} gold kept
             </p>
+            {activity && (
+              <p data-first-clear-result="">
+                {state.phase.bonusStatus === "earned"
+                  ? `First-clear bonus earned · ${state.phase.bonus} gold · ${activity.reward.marks} Trailmarks · ${activity.reward.embers} Embers`
+                  : state.phase.bonusStatus === "expired"
+                    ? "This event period ended. Base combat gold kept; no first-clear bonus."
+                    : "First-clear bonus already claimed. Base combat gold kept."}
+              </p>
+            )}
             <div className="victory-progress" data-company-reward="" role="status">
               <Sparkles />
               <div>
                 <strong>Company level {level.level}</strong>
-                {milestone && (
-                  <p>
-                    {
-                      {
-                        company: "Company",
-                        skills: "Skills",
-                        pets: "Pets",
-                        daily: "Daily quests",
-                        weekly: "Weekly quests",
-                      }[milestone[0] as keyof typeof SYSTEMS]
-                    }{" "}
-                    unlocked · {milestone[1].title}
-                  </p>
-                )}
+                <p>
+                  Permanent company strength · +{(level.level - 1) * 2} damage · +
+                  {(level.level - 1) * 5} health
+                </p>
+                <p>
+                  {[
+                    discoveries?.mira ? "Mira found" : "Mira’s signal awaits",
+                    discoveries?.cinder ? "Cinder found" : "Fox tracks await",
+                    discoveries?.whirlwind ? "Whirlwind awakened" : "Whirlwind awaits",
+                  ].join(" · ")}
+                </p>
                 <small>
                   Permanent progress · {progression.trailmarks} Trailmarks · {progression.embers}{" "}
                   Embers kept
@@ -1958,8 +2112,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <Tent />
             Return to the forge
           </Button>
-          <Button variant="outline" onClick={() => setIntroChapter(state.run.chapter)}>
-            Try this chapter again
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (activity) {
+                a.camp();
+                a.refreshMissions();
+                setAdventureKind(activity.kind);
+                setAdventureTier(activity.tier);
+                setAdventureOpen(true);
+              } else setIntroChapter(state.run.chapter);
+            }}
+          >
+            {activity ? "Review adventure / replay" : "Try this chapter again"}
           </Button>
         </div>
       </Modal>

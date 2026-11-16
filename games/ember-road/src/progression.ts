@@ -1,3 +1,4 @@
+import { activityUnlocked } from "./adventures.ts";
 import type { GameState } from "./model";
 
 export const LEVEL_THRESHOLDS = [0, 6, 12, 36, 72, 120, 180, 260, 360, 500] as const;
@@ -54,10 +55,28 @@ export function companyLevel(state: GameState): number {
   return LEVEL_THRESHOLDS.filter((threshold) => threshold <= renown).length;
 }
 export function systemUnlocked(state: GameState, system: SystemId): boolean {
+  if (state.adventures) {
+    if (system === "daily" || system === "weekly")
+      return (
+        state.adventures.discoveries[system] ||
+        activityUnlocked(state, system === "daily" ? "daily" : "hunt")
+      );
+    return state.adventures.discoveries[
+      { company: "mira", pets: "cinder", skills: "whirlwind" }[system] as "mira"
+    ];
+  }
   return companyLevel(state) >= SYSTEMS[system].level;
 }
 export function nextUnlock(state: GameState) {
-  return Object.entries(SYSTEMS).find(([, system]) => companyLevel(state) < system.level)?.[1];
+  const objectives = [
+    ["company", "Rescue Mira", "Follow the ranger’s signal after fight 3."],
+    ["skills", "Discover Whirlwind", "Choose 2 oaths, or visit the wind shrine after fight 6."],
+    ["pets", "Find Cinder", "Follow fox tracks after fight 9."],
+    ["daily", "Daily expeditions", "Clear chapter 1 to open six-fight daily adventures."],
+    ["weekly", "Weekly boss hunt", "Clear chapter 2 to open three-round boss hunts."],
+  ] as const;
+  const next = objectives.find(([id]) => !systemUnlocked(state, id));
+  return next ? { title: next[1], description: next[2], level: SYSTEMS[next[0]].level } : undefined;
 }
 export function levelProgress(state: GameState) {
   const level = companyLevel(state);
@@ -108,7 +127,7 @@ export function train(state: GameState, id: TrainingId) {
   saved.training[id]++;
   return true;
 }
-export function validProgression(value: unknown): value is Progression {
+export function validProgression(value: unknown, discovery = false): value is Progression {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const p = value as Progression;
   const counter = (v: unknown, max: number) =>
@@ -125,7 +144,8 @@ export function validProgression(value: unknown): value is Progression {
       (id) =>
         counter(p.training[id as TrainingId], TRAINING_CAP) &&
         p.training[id as TrainingId] <= Math.max(0, level - 1) &&
-        (p.training[id as TrainingId] === 0 ||
+        (discovery ||
+          p.training[id as TrainingId] === 0 ||
           level >=
             SYSTEMS[
               { companion: "company", pet: "pets", skill: "skills" }[id as TrainingId] as SystemId
