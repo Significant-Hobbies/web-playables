@@ -42,9 +42,17 @@ function download(copy: { filename: string; data: string } | null) {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function SaveOptions({ compact, children }: { compact: boolean; children: ReactNode }) {
+function SaveOptions({
+  compact,
+  recovery,
+  children,
+}: {
+  compact: boolean;
+  recovery: boolean;
+  children: ReactNode;
+}) {
   return compact ? (
-    <details className="account-options">
+    <details className="account-options" open={recovery || undefined}>
       <summary>Save options</summary>
       {children}
     </details>
@@ -65,8 +73,14 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
   const accountId = state.user?.id;
   useEffect(() => cloud.subscribe(setState), [cloud]);
   useEffect(() => {
-    if (state.conflict || state.reloadRequired || state.phase === "update-required") setOpen(true);
-  }, [state.conflict, state.reloadRequired, state.phase]);
+    if (
+      state.conflict ||
+      state.reloadRequired ||
+      state.phase === "update-required" ||
+      state.authRequired
+    )
+      setOpen(true);
+  }, [state.conflict, state.reloadRequired, state.phase, state.authRequired]);
   useEffect(() => {
     cloud.setPanelOpen(open);
     const element = dialog.current;
@@ -127,7 +141,9 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
   const title = !ember
     ? "Your journeys, kept."
     : state.reloadRequired
-      ? "Your checkpoint is ready."
+      ? state.user
+        ? "Your checkpoint is ready."
+        : "Signed out safely."
       : state.phase === "update-required"
         ? "Keep your checkpoint."
         : importing || !state.user
@@ -137,22 +153,30 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             : state.phase === "offline"
               ? "Your journey stays here."
               : "Your journey is safe.";
-  const message = !ember
-    ? state.message ||
-      (state.user
-        ? "Local saves continue while the cloud is unavailable."
-        : "You can keep playing without an account.")
-    : importing
-      ? "Your progress is on this device. Add it to your account to continue on another computer."
-      : !state.user
-        ? "Play here without an account, or connect Google to carry your progress with you."
-        : conflict?.reason === "account-changed"
-          ? "This checkpoint is from another account. Choose whether to save it to this account or keep playing locally."
-          : conflict
-            ? "Choose a checkpoint to continue. Your other copy is kept for recovery."
-            : state.phase === "saved"
-              ? "Your checkpoint is saved to your account. Pick up the road wherever you play."
-              : state.message || "Your checkpoint stays on this device while you play.";
+  const statusRequired =
+    state.reloadRequired ||
+    state.phase === "update-required" ||
+    state.phase === "offline" ||
+    !state.user;
+  const message =
+    statusRequired && state.message
+      ? state.message
+      : !ember
+        ? state.message ||
+          (state.user
+            ? "Local saves continue while the cloud is unavailable."
+            : "You can keep playing without an account.")
+        : importing
+          ? "Your progress is on this device. Add it to your account to continue on another computer."
+          : !state.user
+            ? "Play here without an account, or connect Google to carry your progress with you."
+            : conflict?.reason === "account-changed"
+              ? "This checkpoint is from another account. Choose whether to save it to this account or keep playing locally."
+              : conflict
+                ? "Choose a checkpoint to continue. Your other copy is kept for recovery."
+                : state.phase === "saved"
+                  ? "Your checkpoint is saved to your account. Pick up the road wherever you play."
+                  : state.message || "Your checkpoint stays on this device while you play.";
   return (
     <div data-theme="paper" className={`cloud-shell${ember ? " ember-cloud" : ""}`}>
       <Button
@@ -220,13 +244,14 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
           {message}
         </div>
         {ember &&
+          state.localSavedAt &&
           !state.reloadRequired &&
           state.phase !== "update-required" &&
           !(!importing && conflict) && (
             <div className="ember-checkpoint">
               <span className="checkpoint-portrait" aria-hidden="true" />
               <div>
-                <strong>Your current journey</strong>
+                <strong>Last saved checkpoint</strong>
                 <small>{when(state.localSavedAt)}</small>
               </div>
               <span className="checkpoint-location">
@@ -332,18 +357,22 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                 void run(() =>
                   !state.user
                     ? cloud.signIn()
-                    : state.phase === "offline"
-                      ? cloud.refreshSession()
-                      : cloud.checkpoint(),
+                    : state.authRequired
+                      ? cloud.signIn()
+                      : state.phase === "offline"
+                        ? cloud.refreshSession()
+                        : cloud.checkpoint(),
                 )
               }
             >
               <Cloud size={18} />
               {!state.user
                 ? "Continue with Google"
-                : state.phase === "offline"
-                  ? "Reconnect cloud saves"
-                  : "Save now"}
+                : state.authRequired
+                  ? "Sign in again"
+                  : state.phase === "offline"
+                    ? "Reconnect cloud saves"
+                    : "Save now"}
               <ArrowRight size={18} />
             </Button>
             <Button variant="ghost" disabled={busy} onClick={() => void close()}>
@@ -398,125 +427,136 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             </div>
           </section>
         )}
-        <SaveOptions compact={ember}>
-          {ember && !conflict && !state.reloadRequired && state.user && (
-            <section className="account-section">
-              <h3>Account connection</h3>
-              <div className="account-actions">
-                <Button
-                  variant="outline"
-                  disabled={busy}
-                  onClick={() => void run(() => cloud.refreshSession())}
-                >
-                  <RefreshCw />
-                  Refresh account
-                </Button>
-                {state.phase === "offline" && (
+        <SaveOptions
+          compact={ember}
+          recovery={state.reloadRequired || state.phase === "update-required"}
+        >
+          {ember &&
+            !conflict &&
+            !state.reloadRequired &&
+            state.phase !== "update-required" &&
+            state.user && (
+              <section className="account-section">
+                <h3>Account connection</h3>
+                <div className="account-actions">
                   <Button
                     variant="outline"
                     disabled={busy}
-                    onClick={() => void run(() => cloud.signIn())}
+                    onClick={() => void run(() => cloud.refreshSession())}
                   >
-                    Sign in again
+                    <RefreshCw />
+                    Refresh account
                   </Button>
-                )}
-              </div>
-            </section>
-          )}
-          {!conflict && !state.reloadRequired && state.user && state.gameId && (
-            <section className="account-section">
-              <h3>
-                <History size={17} />
-                Cloud journeys
-              </h3>
-              {slots.length ? (
-                <>
-                  <label htmlFor="cloud-slot">Saved journey</label>
-                  <NativeSelect
-                    id="cloud-slot"
-                    value={slot}
-                    disabled={busy}
-                    onChange={(event) => {
-                      setSlot(event.target.value);
-                      setVersions([]);
-                      setConfirm(null);
-                    }}
-                  >
-                    {slots.map((item) => (
-                      <option key={item.slotId} value={item.slotId}>
-                        {item.metadata.title} · {when(item.updatedAt)}
-                      </option>
-                    ))}
-                  </NativeSelect>
-                  <div className="account-actions">
+                  {state.phase === "offline" && (
                     <Button
                       variant="outline"
-                      disabled={busy || !slot}
-                      onClick={() => void run(() => cloud.restore(slot))}
+                      disabled={busy}
+                      onClick={() => void run(() => cloud.signIn())}
                     >
-                      Review this journey
+                      Sign in again
                     </Button>
-                    <Button
-                      variant="ghost"
-                      disabled={busy || !slot}
-                      onClick={() => void run(async () => setVersions(await cloud.history(slot)))}
+                  )}
+                </div>
+              </section>
+            )}
+          {!conflict &&
+            !state.reloadRequired &&
+            (!ember || state.phase !== "update-required") &&
+            state.user &&
+            state.gameId && (
+              <section className="account-section">
+                <h3>
+                  <History size={17} />
+                  Cloud journeys
+                </h3>
+                {slots.length ? (
+                  <>
+                    <label htmlFor="cloud-slot">Saved journey</label>
+                    <NativeSelect
+                      id="cloud-slot"
+                      value={slot}
+                      disabled={busy}
+                      onChange={(event) => {
+                        setSlot(event.target.value);
+                        setVersions([]);
+                        setConfirm(null);
+                      }}
                     >
-                      Recent versions
-                    </Button>
-                  </div>
-                  {versions.length > 0 && (
-                    <ul className="version-list">
-                      {versions.map((item) => (
-                        <li key={item.revision}>
-                          <div>
-                            <strong>
-                              Version {item.revision}
-                              {item.deleted ? " · removed" : ""}
-                            </strong>
-                            <small>{when(item.updatedAt)}</small>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={busy || item.deleted}
-                            onClick={() => setConfirm(item)}
-                          >
-                            Restore
-                          </Button>
-                        </li>
+                      {slots.map((item) => (
+                        <option key={item.slotId} value={item.slotId}>
+                          {item.metadata.title} · {when(item.updatedAt)}
+                        </option>
                       ))}
-                    </ul>
-                  )}
-                  {confirm && (
-                    <div className="restore-confirm">
-                      <p>
-                        Restore version {confirm.revision}? It becomes the newest cloud checkpoint.
-                        Your local save is kept as a recovery copy.
-                      </p>
-                      <div className="account-actions">
-                        <Button
-                          disabled={busy}
-                          onClick={() =>
-                            void run(async () => {
-                              await cloud.restoreVersion(confirm.slotId, confirm.revision);
-                              setConfirm(null);
-                            })
-                          }
-                        >
-                          Restore this version
-                        </Button>
-                        <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
-                          Cancel
-                        </Button>
-                      </div>
+                    </NativeSelect>
+                    <div className="account-actions">
+                      <Button
+                        variant="outline"
+                        disabled={busy || !slot}
+                        onClick={() => void run(() => cloud.restore(slot))}
+                      >
+                        Review this journey
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        disabled={busy || !slot}
+                        onClick={() => void run(async () => setVersions(await cloud.history(slot)))}
+                      >
+                        Recent versions
+                      </Button>
                     </div>
-                  )}
-                </>
-              ) : (
-                <p>No cloud journeys for this game yet.</p>
-              )}
-            </section>
-          )}
+                    {versions.length > 0 && (
+                      <ul className="version-list">
+                        {versions.map((item) => (
+                          <li key={item.revision}>
+                            <div>
+                              <strong>
+                                Version {item.revision}
+                                {item.deleted ? " · removed" : ""}
+                              </strong>
+                              <small>{when(item.updatedAt)}</small>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={busy || item.deleted}
+                              onClick={() => setConfirm(item)}
+                            >
+                              Restore
+                            </Button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {confirm && (
+                      <div className="restore-confirm">
+                        <p>
+                          Restore version {confirm.revision}? It becomes the newest cloud
+                          checkpoint. Your local save is kept as a recovery copy.
+                        </p>
+                        <div className="account-actions">
+                          <Button
+                            disabled={busy}
+                            onClick={() =>
+                              void run(async () => {
+                                await cloud.restoreVersion(confirm.slotId, confirm.revision);
+                                setConfirm(null);
+                              })
+                            }
+                          >
+                            Restore this version
+                          </Button>
+                          <Button variant="ghost" disabled={busy} onClick={() => setConfirm(null)}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p>No cloud journeys for this game yet.</p>
+                )}
+              </section>
+            )}
           <section className="account-section">
             <h3>Keep a copy</h3>
             <p>Downloads contain the last persisted checkpoint.</p>

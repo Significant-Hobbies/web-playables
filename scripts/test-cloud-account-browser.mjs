@@ -206,6 +206,15 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.getByText("Save options", { exact: true }).click();
     await page.screenshot({ path: join(evidence, "account-1440.png") });
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page.getByRole("dialog", { name: "Signed out safely.", exact: true }).waitFor();
+    assert(
+      await page
+        .getByText("Signed out. Reload to continue your guest journey.", { exact: true })
+        .isVisible(),
+    );
+    assert(
+      await page.getByRole("button", { name: "Download local save", exact: true }).isVisible(),
+    );
     await page.getByRole("button", { name: "Reload game", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud?.getState().phase === "guest");
     assert.equal(
