@@ -438,6 +438,14 @@
 .toon-shell .game-dialog[open] {
   animation: collection-arrive 0.18s ease-out;
 }
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .game-dialog[open] {
+  animation-play-state: running !important;
+}
+.toon-shell.presentation-paused .game-dialog[open] {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
 @starting-style {
   .toon-shell .game-dialog[open] {
     opacity: 0;

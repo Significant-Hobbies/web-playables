@@ -162,6 +162,10 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       .locator(".game-dock")
       .getByRole("button", { name: label === "Companions" ? "Company" : label, exact: true })
       .click();
+    await page.waitForFunction(() => {
+      const dialog = document.querySelector(".collection-dialog[open]");
+      return dialog && Number(getComputedStyle(dialog).opacity) === 1;
+    });
   }
   async function depart(page) {
     await page.locator("#start").click();
