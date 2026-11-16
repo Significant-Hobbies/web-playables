@@ -1,0 +1,734 @@
+{
+  "version": 4,
+  "checkpoints": [
+    {
+      "adventures": {
+        "day": 0,
+        "week": 0,
+        "daily": [],
+        "hunt": [],
+        "discoveries": {
+          "mira": false,
+          "cinder": false,
+          "whirlwind": false,
+          "daily": false,
+          "weekly": false,
+          "oaths": 0
+        }
+      },
+      "quests": {
+        "daily": {
+          "period": 0,
+          "progress": {
+            "kills": 0,
+            "skills": 0,
+            "oaths": 0,
+            "victories": 0
+          },
+          "claimed": []
+        },
+        "weekly": {
+          "period": 0,
+          "progress": {
+            "kills": 0,
+            "skills": 0,
+            "oaths": 0,
+            "victories": 0
+          },
+          "claimed": []
+        },
+        "story": {
+          "completed": [],
+          "claimed": []
+        }
+      },
+      "meta": {
+        "experience": {
+          "introSeen": true,
+          "lessons": {
+            "battle": false,
+            "skill": false,
+            "oath": false,
+            "camp": false
+          },
+          "audio": {
+            "musicEnabled": true,
+            "effectsEnabled": true,
+            "musicVolume": 0.65,
+            "effectsVolume": 0.72
+          }
+        },
+        "progression": {
+          "renown": 0,
+          "trailmarks": 0,
+          "embers": 0,
+          "training": {
+            "companion": 0,
+            "pet": 0,
+            "skill": 0
+          }
+        },
+        "gold": 0,
+        "earnedGold": 0,
+        "unlockedChapter": 1,
+        "victories": 0,
+        "defeats": 0,
+        "upgrades": {
+          "blade": 0,
+          "mail": 0,
+          "charm": 0
+        },
+        "loadout": {
+          "companion": "mira",
+          "pet": "fox",
+          "weapon": "sword",
+          "armor": "mail",
+          "skill": "whirlwind"
+        }
+      },
+      "run": {
+        "context": {
+          "kind": "campaign",
+          "routes": [],
+          "junctionFloor": 0
+        },
+        "chapter": 1,
+        "cleared": 0,
+        "hp": 180,
+        "xp": 0,
+        "level": 1,
+        "strikes": 0,
+        "seed": 927113,
+        "time": 0,
+        "distance": 0,
+        "perks": {},
+        "skillCooldown": 0,
+        "shield": 0
+      },
+      "phase": {
+        "kind": "camp"
+      }
+    },
+    {
+      "adventures": {
+        "day": 0,
+        "week": 0,
+        "daily": [],
+        "hunt": [],
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "quests": {
+        "daily": {
+          "period": 20773,
+          "progress": {
+            "kills": 36,
+            "skills": 4,
+            "oaths": 4,
+            "victories": 1
+          },
+          "claimed": []
+        },
+        "weekly": {
+          "period": 2968,
+          "progress": {
+            "kills": 36,
+            "skills": 4,
+            "oaths": 4,
+            "victories": 1
+          },
+          "claimed": []
+        },
+        "story": {
+          "completed": [1],
+          "claimed": []
+        }
+      },
+      "meta": {
+        "experience": {
+          "introSeen": true,
+          "lessons": {
+            "battle": false,
+            "skill": false,
+            "oath": false,
+            "camp": false
+          },
+          "audio": {
+            "musicEnabled": true,
+            "effectsEnabled": true,
+            "musicVolume": 0.65,
+            "effectsVolume": 0.72
+          }
+        },
+        "progression": {
+          "renown": 48,
+          "trailmarks": 0,
+          "embers": 2,
+          "training": {
+            "companion": 2,
+            "pet": 1,
+            "skill": 1
+          }
+        },
+        "gold": 17,
+        "earnedGold": 169,
+        "unlockedChapter": 2,
+        "victories": 1,
+        "defeats": 0,
+        "upgrades": {
+          "blade": 2,
+          "mail": 2,
+          "charm": 1
+        },
+        "loadout": {
+          "companion": "mira",
+          "pet": "fox",
+          "weapon": "sword",
+          "armor": "mail",
+          "skill": "whirlwind"
+        }
+      },
+      "run": {
+        "context": {
+          "kind": "campaign",
+          "routes": [],
+          "junctionFloor": 12
+        },
+        "chapter": 2,
+        "cleared": 12,
+        "hp": 245,
+        "xp": 2,
+        "level": 5,
+        "strikes": 45,
+        "seed": 2941122539,
+        "time": 48.399999999999814,
+        "distance": 12.066666666666634,
+        "perks": {},
+        "skillCooldown": 0,
+        "shield": 0
+      },
+      "phase": {
+        "kind": "camp"
+      }
+    },
+    {
+      "adventures": {
+        "day": 0,
+        "week": 0,
+        "daily": [],
+        "hunt": [],
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "quests": {
+        "daily": {
+          "period": 20773,
+          "progress": {
+            "kills": 72,
+            "skills": 10,
+            "oaths": 8,
+            "victories": 2
+          },
+          "claimed": []
+        },
+        "weekly": {
+          "period": 2968,
+          "progress": {
+            "kills": 72,
+            "skills": 10,
+            "oaths": 8,
+            "victories": 2
+          },
+          "claimed": []
+        },
+        "story": {
+          "completed": [1, 2],
+          "claimed": []
+        }
+      },
+      "meta": {
+        "experience": {
+          "introSeen": true,
+          "lessons": {
+            "battle": false,
+            "skill": false,
+            "oath": false,
+            "camp": false
+          },
+          "audio": {
+            "musicEnabled": true,
+            "effectsEnabled": true,
+            "musicVolume": 0.65,
+            "effectsVolume": 0.72
+          }
+        },
+        "progression": {
+          "renown": 96,
+          "trailmarks": 7,
+          "embers": 2,
+          "training": {
+            "companion": 3,
+            "pet": 2,
+            "skill": 2
+          }
+        },
+        "gold": 45,
+        "earnedGold": 372,
+        "unlockedChapter": 3,
+        "victories": 2,
+        "defeats": 0,
+        "upgrades": {
+          "blade": 3,
+          "mail": 3,
+          "charm": 2
+        },
+        "loadout": {
+          "companion": "mira",
+          "pet": "fox",
+          "weapon": "sword",
+          "armor": "mail",
+          "skill": "whirlwind"
+        }
+      },
+      "run": {
+        "context": {
+          "kind": "campaign",
+          "routes": [],
+          "junctionFloor": 12
+        },
+        "chapter": 3,
+        "cleared": 12,
+        "hp": 275,
+        "xp": 2,
+        "level": 5,
+        "strikes": 40,
+        "seed": 1513181583,
+        "time": 44.733333333333356,
+        "distance": 12.066666666666634,
+        "perks": {},
+        "skillCooldown": 0,
+        "shield": 0
+      },
+      "phase": {
+        "kind": "camp"
+      }
+    },
+    {
+      "adventures": {
+        "day": 0,
+        "week": 0,
+        "daily": [],
+        "hunt": [],
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "quests": {
+        "daily": {
+          "period": 20773,
+          "progress": {
+            "kills": 108,
+            "skills": 17,
+            "oaths": 12,
+            "victories": 3
+          },
+          "claimed": []
+        },
+        "weekly": {
+          "period": 2968,
+          "progress": {
+            "kills": 108,
+            "skills": 17,
+            "oaths": 12,
+            "victories": 3
+          },
+          "claimed": []
+        },
+        "story": {
+          "completed": [1, 2, 3],
+          "claimed": []
+        }
+      },
+      "meta": {
+        "experience": {
+          "introSeen": true,
+          "lessons": {
+            "battle": false,
+            "skill": false,
+            "oath": false,
+            "camp": false
+          },
+          "audio": {
+            "musicEnabled": true,
+            "effectsEnabled": true,
+            "musicVolume": 0.65,
+            "effectsVolume": 0.72
+          }
+        },
+        "progression": {
+          "renown": 144,
+          "trailmarks": 8,
+          "embers": 0,
+          "training": {
+            "companion": 4,
+            "pet": 3,
+            "skill": 3
+          }
+        },
+        "gold": 75,
+        "earnedGold": 609,
+        "unlockedChapter": 4,
+        "victories": 3,
+        "defeats": 0,
+        "upgrades": {
+          "blade": 4,
+          "mail": 4,
+          "charm": 2
+        },
+        "loadout": {
+          "companion": "mira",
+          "pet": "fox",
+          "weapon": "sword",
+          "armor": "mail",
+          "skill": "whirlwind"
+        }
+      },
+      "run": {
+        "context": {
+          "kind": "campaign",
+          "routes": [],
+          "junctionFloor": 12
+        },
+        "chapter": 4,
+        "cleared": 12,
+        "hp": 305,
+        "xp": 2,
+        "level": 5,
+        "strikes": 39,
+        "seed": 3200112894,
+        "time": 45.7333333333333,
+        "distance": 12.066666666666634,
+        "perks": {},
+        "skillCooldown": 0,
+        "shield": 0
+      },
+      "phase": {
+        "kind": "camp"
+      }
+    },
+    {
+      "adventures": {
+        "day": 0,
+        "week": 0,
+        "daily": [],
+        "hunt": [],
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "quests": {
+        "daily": {
+          "period": 20773,
+          "progress": {
+            "kills": 144,
+            "skills": 23,
+            "oaths": 16,
+            "victories": 4
+          },
+          "claimed": []
+        },
+        "weekly": {
+          "period": 2968,
+          "progress": {
+            "kills": 144,
+            "skills": 23,
+            "oaths": 16,
+            "victories": 4
+          },
+          "claimed": []
+        },
+        "story": {
+          "completed": [1, 2, 3, 4],
+          "claimed": []
+        }
+      },
+      "meta": {
+        "experience": {
+          "introSeen": true,
+          "lessons": {
+            "battle": false,
+            "skill": false,
+            "oath": false,
+            "camp": false
+          },
+          "audio": {
+            "musicEnabled": true,
+            "effectsEnabled": true,
+            "musicVolume": 0.65,
+            "effectsVolume": 0.72
+          }
+        },
+        "progression": {
+          "renown": 192,
+          "trailmarks": 18,
+          "embers": 4,
+          "training": {
+            "companion": 4,
+            "pet": 4,
+            "skill": 3
+          }
+        },
+        "gold": 5,
+        "earnedGold": 880,
+        "unlockedChapter": 5,
+        "victories": 4,
+        "defeats": 0,
+        "upgrades": {
+          "blade": 5,
+          "mail": 5,
+          "charm": 2
+        },
+        "loadout": {
+          "companion": "mira",
+          "pet": "fox",
+          "weapon": "sword",
+          "armor": "mail",
+          "skill": "whirlwind"
+        }
+      },
+      "run": {
+        "context": {
+          "kind": "campaign",
+          "routes": [],
+          "junctionFloor": 12
+        },
+        "chapter": 5,
+        "cleared": 12,
+        "hp": 335,
+        "xp": 2,
+        "level": 5,
+        "strikes": 31,
+        "seed": 3350239622,
+        "time": 37.73333333333375,
+        "distance": 12.066666666666634,
+        "perks": {},
+        "skillCooldown": 0,
+        "shield": 0
+      },
+      "phase": {
+        "kind": "camp"
+      }
+    }
+  ],
+  "earnedTrail": [
+    {
+      "chapter": 1,
+      "spent": {
+        "gold": 0,
+        "trailmarks": 0,
+        "embers": 0
+      },
+      "startBudget": {
+        "gold": 0,
+        "earnedGold": 0,
+        "progression": {
+          "renown": 0,
+          "trailmarks": 0,
+          "embers": 0,
+          "training": {
+            "companion": 0,
+            "pet": 0,
+            "skill": 0
+          }
+        },
+        "upgrades": {
+          "blade": 0,
+          "mail": 0,
+          "charm": 0
+        },
+        "discoveries": {
+          "mira": false,
+          "cinder": false,
+          "whirlwind": false,
+          "daily": false,
+          "weekly": false,
+          "oaths": 0
+        }
+      },
+      "win": true,
+      "seconds": 48.399999999999814
+    },
+    {
+      "chapter": 2,
+      "spent": {
+        "gold": 152,
+        "trailmarks": 12,
+        "embers": 2
+      },
+      "startBudget": {
+        "gold": 17,
+        "earnedGold": 169,
+        "progression": {
+          "renown": 48,
+          "trailmarks": 0,
+          "embers": 2,
+          "training": {
+            "companion": 2,
+            "pet": 1,
+            "skill": 1
+          }
+        },
+        "upgrades": {
+          "blade": 2,
+          "mail": 2,
+          "charm": 1
+        },
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "win": true,
+      "seconds": 44.733333333333356
+    },
+    {
+      "chapter": 3,
+      "spent": {
+        "gold": 175,
+        "trailmarks": 15,
+        "embers": 4
+      },
+      "startBudget": {
+        "gold": 45,
+        "earnedGold": 372,
+        "progression": {
+          "renown": 96,
+          "trailmarks": 7,
+          "embers": 2,
+          "training": {
+            "companion": 3,
+            "pet": 2,
+            "skill": 2
+          }
+        },
+        "upgrades": {
+          "blade": 3,
+          "mail": 3,
+          "charm": 2
+        },
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "win": true,
+      "seconds": 45.76666666666663
+    },
+    {
+      "chapter": 4,
+      "spent": {
+        "gold": 207,
+        "trailmarks": 21,
+        "embers": 6
+      },
+      "startBudget": {
+        "gold": 75,
+        "earnedGold": 609,
+        "progression": {
+          "renown": 144,
+          "trailmarks": 8,
+          "embers": 0,
+          "training": {
+            "companion": 4,
+            "pet": 3,
+            "skill": 3
+          }
+        },
+        "upgrades": {
+          "blade": 4,
+          "mail": 4,
+          "charm": 2
+        },
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "win": true,
+      "seconds": 37.83333333333375
+    },
+    {
+      "chapter": 5,
+      "spent": {
+        "gold": 341,
+        "trailmarks": 12,
+        "embers": 0
+      },
+      "startBudget": {
+        "gold": 5,
+        "earnedGold": 880,
+        "progression": {
+          "renown": 192,
+          "trailmarks": 18,
+          "embers": 4,
+          "training": {
+            "companion": 4,
+            "pet": 4,
+            "skill": 3
+          }
+        },
+        "upgrades": {
+          "blade": 5,
+          "mail": 5,
+          "charm": 2
+        },
+        "discoveries": {
+          "mira": true,
+          "cinder": true,
+          "whirlwind": true,
+          "daily": false,
+          "weekly": false,
+          "oaths": 2
+        }
+      },
+      "win": true,
+      "seconds": 47.23333333333321
+    }
+  ],
+  "sourceCommit": "b3edd271e8b3ead66615f681731fcafd6567ea99",
+  "provenance": "Generated from released v4 by completing chapters with naturally offered oaths, rescue/shrine/tracks routes, ordinary skill casts, and only earned forging/training spend. No maximum-stat grants."
+}

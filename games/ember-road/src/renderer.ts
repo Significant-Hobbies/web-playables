@@ -2,7 +2,7 @@ export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import { attackMotion } from "./attack-motion";
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
-import { rank } from "./model";
+import { COMBO_TUNING, rank } from "./model";
 import { systemUnlocked } from "./progression";
 import { spriteBottom, visibleSpriteHeight } from "./sprite-frames";
 
@@ -64,6 +64,7 @@ export class WorldRenderer {
   private campView = true;
   private scene: Scene | null = null;
   private effects: { actor: ActorId; target: ActorId; age: number; kind: string }[] = [];
+  private seenReactions = new WeakSet<object>();
   private backdrops = new Map<number, HTMLImageElement>();
   private lightningAge = 1;
   private readonly roadAtlasUrl = new URL("../assets/toon-roads.png", import.meta.url).href;
@@ -101,6 +102,7 @@ export class WorldRenderer {
     this.motions.clear();
     this.foes = [];
     this.effects = [];
+    this.seenReactions = new WeakSet();
     this.sparks.length = 0;
   }
 
@@ -109,8 +111,20 @@ export class WorldRenderer {
       if (state.phase.enemies !== this.foes) {
         this.motions.clear();
         this.effects = [];
+        this.seenReactions = new WeakSet();
       }
       this.foes = state.phase.enemies;
+      // The saved queue owns flights, including those already in the air on reload.
+      for (const reaction of state.phase.reactions ?? []) {
+        if (this.seenReactions.has(reaction)) continue;
+        this.seenReactions.add(reaction);
+        this.effects.push({
+          actor: reaction.actor,
+          target: reaction.target,
+          age: Math.max(0, COMBO_TUNING.shardFlight - reaction.remaining),
+          kind: reaction.effect,
+        });
+      }
     }
   }
 
@@ -130,7 +144,13 @@ export class WorldRenderer {
   handle(events: GameEvent[], state: GameState) {
     for (const event of events) {
       if (event.type === "combo") {
-        this.effects.push({ actor: event.actor, target: event.target, age: 0, kind: event.effect });
+        if (event.effect !== "shatterguard")
+          this.effects.push({
+            actor: event.actor,
+            target: event.target,
+            age: 0,
+            kind: event.effect,
+          });
       } else if (event.type === "swing") {
         Object.assign(this.motion(event.actor), {
           attack: 0,
@@ -594,7 +614,7 @@ export class WorldRenderer {
           c.stroke();
         }
       } else if (effect.kind === "shatterguard") {
-        const progress = s.reducedMotion ? 1 : Math.min(1, effect.age / 0.28);
+        const progress = s.reducedMotion ? 1 : Math.min(1, effect.age / COMBO_TUNING.shardFlight);
         const x = p.x + (q.x - p.x) * progress;
         const y = p.y - 85 * p.scale + (q.y - 85 * q.scale - (p.y - 85 * p.scale)) * progress;
         c.fillStyle = "#bcefff";

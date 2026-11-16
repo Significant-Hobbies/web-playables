@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run && node scripts/balance.mjs --samples 4",
     "build": "vite build",
     "build:yt": "vite build --mode yt && node scripts/package-yt.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "balance": "node scripts/balance.mjs"
   },
   "dependencies": {
     "@games/gamekit": "workspace:*",
