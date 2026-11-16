@@ -69,6 +69,7 @@ import {
   WEAPONS,
   xpNeeded,
 } from "./model";
+import { synergyStatus } from "./model.ts";
 import { companyPower } from "./power";
 import {
   companyLevel,
@@ -262,6 +263,17 @@ function Powers({ state }: { state: GameState }) {
   const powers = PERKS.filter((p) => rank(state, p.id) > 0);
   return (
     <div className="powers-list">
+      {synergyStatus(state).map((rule) => (
+        <div className="power-row" key={rule.id}>
+          <div>
+            <strong>
+              {rule.name} · {rule.active ? "Active" : "Build combo"}
+            </strong>
+            <p>{rule.description}</p>
+            <small>{rule.active ? "Ready" : rule.missing.join(" · ")}</small>
+          </div>
+        </div>
+      ))}
       {systemUnlocked(state, "skills") && (
         <div className="power-row">
           <LoadoutArt slot="skill" id={skill.id} />
@@ -420,6 +432,30 @@ function PowerBelt({ state }: { state: GameState }) {
           <PerkSymbol family={p.family} />
           <span>{p.title}</span>
           <b>{rank(state, p.id)}</b>
+        </PowerChip>
+      ))}
+      {synergyStatus(state).map((rule) => (
+        <PowerChip
+          key={rule.id}
+          className={`synergy-${rule.id} ${rule.active ? "synergy-active" : "synergy-locked"}`}
+          label={`${rule.name}, ${rule.active ? "active" : "requirements missing"}`}
+          description={
+            <>
+              <strong>
+                {rule.name} · {rule.active ? "Active combo" : "Build combo"}
+              </strong>
+              <p>{rule.description}</p>
+              <small>
+                {rule.active
+                  ? "Ready with this company and build"
+                  : `Requires: ${rule.missing.join(" · ")}`}
+              </small>
+            </>
+          }
+        >
+          <Zap />
+          <span>{rule.name}</span>
+          <b>{rule.active ? "✓" : "+"}</b>
         </PowerChip>
       ))}
       {!powers.length && (

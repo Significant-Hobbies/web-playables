@@ -28,6 +28,8 @@ const musicUrls = [
 ];
 export function eventCue(event: GameEvent, state: GameState): SoundCue | null {
   if (event.type === "hit") {
+    if (event.effect === "shatterguard") return "pierce";
+    if (event.effect === "storm-relay") return "critical";
     if (event.target === "hero") return "hurt";
     if (event.critical || event.lightning) return "critical";
     if (event.actor === "pet") return state.meta.loadout.pet === "owl" ? "arrow" : "pet";

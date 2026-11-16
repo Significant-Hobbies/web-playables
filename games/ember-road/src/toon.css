@@ -2030,3 +2030,19 @@
   color: #33230f;
   text-shadow: none;
 }
+
+.power-chip.synergy-active {
+  border-color: #8ce7c3;
+}
+.power-chip.synergy-shatterguard {
+  color: #bcefff;
+}
+.power-chip.synergy-storm-relay {
+  color: #d6bbff;
+}
+.power-chip.synergy-hunters-signal {
+  color: #ffca81;
+}
+.power-chip.synergy-locked {
+  opacity: 0.72;
+}
