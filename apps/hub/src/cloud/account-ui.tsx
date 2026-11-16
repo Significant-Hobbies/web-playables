@@ -90,7 +90,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
   useEffect(() => () => cloud.setPanelOpen(false), [cloud]);
   useEffect(() => {
     let current = true;
-    if (open && accountId && !state.authRequired)
+    if (open && accountId && !state.authRequired && state.storageAvailable)
       void cloud
         .list()
         .then((rows) => {
@@ -105,7 +105,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
     return () => {
       current = false;
     };
-  }, [cloud, open, accountId, state.authRequired]);
+  }, [cloud, open, accountId, state.authRequired, state.storageAvailable]);
   async function run(action: () => void | Promise<void>) {
     if (busy) return false;
     setBusy(true);
@@ -177,7 +177,11 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                 : state.phase === "saved"
                   ? "Your checkpoint is saved to your account. Pick up the road wherever you play."
                   : state.message || "Your checkpoint stays on this device while you play.";
-  const displayMessage = !state.storageAvailable && message === STORAGE_WARNING ? null : message;
+  const displayMessage =
+    !state.storageAvailable &&
+    (message === STORAGE_WARNING || (state.phase === "offline" && !state.authRequired))
+      ? null
+      : message;
   return (
     <div data-theme="paper" className={`cloud-shell${ember ? " ember-cloud" : ""}`}>
       <Button
@@ -361,7 +365,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
         ) : ember ? (
           <section className="import-prompt">
             <Button
-              disabled={busy || state.phase === "checking"}
+              disabled={busy || state.phase === "checking" || !state.storageAvailable}
               onClick={() =>
                 void run(() =>
                   !state.user
@@ -403,7 +407,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             <div className="account-actions">
               {state.user ? (
                 <>
-                  {!state.authRequired && (
+                  {!state.authRequired && state.storageAvailable && (
                     <>
                       <Button disabled={busy} onClick={() => void run(() => cloud.checkpoint())}>
                         <Cloud />
@@ -422,7 +426,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                   {state.phase === "offline" && (
                     <Button
                       variant="outline"
-                      disabled={busy}
+                      disabled={busy || !state.storageAvailable}
                       onClick={() => void run(() => cloud.signIn())}
                     >
                       Sign in again
@@ -431,7 +435,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
                 </>
               ) : (
                 <Button
-                  disabled={busy || state.phase === "checking"}
+                  disabled={busy || state.phase === "checking" || !state.storageAvailable}
                   onClick={() => void run(() => cloud.signIn())}
                 >
                   Continue with Google
@@ -446,6 +450,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
         >
           {ember &&
             !state.authRequired &&
+            state.storageAvailable &&
             !conflict &&
             !state.reloadRequired &&
             state.phase !== "update-required" &&
@@ -475,6 +480,7 @@ function Account({ cloud }: { cloud: PlayablesCloud }) {
             )}
           {!conflict &&
             !state.authRequired &&
+            state.storageAvailable &&
             !state.reloadRequired &&
             (!ember || state.phase !== "update-required") &&
             state.user &&
