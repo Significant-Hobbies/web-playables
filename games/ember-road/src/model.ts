@@ -1285,10 +1285,18 @@ function resolveHero(state: GameState, battle: BattlePhase, hit: TargetHit, even
     if (pierced) damageEnemy(state, pierced, hit.damage * stats.pierce, "hero", events);
   }
   const chainTargets = livingEnemies(battle).filter((e) => e.id !== target.id);
-  if (third && pierced && !hit.legacy && activeSynergies(state).includes("storm-relay")) {
-    const targets = livingEnemies(battle)
-      .filter((e) => e.id !== pierced.id)
-      .slice(0, COMBO_TUNING.relayTargets);
+  const targets = pierced
+    ? livingEnemies(battle)
+        .filter((e) => e.id !== pierced.id)
+        .slice(0, COMBO_TUNING.relayTargets)
+    : [];
+  if (
+    third &&
+    pierced &&
+    targets.length &&
+    !hit.legacy &&
+    activeSynergies(state).includes("storm-relay")
+  ) {
     const budget = rank(state, "chain")
       ? 14 * rank(state, "chain") * chainTargets.length
       : stats.damage * COMBO_TUNING.relayEntryAttack;

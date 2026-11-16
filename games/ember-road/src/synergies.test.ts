@@ -366,6 +366,32 @@ describe("bounded build reactions", () => {
     state.phase.enemies[0]!.hp = 0;
     expect(hits(stepGame(state, 0.01), "storm-relay")).toEqual([]);
   });
+  it("preserves covenant damage when only the pierced foe survives", () => {
+    const state = setup();
+    state.meta.loadout.weapon = "spear";
+    state.run.perks.chain = 1;
+    state.run.strikes = 2;
+    const front = state.phase.enemies[0]!;
+    const rear = state.phase.enemies.find((foe) => foe.row === "back")!;
+    for (const foe of state.phase.enemies) if (foe !== front && foe !== rear) foe.hp = 0;
+    front.hp = 1;
+    const before = rear.hp;
+    const pierceDamage = 10 * heroStats(state).pierce;
+    strike(state);
+    const events = stepGame(state, 0.01);
+    expect(front.hp).toBe(0);
+    expect(rear.hp).toBeCloseTo(before - pierceDamage - 14);
+    expect(hits(events, "storm-relay")).toEqual([]);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "hit",
+        target: rear.id,
+        damage: 14,
+        lightning: true,
+      }),
+    );
+    expect(validState(state)).toBe(true);
+  });
 });
 
 describe("Hunter’s Signal checkpoint semantics", () => {
