@@ -236,8 +236,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.equal(heldRun.chapter, pausedRun.chapter);
     assert.equal(heldRun.cleared, pausedRun.cleared);
     assert.deepEqual(heldRun.perks, pausedRun.perks);
-    await originPage.waitForTimeout(200);
-    assert.equal((await stored(originPage)).state.run.distance, heldRun.distance);
+    await originPage.waitForTimeout(2600);
+    assert.deepEqual(
+      (await stored(originPage)).state.run,
+      heldRun,
+      "The whole run stays frozen beyond a normal autosave interval until explicit Resume",
+    );
     await originPage.reload();
     await originPage.waitForFunction(
       () => !document.getElementById("save-status")?.textContent.includes("Loading"),
