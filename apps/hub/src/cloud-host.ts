@@ -23,7 +23,7 @@ const storage = (() => {
 })();
 const cloud = new PlayablesCloud({
   gameId: gameId || null,
-  maxSchemaVersion: gameId === "war-chest" ? 2 : gameId === "ember-road" ? 4 : 3,
+  maxSchemaVersion: gameId === "war-chest" ? 2 : gameId === "ember-road" ? 5 : 3,
   storage,
   fetch: window.fetch.bind(window),
   location,

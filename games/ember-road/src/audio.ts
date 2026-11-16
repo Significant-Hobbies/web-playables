@@ -28,6 +28,8 @@ const musicUrls = [
 ];
 export function eventCue(event: GameEvent, state: GameState): SoundCue | null {
   if (event.type === "hit") {
+    if (event.effect === "shatterguard") return "pierce";
+    if (event.effect === "storm-relay") return "critical";
     if (event.target === "hero") return "hurt";
     if (event.critical || event.lightning) return "critical";
     if (event.actor === "pet") return state.meta.loadout.pet === "owl" ? "arrow" : "pet";
@@ -60,6 +62,7 @@ export class GameAudio {
   private status: AudioStatus = "locked";
   private takes = new Map<SoundCue, number>();
   private lastImpact = -1;
+  private lastCritical = -1;
   private lastCoin = -1;
   constructor(
     preferences: AudioPreferences,
@@ -213,6 +216,10 @@ export class GameAudio {
     if (["slash", "heavy", "pierce", "arrow", "hurt", "pet"].includes(cue)) {
       if (t - this.lastImpact < 0.09) return;
       this.lastImpact = t;
+    }
+    if (cue === "critical") {
+      if (t - this.lastCritical < 0.09) return;
+      this.lastCritical = t;
     }
     if (cue === "kill") {
       if (t - this.lastCoin < 0.2) return;

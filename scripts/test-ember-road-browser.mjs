@@ -142,7 +142,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
   }
   async function fixture(state) {
     assert(validState(state), "Fixture uses the real state validator");
-    return JSON.stringify({ version: 4, savedAt: Date.now(), state });
+    return JSON.stringify({ version: 5, savedAt: Date.now(), state });
   }
   async function assertCampActors(page) {
     const actors = await page.locator(".chapter-hub .toon-actor").evaluateAll(async (nodes) =>
@@ -595,7 +595,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       storageKey,
     );
     const claimed = await stored(questPage);
-    assert.equal(claimed.version, 4);
+    assert.equal(claimed.version, 5);
     assert.equal(
       claimed.state.meta.gold,
       goldBeforeClaims + 45,

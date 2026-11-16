@@ -20,6 +20,7 @@ import {
   migrateV1State,
   migrateV2State,
   migrateV3State,
+  migrateV4State,
   PERKS,
   rerollPerks,
   retreatToCamp,
@@ -32,6 +33,7 @@ import {
   validState,
   validV2State,
   validV3State,
+  validV4State,
 } from "./model";
 import { prepareProgression, train } from "./progression";
 import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
@@ -100,7 +102,8 @@ const savePlatform: Platform = {
           (envelope.version === 1 && validLegacyState(envelope.state)) ||
           (envelope.version === 2 && validV2State(envelope.state)) ||
           (envelope.version === 3 && validV3State(envelope.state)) ||
-          (envelope.version === 4 && validState(envelope.state))
+          (envelope.version === 4 && validV4State(envelope.state)) ||
+          (envelope.version === 5 && validState(envelope.state))
         )
       )
         throw new Error("Unsupported save");
@@ -128,8 +131,8 @@ const saves = createSaveManager<GameState>({
     return state;
   },
   platform: savePlatform,
-  version: 4,
-  migrations: { 1: migrateV1State, 2: migrateV2State, 3: migrateV3State },
+  version: 5,
+  migrations: { 1: migrateV1State, 2: migrateV2State, 3: migrateV3State, 4: migrateV4State },
   initial: initialState,
 });
 function snapshot(): UiSnapshot {
