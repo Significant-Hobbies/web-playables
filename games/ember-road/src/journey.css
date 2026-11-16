@@ -562,6 +562,81 @@
     transform: none;
   }
 }
+.toon-shell .company-arrival {
+  width: min(560px, calc(100vw - 32px));
+  max-width: 560px;
+  text-align: center;
+  background: radial-gradient(ellipse at 50% 25%, #28556a, #102239 62%);
+}
+.toon-shell .company-arrival .dialog-heading {
+  border: 0;
+  margin-bottom: 0;
+}
+.toon-shell .company-arrival .dialog-heading h2 {
+  font-size: 19px;
+  color: #bed9e7;
+}
+.company-arrival-art {
+  position: relative;
+  height: 200px;
+  display: grid;
+  place-items: center;
+}
+.join-ring {
+  position: absolute;
+  width: 162px;
+  height: 162px;
+  border: 1px solid #8ad8c6;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 10px #81dcc40a,
+    0 0 0 11px #81dcc438;
+  background: radial-gradient(#80d8bc35, transparent 70%);
+}
+.join-portrait {
+  position: relative;
+  width: 180px;
+  height: 190px;
+  background-repeat: no-repeat;
+  animation: relic-reveal 0.4s ease both;
+}
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .join-portrait {
+  animation-play-state: running !important;
+}
+.join-mira {
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+}
+.join-cinder {
+  background: url("../assets/toon-pets.png") 0 0 / 400% 300% no-repeat;
+  width: 195px;
+  height: 190px;
+}
+.toon-shell .company-arrival .eyebrow {
+  color: #a4e4cb;
+  font-family: var(--game-font);
+}
+.toon-shell .company-arrival h3 {
+  font-size: 25px;
+  margin: 12px 0;
+  color: #ffdda1;
+}
+.toon-shell .company-arrival p {
+  font-size: 13px;
+  line-height: 1.65;
+  max-width: 410px;
+  margin: 0 auto 16px;
+}
+.company-arrival > small {
+  display: block;
+  font-size: 10px;
+  color: #8eb7c9;
+}
+.toon-shell .company-arrival > button {
+  margin-top: 22px;
+  background: #f1bd53;
+  color: #102138;
+  border-color: #ffe4ae;
+}
 @keyframes chapter-arrive {
   0% {
     opacity: 0;

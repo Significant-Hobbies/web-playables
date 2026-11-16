@@ -532,6 +532,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       ? activityPreview(state, state.run.context.kind, state.run.context.tier, state.run.context)
       : null;
   const discoveries = state.adventures?.discoveries;
+  const miraFound = discoveries?.mira ?? false;
+  const cinderFound = discoveries?.cinder ?? false;
+  const knownCompany = useRef<{ mira: boolean; cinder: boolean } | null>(null);
+  const [newDiscovery, setNewDiscovery] = useState<"mira" | "cinder" | null>(null);
+  useEffect(() => {
+    if (!v.loaded) return;
+    const before = knownCompany.current;
+    if (before && !before.mira && miraFound) setNewDiscovery("mira");
+    else if (before && !before.cinder && cinderFound) setNewDiscovery("cinder");
+    knownCompany.current = { mira: miraFound, cinder: cinderFound };
+  }, [v.loaded, miraFound, cinderFound]);
   const companyReady = systemUnlocked(state, "company");
   const skillReady = systemUnlocked(state, "skills");
   const petsReady = systemUnlocked(state, "pets");
@@ -598,9 +609,21 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           campOpen ||
           retreat ||
           introChapter !== null ||
+          newDiscovery !== null ||
           section !== "Camp",
       ),
-    [a, settings, detail, campOpen, retreat, introChapter, section, showPrologue, adventureOpen],
+    [
+      a,
+      settings,
+      detail,
+      campOpen,
+      retreat,
+      introChapter,
+      newDiscovery,
+      section,
+      showPrologue,
+      adventureOpen,
+    ],
   );
   useEffect(() => {
     if (inCamp) {
@@ -1795,6 +1818,34 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <ArrowRight />
           </Button>
         </div>
+      </Modal>
+      <Modal
+        open={newDiscovery !== null}
+        title={newDiscovery === "mira" ? "Mira joins the company." : "Cinder joins the company."}
+        className={`company-arrival arrival-${newDiscovery ?? "mira"}`}
+        close={() => setNewDiscovery(null)}
+      >
+        <div className="company-arrival-art" aria-hidden="true">
+          <span className="join-ring" />
+          <span className={`join-portrait join-${newDiscovery ?? "mira"}`} />
+        </div>
+        <span className="eyebrow">
+          {newDiscovery === "mira" ? "A RANGER’S PROMISE" : "A SMALL FLAME, A LOYAL FRIEND"}
+        </span>
+        <h3>
+          {newDiscovery === "mira"
+            ? "You don’t have to walk alone."
+            : "Some lights find their way to you."}
+        </h3>
+        <p>
+          {newDiscovery === "mira"
+            ? "Mira found your lantern. Her arrows now join Rook’s attacks. You can inspect and train your companion back at camp."
+            : "Cinder followed the ember footprints home. Your first pet joins the fight; pair Cinder with Mira to mark targets for her next arrow."}
+        </p>
+        <small>A permanent discovery. Your companion stays with the company across journeys.</small>
+        <Button onClick={() => setNewDiscovery(null)}>
+          Continue the journey <ArrowRight />
+        </Button>
       </Modal>
       <Modal
         open={settings}
