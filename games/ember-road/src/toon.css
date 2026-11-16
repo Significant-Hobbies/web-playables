@@ -22,6 +22,7 @@
   --font-sans: var(--game-font);
 }
 .toon-shell {
+  --playables-account-font: var(--game-font);
   height: 100dvh;
   display: flex;
   flex-direction: column;

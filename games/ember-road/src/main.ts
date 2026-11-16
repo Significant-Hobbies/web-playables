@@ -56,6 +56,7 @@ let saveMessage = "Loading your journey…";
 let saveWarning = false;
 let userPaused = false;
 let platformPaused = false;
+let overlaySuspended = false;
 let inspecting = false;
 let campStage = true;
 let reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -143,6 +144,7 @@ function snapshot(): UiSnapshot {
     saveMessage,
     saveWarning,
     paused: userPaused,
+    overlaySuspended,
     motionPaused: userPaused || platformPaused || inspecting,
     presentationPaused: userPaused || platformPaused,
     audioStatus,
@@ -445,6 +447,10 @@ platform.onAudioEnabledChange(() => {
 platform.onPauseChange((paused) => {
   platformPaused = paused;
   syncPause();
+});
+platform.onOverlayChange?.((open) => {
+  overlaySuspended = open;
+  publish();
 });
 window.addEventListener("pointerdown", (event) => {
   if (event.target instanceof Node && app.contains(event.target)) void audio.unlock();

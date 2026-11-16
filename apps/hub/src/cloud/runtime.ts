@@ -37,6 +37,7 @@ export interface PersistenceHost {
   saveData(key: string, data: string): Promise<void>;
   onPauseChange(callback: (paused: boolean) => void): () => void;
   registerSaveRequest(callback: () => void | Promise<void>): () => void;
+  onOverlayChange?(callback: (open: boolean) => void): () => void;
 }
 interface LocalCopy {
   data: string;
@@ -79,6 +80,7 @@ export class PlayablesCloud implements PersistenceHost {
   readonly #options: RuntimeOptions;
   readonly #listeners = new Set<(state: CloudState) => void>();
   readonly #pauseListeners = new Set<(paused: boolean) => void>();
+  readonly #overlayListeners = new Set<(open: boolean) => void>();
   readonly #saveRequests = new Set<() => void | Promise<void>>();
   #state: CloudState;
   #generation = 0;
@@ -119,8 +121,17 @@ export class PlayablesCloud implements PersistenceHost {
   getState = (): CloudState => structuredClone(this.#state);
   getSlotId = () => this.#copy?.slot ?? null;
   setPanelOpen(open: boolean) {
+    if (open === this.#panelOpen) return;
     this.#panelOpen = open;
     this.#update({});
+    for (const callback of this.#overlayListeners) callback(open);
+  }
+  onOverlayChange(callback: (open: boolean) => void) {
+    this.#overlayListeners.add(callback);
+    callback(this.#panelOpen);
+    return () => {
+      this.#overlayListeners.delete(callback);
+    };
   }
   subscribe = (callback: (state: CloudState) => void) => {
     this.#listeners.add(callback);

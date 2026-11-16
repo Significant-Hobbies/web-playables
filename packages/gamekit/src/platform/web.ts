@@ -45,6 +45,10 @@ export class WebPlatform implements Platform {
     return this.#host?.registerSaveRequest(cb) ?? (() => {});
   }
 
+  onOverlayChange(cb: (open: boolean) => void): Unsubscribe {
+    return this.#host?.onOverlayChange?.(cb) ?? (() => {});
+  }
+
   onPauseChange(cb: (paused: boolean) => void): Unsubscribe {
     let hostPaused = false;
     const handler = () => cb(hostPaused || document.visibilityState === "hidden");
@@ -68,6 +72,7 @@ declare global {
       saveData(key: string, data: string): Promise<void>;
       onPauseChange(callback: (paused: boolean) => void): Unsubscribe;
       registerSaveRequest(callback: () => void | Promise<void>): Unsubscribe;
+      onOverlayChange?(callback: (open: boolean) => void): Unsubscribe;
     };
   }
 }

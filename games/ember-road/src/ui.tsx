@@ -27,7 +27,16 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import {
@@ -71,6 +80,7 @@ import {
   xpNeeded,
 } from "./model";
 import { synergyStatus } from "./model.ts";
+import { OverlaySuspended } from "./overlay";
 import { PerkArt } from "./perk-art";
 import { companyPower } from "./power";
 import {
@@ -90,6 +100,7 @@ const chapterIsland = new URL("../assets/toon-island.png", import.meta.url).href
 const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
 const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
 const roadAtlas = new URL("../assets/toon-roads.png", import.meta.url).href;
+const knightAtlas = new URL("../assets/toon-knight.png", import.meta.url).href;
 function PerkSymbol({ family }: { family: Perk["family"] }) {
   return family === "steel" ? <Sword /> : family === "vitality" ? <Heart /> : <Flame />;
 }
@@ -100,6 +111,7 @@ export interface UiSnapshot {
   saveMessage: string;
   saveWarning: boolean;
   paused: boolean;
+  overlaySuspended: boolean;
   motionPaused: boolean;
   presentationPaused: boolean;
   audioStatus: AudioStatus;
@@ -172,12 +184,13 @@ function Modal({
   className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const suspended = useContext(OverlaySuspended);
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (open && !node.open) node.showModal();
-    if (!open && node.open) node.close();
-  }, [open]);
+    if (open && !suspended && !node.open) node.showModal();
+    if ((!open || suspended) && node.open) node.close();
+  }, [open, suspended]);
   return (
     <NativeDialog
       ref={ref}
@@ -873,7 +886,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <b data-currency="embers">{progression.embers}</b>
             </span>
           )}
-          {v.web && <span data-playables-account-slot="" />}
+          {v.web && (
+            <span
+              data-playables-account-slot=""
+              style={{ "--playables-account-avatar": `url("${knightAtlas}")` } as CSSProperties}
+            />
+          )}
           {v.audioControls && (
             <Button
               className="sound-toggle"
@@ -2322,7 +2340,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
 export function mountUi(element: HTMLElement, initial: UiSnapshot, actions: UiActions) {
   const root = createRoot(element);
   const render = (snapshot: UiSnapshot) =>
-    root.render(<GameUi snapshot={snapshot} actions={actions} />);
+    root.render(
+      <OverlaySuspended value={snapshot.overlaySuspended}>
+        <GameUi snapshot={snapshot} actions={actions} />
+      </OverlaySuspended>,
+    );
   flushSync(() => render(initial));
   return render;
 }
