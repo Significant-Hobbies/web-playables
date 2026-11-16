@@ -428,6 +428,13 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await page.locator(".power-tooltip:popover-open").isVisible(),
       "Power details remain visible above the choice dialog",
     );
+    await chip.press("Enter");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 0);
+    await chip.press("Enter");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 1);
+    await chip.press("Escape");
+    assert.equal(await page.locator(".power-tooltip:popover-open").count(), 0);
+    assert.equal(await page.locator(".decision--choice[open]").count(), 1);
     await page.mouse.move(10, 10);
     assert(
       (

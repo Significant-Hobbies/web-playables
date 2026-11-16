@@ -331,10 +331,16 @@ function PowerChip({
           if (event.currentTarget.matches(":focus-visible")) show();
         }}
         onBlur={hide}
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && panel.current?.matches(":popover-open")) {
+            event.preventDefault();
+            event.stopPropagation();
+            hide();
+          }
+        }}
         onClick={(event) => {
           if (
-            event.detail > 0 &&
-            lastPointer.current === "touch" &&
+            (event.detail === 0 || lastPointer.current === "touch") &&
             panel.current?.matches(":popover-open")
           )
             hide();
@@ -463,6 +469,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const level = levelProgress(state);
   const progression = progressionOf(state);
   const upcoming = nextUnlock(state);
+  const milestone = Object.entries(SYSTEMS).find(([, system]) => system.level === level.level);
   const companyReady = systemUnlocked(state, "company");
   const skillReady = systemUnlocked(state, "skills");
   const petsReady = systemUnlocked(state, "pets");
@@ -1911,9 +1918,35 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             : `${state.phase.kind === "defeat" ? state.phase.enemy : "The road"} stopped you after ${state.run.cleared} waves. Your gold and forged gear are safe.`}
         </p>
         {state.phase.kind === "victory" && (
-          <p>
-            <Coins /> {state.phase.reward} chapter gold · {state.meta.gold} gold kept
-          </p>
+          <>
+            <p>
+              <Coins /> {state.phase.reward} chapter gold · {state.meta.gold} gold kept
+            </p>
+            <div className="victory-progress" data-company-reward="" role="status">
+              <Sparkles />
+              <div>
+                <strong>Company level {level.level}</strong>
+                {milestone && (
+                  <p>
+                    {
+                      {
+                        company: "Company",
+                        skills: "Skills",
+                        pets: "Pets",
+                        daily: "Daily quests",
+                        weekly: "Weekly quests",
+                      }[milestone[0] as keyof typeof SYSTEMS]
+                    }{" "}
+                    unlocked · {milestone[1].title}
+                  </p>
+                )}
+                <small>
+                  Permanent progress · {progression.trailmarks} Trailmarks · {progression.embers}{" "}
+                  Embers kept
+                </small>
+              </div>
+            </div>
+          </>
         )}
         <div className="dialog-actions">
           <Button

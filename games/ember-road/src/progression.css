@@ -388,6 +388,24 @@
 .training-panel button {
   flex: none;
 }
+.victory-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  margin: 18px 0;
+  border: 2px solid #4b9c91;
+  border-radius: 10px;
+  background: #163b46;
+  color: #d8fff0;
+}
+.victory-progress > svg {
+  color: #f1bd53;
+  flex: none;
+}
+.victory-progress small {
+  color: #a9cbd7;
+}
 .skill-locked {
   display: flex;
   align-items: center;
