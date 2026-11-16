@@ -31,12 +31,17 @@ export interface CloudState {
   paused: boolean;
   reloadRequired: boolean;
   message: string | null;
+  authRequired: boolean;
+  storageAvailable: boolean;
 }
+export const STORAGE_WARNING =
+  "Browser storage is unavailable. Keep this tab open; progress cannot be saved here.";
 export interface PersistenceHost {
   loadData(key: string): Promise<string | null>;
   saveData(key: string, data: string): Promise<void>;
   onPauseChange(callback: (paused: boolean) => void): () => void;
   registerSaveRequest(callback: () => void | Promise<void>): () => void;
+  onOverlayChange?(callback: (open: boolean) => void): () => void;
 }
 interface LocalCopy {
   data: string;
@@ -79,6 +84,7 @@ export class PlayablesCloud implements PersistenceHost {
   readonly #options: RuntimeOptions;
   readonly #listeners = new Set<(state: CloudState) => void>();
   readonly #pauseListeners = new Set<(paused: boolean) => void>();
+  readonly #overlayListeners = new Set<(open: boolean) => void>();
   readonly #saveRequests = new Set<() => void | Promise<void>>();
   #state: CloudState;
   #generation = 0;
@@ -114,13 +120,24 @@ export class PlayablesCloud implements PersistenceHost {
       paused: false,
       reloadRequired: false,
       message: null,
+      authRequired: false,
+      storageAvailable: true,
     };
   }
   getState = (): CloudState => structuredClone(this.#state);
   getSlotId = () => this.#copy?.slot ?? null;
   setPanelOpen(open: boolean) {
+    if (open === this.#panelOpen) return;
     this.#panelOpen = open;
     this.#update({});
+    for (const callback of this.#overlayListeners) callback(open);
+  }
+  onOverlayChange(callback: (open: boolean) => void) {
+    this.#overlayListeners.add(callback);
+    callback(this.#panelOpen);
+    return () => {
+      this.#overlayListeners.delete(callback);
+    };
   }
   subscribe = (callback: (state: CloudState) => void) => {
     this.#listeners.add(callback);
@@ -233,10 +250,19 @@ export class PlayablesCloud implements PersistenceHost {
   #persist(copy: LocalCopy) {
     const key = this.#key(copy.owner);
     const raw = JSON.stringify(copy);
-    this.#options.storage.setItem(key, raw);
-    if (this.#options.storage.getItem(key) !== raw) throw new Error("Local save did not persist");
+    try {
+      this.#options.storage.setItem(key, raw);
+      if (this.#options.storage.getItem(key) !== raw) throw new Error("Local save did not persist");
+    } catch (error) {
+      this.#update({ storageAvailable: false });
+      throw error;
+    }
     this.#copy = copy;
-    this.#update({ localSavedAt: copy.savedAt });
+    this.#update({
+      localSavedAt: copy.savedAt,
+      storageAvailable: true,
+      ...(this.#state.message === STORAGE_WARNING ? { message: null } : {}),
+    });
   }
   #backup(copy = this.#copy, storageKey = this.#storageKey) {
     if (!copy) return;
@@ -336,7 +362,8 @@ export class PlayablesCloud implements PersistenceHost {
       this.#copy = null;
       this.#update({
         phase: "offline",
-        message: "Browser storage is unavailable. Export your journey before closing this tab.",
+        message: STORAGE_WARNING,
+        storageAvailable: false,
       });
     }
     this.#update({ localSavedAt: this.#copy?.savedAt || null });
@@ -376,7 +403,12 @@ export class PlayablesCloud implements PersistenceHost {
       this.#update({ conflict: { ...this.#state.conflict, local: this.#localSummary() } });
       return;
     }
-    if (this.#state.user && this.#owner === this.#state.user.id && !this.#offlineChoice) {
+    if (
+      this.#state.user &&
+      this.#owner === this.#state.user.id &&
+      !this.#offlineChoice &&
+      !this.#state.authRequired
+    ) {
       this.#update({ phase: "local" });
       this.#schedule();
     }
@@ -432,6 +464,7 @@ export class PlayablesCloud implements PersistenceHost {
         if (this.#owner !== null) {
           this.#update({
             user: null,
+            authRequired: false,
             phase: "guest",
             paused: true,
             reloadRequired: true,
@@ -439,7 +472,14 @@ export class PlayablesCloud implements PersistenceHost {
           });
           return;
         }
-        this.#update({ user: null, phase: "guest", paused: false, conflict: null, message: null });
+        this.#update({
+          user: null,
+          authRequired: false,
+          phase: "guest",
+          paused: false,
+          conflict: null,
+          message: null,
+        });
         return;
       }
       if (!response.ok) throw new Error("account unavailable");
@@ -449,6 +489,7 @@ export class PlayablesCloud implements PersistenceHost {
       this.#csrf = session.csrfToken;
       this.#update({
         user: session.user,
+        authRequired: false,
         paused: Boolean(this.#storageKey),
         message: null,
         ...(this.#state.user?.id !== session.user.id ? { cloudAcknowledgedAt: null } : {}),
@@ -643,6 +684,7 @@ export class PlayablesCloud implements PersistenceHost {
     this.#update({
       user: null,
       phase: "guest",
+      authRequired: false,
       paused: true,
       conflict: null,
       reloadRequired: true,
@@ -657,6 +699,7 @@ export class PlayablesCloud implements PersistenceHost {
     const user = this.#state.user;
     if (
       this.#quarantined ||
+      this.#state.authRequired ||
       !user ||
       this.#owner !== user.id ||
       !this.#copy ||
@@ -693,7 +736,8 @@ export class PlayablesCloud implements PersistenceHost {
         this.#pending = null;
         this.#update({
           phase: "offline",
-          paused: true,
+          paused: false,
+          authRequired: true,
           message: "Your session expired. Sign in again; local progress is kept.",
         });
         return;

@@ -157,7 +157,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     );
     const guest = await page.evaluate(() => JSON.parse(window.playablesCloud.exportLocal().data));
     await account.click();
-    await page.getByRole("dialog", { name: "Your journeys, kept." }).waitFor();
+    await page.getByRole("dialog", { name: "Keep your journey safe.", exact: true }).waitFor();
     const still = await page.locator("#world").screenshot();
     await page.waitForTimeout(300);
     assert(
@@ -167,7 +167,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.getByRole("button", { name: "Close account", exact: true }).click();
     owner = "alice";
     await page.evaluate(() => window.playablesCloud.refreshSession());
-    await page.getByRole("button", { name: "Add this journey to cloud", exact: true }).click();
+    await page.getByRole("button", { name: "Save to my account", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
     assert.equal(writes[0].expectedRevision, 0);
     assert.equal(JSON.parse(writes[0].envelope.data).version, 5);
@@ -186,6 +186,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
       changed.state.meta.gold,
     );
     await account.click();
+    await page.getByText("Save options", { exact: true }).click();
     await page.getByRole("button", { name: "Recent versions", exact: true }).click();
     await page
       .locator(".version-list li")
@@ -202,8 +203,18 @@ test("web account controls preserve guest saves, restore real game checkpoints a
       guest.state.meta.gold,
     );
     await account.click();
+    await page.getByText("Save options", { exact: true }).click();
     await page.screenshot({ path: join(evidence, "account-1440.png") });
     await page.getByRole("button", { name: "Sign out", exact: true }).click();
+    await page.getByRole("dialog", { name: "Signed out safely.", exact: true }).waitFor();
+    assert(
+      await page
+        .getByText("Signed out. Reload to continue your guest journey.", { exact: true })
+        .isVisible(),
+    );
+    assert(
+      await page.getByRole("button", { name: "Download local save", exact: true }).isVisible(),
+    );
     await page.getByRole("button", { name: "Reload game", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud?.getState().phase === "guest");
     assert.equal(
@@ -223,7 +234,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
         {
           fixtureAccountOnly: true,
           actualGoogleRoundtrip: false,
-          freshCheckpointVersion: 3,
+          freshCheckpointVersion: 5,
           cloudRestoreAndReload: true,
           historyRestore: true,
           guestPreserved: true,

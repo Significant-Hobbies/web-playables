@@ -17,6 +17,7 @@
   color: var(--foreground);
 }
 .cloud-shell.ember-cloud {
+  font-family: var(--playables-account-font, system-ui), sans-serif;
   --background: #102239;
   --foreground: #e5f1fc;
   --card: #142c42;
@@ -228,5 +229,237 @@
   .copy-grid {
     grid-template-columns: 1fr;
     gap: 10px;
+  }
+}
+
+.ember-cloud .import-prompt {
+  margin-top: 22px;
+}
+.import-prompt > button {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  gap: 10px;
+  margin-bottom: 8px;
+  border-radius: 9px;
+  text-transform: none;
+}
+.import-prompt > button:first-child {
+  border: 2px solid #ffe6a0;
+  box-shadow: 0 4px 0 #896222;
+  font-size: 14px;
+  font-weight: 750;
+}
+.import-prompt > button:last-child {
+  color: #a9c7d6;
+  font-size: 12px;
+}
+.ember-cloud .account-dialog {
+  width: min(440px, calc(100vw - 24px));
+  max-width: 440px;
+  max-height: calc(100dvh - 32px);
+  padding: 32px 28px 12px;
+  border: 2px solid #608291;
+  border-radius: 19px;
+  background: linear-gradient(155deg, #173447, #0e2035 65%);
+  box-shadow:
+    0 0 0 5px #0b1726,
+    0 20px 90px #0008;
+  text-align: center;
+}
+.ember-cloud .account-heading {
+  display: block;
+}
+.ember-cloud .account-dialog::backdrop {
+  background: #071422a8;
+  backdrop-filter: blur(4px);
+}
+.ember-cloud .account-heading > button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #3c5b70;
+  border-radius: 9px;
+  color: #a9c6d5;
+}
+.checkpoint-crest {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  color: #ffda78;
+  border: 2px solid #d9b75d;
+  border-radius: 50%;
+  background: #1f3d4e;
+  box-shadow: 0 0 0 5px #f3c75a10;
+}
+.checkpoint-crest svg {
+  width: 36px;
+  height: 36px;
+}
+.ember-cloud .account-heading .eyebrow {
+  display: block;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: #8eb9c9;
+}
+.ember-cloud .account-heading h2 {
+  margin: 10px 0 16px;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.025em;
+}
+.ember-cloud .account-message {
+  margin: 0 auto 22px;
+  max-width: 340px;
+  color: #b5cbd9;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.ember-checkpoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #375870;
+  border-radius: 10px;
+  background: #0c1c2d;
+  text-align: left;
+}
+.checkpoint-portrait {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  background: var(--playables-account-avatar) 0 0 / 400% 200% no-repeat;
+}
+.ember-checkpoint > div {
+  flex: 1;
+  min-width: 0;
+}
+.ember-checkpoint strong {
+  display: block;
+  font-size: 14px;
+}
+.ember-checkpoint small {
+  display: block;
+  margin-top: 4px;
+  color: #95b5c7;
+  font-size: 11px;
+}
+.checkpoint-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 70px;
+  text-align: right;
+  color: #8bddbd;
+  font-size: 10px;
+  line-height: 1.3;
+}
+.checkpoint-location svg {
+  flex: none;
+}
+.checkpoint-account {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px 0 22px;
+  color: #86aabb;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.account-options {
+  margin-top: 4px;
+  text-align: left;
+}
+.account-options > summary {
+  padding: 12px 0;
+  list-style: none;
+  text-align: center;
+  font-size: 12px;
+  color: #89b4c6;
+  cursor: pointer;
+}
+.account-options > summary::-webkit-details-marker {
+  display: none;
+}
+.account-options > summary::after {
+  content: " +";
+}
+.account-options[open] > summary::after {
+  content: " −";
+}
+.ember-cloud .account-options button,
+.ember-cloud .account-section button {
+  text-transform: none;
+  white-space: normal;
+  height: auto;
+  min-height: 38px;
+}
+.ember-cloud .account-section {
+  text-align: left;
+}
+.ember-cloud .copy-grid {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+.ember-cloud .copy-grid > div {
+  padding: 12px;
+  border: 1px solid #375870;
+  border-radius: 9px;
+  background: #0c1c2d;
+}
+.ember-cloud .account-error {
+  color: #ffc4b6;
+  background: #722c3255;
+  border: 1px solid #9c6267;
+  text-align: left;
+}
+.account-options summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+@media (max-height: 740px) {
+  .ember-cloud .account-dialog {
+    padding: 24px 24px 8px;
+  }
+  .checkpoint-crest {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 14px;
+  }
+  .checkpoint-crest svg {
+    width: 28px;
+    height: 28px;
+  }
+}
+@media (max-width: 480px) {
+  .ember-cloud .account-dialog {
+    padding: 28px 22px 8px;
+  }
+  .ember-cloud .account-heading h2 {
+    font-size: 28px;
+  }
+  .ember-checkpoint {
+    padding: 9px;
+    gap: 8px;
+  }
+  .checkpoint-portrait {
+    width: 48px;
+    height: 48px;
+  }
+  .ember-checkpoint strong {
+    font-size: 13px;
+  }
+  .checkpoint-location {
+    max-width: 54px;
+    font-size: 9px;
   }
 }

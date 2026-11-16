@@ -22,6 +22,9 @@ export interface Platform {
   /** Optional web host asks the game to persist a fresh checkpoint before account actions. */
   onSaveRequest?(callback: () => void | Promise<void>): Unsubscribe;
 
+  /** Optional web account panel owns the top layer; suspend game dialogs until it closes. */
+  onOverlayChange?(callback: (open: boolean) => void): Unsubscribe;
+
   audioEnabled(): boolean;
   onAudioEnabledChange(cb: (enabled: boolean) => void): Unsubscribe;
 

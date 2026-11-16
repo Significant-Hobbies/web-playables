@@ -1,8 +1,9 @@
 import { Button } from "@saas-maker/ui/components/button";
 import { NativeDialog } from "@saas-maker/ui/components/native-controls";
 import { ArrowRight, Flame, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useLayoutEffect, useRef, useState } from "react";
 import type { AudioStatus } from "./audio";
+import { OverlaySuspended } from "./overlay";
 import { PROLOGUE } from "./story";
 
 export function StoryOpening({
@@ -34,18 +35,17 @@ export function StoryOpening({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [step, setStep] = useState(0);
-  useEffect(() => {
+  const suspended = useContext(OverlaySuspended);
+  useLayoutEffect(() => {
     const node = dialog.current;
     if (!node) return;
-    if (open) {
+    if (open && !suspended) {
       if (!node.open) node.showModal();
       node.querySelector<HTMLButtonElement>(`#prologue-next[data-scene="${step}"]`)?.focus();
     }
-    if (!open && node.open) {
-      node.close();
-      setStep(0);
-    }
-  }, [open, step]);
+    if ((!open || suspended) && node.open) node.close();
+    if (!open) setStep(0);
+  }, [open, suspended, step]);
   const scene = PROLOGUE[step]!;
   return (
     <NativeDialog
