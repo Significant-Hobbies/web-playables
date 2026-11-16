@@ -142,6 +142,10 @@ test("web account controls preserve guest saves, restore real game checkpoints a
       () =>
         window.playablesCloud?.getState().phase === "guest" && window.playablesCloud?.exportLocal(),
     );
+    await page.locator("#skip-prologue").click();
+    await page.waitForFunction(
+      () => JSON.parse(window.playablesCloud.exportLocal().data).state.meta.experience.introSeen,
+    );
     const guest = await page.evaluate(() => JSON.parse(window.playablesCloud.exportLocal().data));
     await account.click();
     await page.getByRole("dialog", { name: "Your journeys, kept." }).waitFor();
