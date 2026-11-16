@@ -289,6 +289,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     await openCollection(page, "Equipment");
     await page
+      .locator(".collection-dialog[open]")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await page.getByRole("button", { name: "Keep this journey", exact: true }).click();
@@ -298,6 +299,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "Cancelling retreat preserves the run",
     );
     await page
+      .locator(".collection-dialog[open]")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await page.getByRole("button", { name: "Return to camp", exact: true }).click();
@@ -333,13 +335,17 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       await questPage.locator("[data-perk]").first().click();
     await questPage.getByRole("button", { name: "Camp", exact: true }).click();
     await questPage
+      .locator(".chapter-hub")
       .getByRole("button", { name: "Return to camp and change build", exact: true })
       .click();
     await questPage.getByRole("button", { name: "Return to camp", exact: true }).click();
     if (await questPage.locator(".collection-dialog[open]").count())
       await questPage.keyboard.press("Escape");
     await questPage.getByRole("button", { name: /Missions and quests/ }).click();
-    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Daily quests/ })
+      .click();
     const goldBeforeClaims = (await stored(questPage)).state.meta.gold;
     for (const quest of questBoard((await stored(questPage)).state.quests).daily)
       await questPage.locator(`[data-claim-quest="${quest.id}"]`).click();
@@ -359,17 +365,26 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     if (await questPage.locator(".collection-dialog[open]").count())
       await questPage.keyboard.press("Escape");
     await questPage.getByRole("button", { name: /Missions and quests/ }).click();
-    await questPage.getByRole("button", { name: /Daily quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Daily quests/ })
+      .click();
     assert.equal(
       await questPage.locator("[data-claim-quest]").count(),
       0,
       "Claimed rewards do not reappear after reload",
     );
     assert.equal((await stored(questPage)).state.meta.gold, claimed.state.meta.gold);
-    await questPage.getByRole("button", { name: /Weekly quests/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Weekly quests/ })
+      .click();
     assert.equal(await questPage.locator("[data-quest]").count(), 3);
     await questPage.screenshot({ path: join(evidence, "weekly-quests-1440.png") });
-    await questPage.getByRole("button", { name: /Story missions/ }).click();
+    await questPage
+      .locator(".collection-dialog[open]")
+      .getByRole("button", { name: /Story missions/ })
+      .click();
     assert.equal(await questPage.locator("[data-quest]").count(), 5);
     await questPage.screenshot({ path: join(evidence, "story-missions-1440.png") });
     result.earnedDailyWeeklyAndStoryBoard = true;
