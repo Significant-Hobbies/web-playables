@@ -2,16 +2,18 @@ import { describe, expect, it } from "vitest";
 import { attackMotion } from "./attack-motion";
 import {
   beginBattle,
+  useSkill as castSkill,
   choosePerk,
   equip,
   heroStats,
   initialState,
   PERKS,
+  type PerkId,
   rerollPerks,
+  returnToCamp,
   skipPerk,
   startRun,
   stepGame,
-  useSkill,
   validState,
 } from "./model";
 import { companyPower } from "./power";
@@ -29,6 +31,32 @@ import {
 } from "./progression";
 
 describe("permanent company progression", () => {
+  it("finishes a fresh chapter, keeps earned currencies and training through the next journey", () => {
+    const state = initialState(927113);
+    startRun(state);
+    for (let frame = 0; frame < 18_000 && state.phase.kind !== "victory"; frame++) {
+      if (state.phase.kind === "choice") {
+        const priority: PerkId[] = ["heart", "blood", "renewal", "bastion", "edge", "cleave"];
+        const options = state.phase.options;
+        choosePerk(state, priority.find((id) => options.includes(id)) ?? options[0]!);
+      }
+      castSkill(state);
+      stepGame(state, 1 / 60);
+      expect(validState(state)).toBe(true);
+      expect(state.phase.kind).not.toBe("defeat");
+    }
+    expect(state.phase.kind).toBe("victory");
+    expect(companyLevel(state)).toBe(4);
+    expect(progressionOf(state)).toMatchObject({ renown: 48, trailmarks: 12, embers: 4 });
+    expect(returnToCamp(state)).toBe(true);
+    expect(train(state, "companion")).toBe(true);
+    expect(train(state, "pet")).toBe(true);
+    expect(train(state, "skill")).toBe(true);
+    const earned = structuredClone(progressionOf(state));
+    expect(startRun(state, 2)).toBe(true);
+    expect(progressionOf(state)).toEqual(earned);
+    expect(validState(JSON.parse(JSON.stringify(state)))).toBe(true);
+  });
   it("starts solo and reveals one new system at each early company level", () => {
     const state = initialState();
     expect(companyLevel(state)).toBe(1);
@@ -85,7 +113,7 @@ describe("permanent company progression", () => {
     const after = structuredClone(progressionOf(state));
     stepGame(state, 0);
     expect(progressionOf(state)).toEqual(after);
-    expect(useSkill(state)).toEqual([]);
+    expect(castSkill(state)).toEqual([]);
   });
   it("trains through the real currency and level boundary, and keeps upgrades across runs", () => {
     const state = initialState();
@@ -109,7 +137,7 @@ describe("permanent company progression", () => {
     expect(state).toEqual(frozen);
     expect(validState(state)).toBe(true);
     state.phase = beginBattle(state);
-    expect(useSkill(state).some((e) => e.type === "skill")).toBe(true);
+    expect(castSkill(state).some((e) => e.type === "skill")).toBe(true);
     expect(state.run.skillCooldown).toBeCloseTo(8 * 0.92);
     expect(validState(JSON.parse(JSON.stringify(state)))).toBe(true);
   });

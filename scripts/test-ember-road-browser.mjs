@@ -262,6 +262,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const pausedRun = structuredClone(firstSaved.state.run);
     await originPage.getByRole("button", { name: "Watch the opening", exact: true }).click();
     await originPage.getByRole("dialog", { name: "How the journey began" }).waitFor();
+    assert.equal(
+      await originPage.locator(".opening-mira").count(),
+      firstSaved.state.meta.progression.renown >= 6 ? 1 : 0,
+      "Replay respects the company unlock",
+    );
+    assert.equal(
+      await originPage.locator(".opening-cinder").count(),
+      firstSaved.state.meta.progression.renown >= 36 ? 1 : 0,
+      "Replay respects the pet unlock",
+    );
     assert.deepEqual(
       (await stored(originPage)).state.run,
       pausedRun,
@@ -413,6 +423,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const chip = page.locator(".decision--choice[open] .power-chip").first();
     await chip.hover();
     await page.locator(".power-tooltip:popover-open").waitFor();
+    await chip.click();
     assert(
       await page.locator(".power-tooltip:popover-open").isVisible(),
       "Power details remain visible above the choice dialog",
@@ -728,6 +739,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     assert.equal(
       await delayedPage.evaluate(() => JSON.parse(window.__sdkStored).state.meta.gold),
       176,
+    );
+    await delayedPage.keyboard.press("Escape");
+    await openCollection(delayedPage, "Companions");
+    assert(
+      await delayedPage
+        .locator(".collection-dialog[open] .selection-card")
+        .evaluateAll((cards) =>
+          cards.every((card) => Number(getComputedStyle(card).opacity) === 1),
+        ),
+      "Host pause keeps every collection card visible",
     );
     result.delayedSdkLoadPreservesProgress = true;
     await delayed.close();

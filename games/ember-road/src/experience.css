@@ -441,7 +441,8 @@
 .toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .game-dialog[open] {
   animation-play-state: running !important;
 }
-.toon-shell.presentation-paused .game-dialog[open] {
+.toon-shell.presentation-paused .game-dialog[open],
+.toon-shell.presentation-paused .collection-dialog[open] .selection-card {
   animation: none !important;
   opacity: 1;
   transform: none;

@@ -8,6 +8,8 @@ import { PROLOGUE } from "./story";
 export function StoryOpening({
   open,
   fresh,
+  companyReady,
+  petsReady,
   paused,
   audioStatus,
   audioPermitted,
@@ -19,6 +21,8 @@ export function StoryOpening({
 }: {
   open: boolean;
   fresh: boolean;
+  companyReady: boolean;
+  petsReady: boolean;
   paused: boolean;
   audioStatus: AudioStatus;
   audioPermitted: boolean;
@@ -77,8 +81,8 @@ export function StoryOpening({
         <div className="opening-world" aria-hidden="true">
           <span className="opening-glow" />
           <span className="opening-actor opening-rook" />
-          {!fresh && <span className="opening-actor opening-mira" />}
-          {!fresh && <span className="opening-actor opening-cinder" />}
+          {companyReady && <span className="opening-actor opening-mira" />}
+          {petsReady && <span className="opening-actor opening-cinder" />}
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <span key={i} className={`opening-ember ember-${i}`} />
           ))}

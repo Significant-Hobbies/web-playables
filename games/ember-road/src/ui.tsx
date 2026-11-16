@@ -294,6 +294,7 @@ function PowerChip({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLButtonElement>(null);
+  const lastPointer = useRef("mouse");
   const id = useId();
   function show() {
     const p = panel.current,
@@ -319,6 +320,9 @@ function PowerChip({
         className={`power-chip ${className}`}
         aria-label={label}
         aria-describedby={id}
+        onPointerDown={(event) => {
+          lastPointer.current = event.pointerType;
+        }}
         onPointerEnter={(event) => {
           if (event.pointerType !== "touch") show();
         }}
@@ -327,7 +331,15 @@ function PowerChip({
           if (event.currentTarget.matches(":focus-visible")) show();
         }}
         onBlur={hide}
-        onClick={() => (panel.current?.matches(":popover-open") ? hide() : show())}
+        onClick={(event) => {
+          if (
+            event.detail > 0 &&
+            lastPointer.current === "touch" &&
+            panel.current?.matches(":popover-open")
+          )
+            hide();
+          else show();
+        }}
       >
         {children}
       </Button>
@@ -462,6 +474,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (!v.loaded) return;
     const before = previousLevel.current;
     previousLevel.current = level.level;
+    if (!["travel", "battle", "choice"].includes(state.phase.kind)) {
+      setUnlockMessage(null);
+      return;
+    }
     if (before !== null && level.level > before) {
       const unlocked = Object.values(SYSTEMS).find(
         (system) => system.level > before && system.level <= level.level,
@@ -471,7 +487,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         until: state.run.time + 6,
       });
     }
-  }, [v.loaded, level.level, state.run.time]);
+  }, [v.loaded, level.level, state.run.time, state.phase.kind]);
   const [tip, setTip] = useState<Lesson | null>(null);
   const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
@@ -1121,15 +1137,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               )}
             </div>
           )}
-          {!showPrologue && unlockMessage && state.run.time < unlockMessage.until && (
-            <aside className="unlock-toast" role="status">
-              <Sparkles />
-              <span>
-                {unlockMessage.title}
-                <small>Company level {level.level} · A new part of your journey</small>
-              </span>
-            </aside>
-          )}
+          {!showPrologue &&
+            !dashboard &&
+            active &&
+            unlockMessage &&
+            state.run.time < unlockMessage.until && (
+              <aside className="unlock-toast" role="status">
+                <Sparkles />
+                <span>
+                  {unlockMessage.title}
+                  <small>Company level {level.level} · A new part of your journey</small>
+                </span>
+              </aside>
+            )}
 
           {!showPrologue &&
             !dashboard &&
@@ -1913,6 +1933,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       <StoryOpening
         open={showPrologue}
         fresh={isFirstJourney(state)}
+        companyReady={companyReady}
+        petsReady={petsReady}
         paused={v.presentationPaused}
         audioStatus={v.audioStatus}
         audioPermitted={v.audioPermitted}
