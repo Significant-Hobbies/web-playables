@@ -399,6 +399,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     const buildPage = await buildContext.newPage();
     await ready(buildPage);
     await openCollection(buildPage, "Equipment");
+    await buildPage.getByRole("button", { name: "Forge", exact: true }).click();
     await buildPage.locator('[data-upgrade="blade"]').click();
     await buildPage.waitForFunction(
       (key) => JSON.parse(localStorage.getItem(key)).state.meta.upgrades.blade === 1,
@@ -409,6 +410,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       176,
       "Forge spends its exact 24 gold cost once",
     );
+    await buildPage.getByRole("button", { name: /^Weapons/ }).click();
     await buildPage.locator('[data-equip="weapon:spear"]').click();
     await openCollection(buildPage, "Companions");
     await buildPage.locator('[data-equip="companion:sable"]').click();

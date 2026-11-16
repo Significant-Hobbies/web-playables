@@ -24,6 +24,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { GameIcon } from "./game-icon";
+import { LoadoutArt } from "./loadout-art";
 import {
   ARMORS,
   CHAPTERS,
@@ -45,6 +46,7 @@ import {
   WEAPONS,
   xpNeeded,
 } from "./model";
+import { companyPower } from "./power";
 import { type QuestCard, type QuestScope, questBoard, resetAt } from "./quests";
 import { journeyStory } from "./story";
 
@@ -142,6 +144,7 @@ function Modal({
 }
 function StatList({ state }: { state: GameState }) {
   const s = heroStats(state);
+  const power = companyPower(state);
   const rows = [
     ["Health", `${Math.ceil(state.run.hp)} / ${s.hp}`],
     ["Damage", s.damage.toFixed(1)],
@@ -157,14 +160,47 @@ function StatList({ state }: { state: GameState }) {
     ["Current shield", Math.ceil(state.run.shield)],
   ];
   return (
-    <dl className="stats-grid">
-      {rows.map(([name, value]) => (
-        <div key={name}>
-          <dt>{name}</dt>
-          <dd>{value}</dd>
+    <div className="character-sheet">
+      <div className="power-summary">
+        <span className="sheet-rook" aria-hidden="true" />
+        <div>
+          <span className="sheet-kicker">ROOK & COMPANY</span>
+          <h3>
+            {power.total.toLocaleString()} <small>POWER</small>
+          </h3>
+          <p>A rating of your whole build, including this journey’s oaths.</p>
         </div>
-      ))}
-    </dl>
+      </div>
+      <div className="power-breakdown">
+        {(
+          [
+            ["Offense", power.offense],
+            ["Defense", power.defense],
+            ["Company", power.company],
+            ["Skill", power.technique],
+          ] as const
+        ).map(([label, value]) => (
+          <div key={label}>
+            <span>{label}</span>
+            <b>{value}</b>
+            <NativeProgress aria-label={`${label} contribution`} value={value} max={power.total} />
+          </div>
+        ))}
+      </div>
+      <p className="power-explainer">
+        Power compares builds. It is not damage per hit; lost health and skill cooldowns do not
+        lower it.
+      </p>
+      <h3 className="sheet-section-title">Combat attributes</h3>
+      <dl className="stats-grid">
+        {rows.map(([name, value]) => (
+          <div key={name}>
+            <dt>{name}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 function Powers({ state }: { state: GameState }) {
@@ -173,7 +209,7 @@ function Powers({ state }: { state: GameState }) {
   return (
     <div className="powers-list">
       <div className="power-row">
-        <Sparkles />
+        <LoadoutArt slot="skill" id={skill.id} />
         <div>
           <strong>{skill.name}</strong>
           <p>{skill.description}</p>
@@ -215,6 +251,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (canvas.current) a.canvas(canvas.current);
   }, [a]);
   const [section, setSection] = useState<Section>("Camp");
+  const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
   const [missionTab, setMissionTab] = useState<QuestScope>("story");
   const [campOpen, setCampOpen] = useState(false);
   const [settings, setSettings] = useState(false);
@@ -233,6 +270,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const armor = ARMORS.find((x) => x.id === state.meta.loadout.armor)!;
   const skill = SKILLS.find((s) => s.id === state.meta.loadout.skill)!;
   const stats = heroStats(state);
+  const power = companyPower(state);
   const place = CHAPTERS[state.run.chapter - 1]!;
   const story = journeyStory(state.run.chapter);
   const missions = questBoard(state.quests);
@@ -275,7 +313,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           const locked = item.chapter > state.meta.unlockedChapter,
             selected = state.meta.loadout[slot] === item.id;
           return (
-            <Card key={item.id} className={`selection-card ${selected ? "selected" : ""}`}>
+            <Card
+              key={item.id}
+              className={`selection-card slot-${slot} item-${index} ${selected ? "selected" : ""} ${locked ? "is-locked" : ""}`}
+            >
               <CardHeader>
                 <div className="selection-top">
                   <Badge variant="outline">
@@ -292,22 +333,81 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     )}
                   </Badge>
                 </div>
-                {(slot === "companion" || slot === "pet") && (
-                  <span
-                    role="img"
-                    aria-label={`${item.name} portrait`}
-                    className="loadout-portrait"
-                    style={{
-                      backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
-                      backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
-                      backgroundPosition: `0 ${(index / (slot === "pet" ? 2 : 3)) * 100}%`,
-                    }}
-                  />
-                )}
+                <div className="item-stage">
+                  <span className="stage-ring" />
+                  {slot === "companion" || slot === "pet" ? (
+                    <span
+                      role="img"
+                      aria-label={`${item.name} portrait`}
+                      className="loadout-portrait"
+                      style={{
+                        backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
+                        backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
+                        backgroundPosition: `0 ${(index / (slot === "pet" ? 2 : 3)) * 100}%`,
+                      }}
+                    />
+                  ) : (
+                    <LoadoutArt slot={slot} id={item.id} />
+                  )}
+                  {locked && (
+                    <span className="item-lock">
+                      <LockKeyhole /> Chapter {item.chapter}
+                    </span>
+                  )}
+                </div>
+                <span className="item-role">
+                  {slot === "companion"
+                    ? COMPANIONS[index]!.role
+                    : slot === "pet"
+                      ? PETS[index]!.kind
+                      : slot === "weapon"
+                        ? ["Balanced blade", "Heavy blade", "Piercing reach"][index]
+                        : slot === "armor"
+                          ? ["Balanced protection", "Heavy protection", "Evasive protection"][index]
+                          : ["Front-line sweep", "Rear-line strike", "Company defense"][index]}
+                </span>
                 <CardTitle>{item.name}</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="item-facts">
+                  {(() => {
+                    const preview = {
+                      ...state,
+                      meta: { ...state.meta, loadout: { ...state.meta.loadout, [slot]: item.id } },
+                    };
+                    const attributes = heroStats(preview);
+                    const facts =
+                      slot === "weapon"
+                        ? [
+                            `${attributes.damage.toFixed(1)} damage`,
+                            `${(1 / attributes.interval).toFixed(2)} hits / sec`,
+                          ]
+                        : slot === "armor"
+                          ? [`${attributes.hp} health`, `${attributes.armor} armor`]
+                          : slot === "companion"
+                            ? [
+                                `${attributes.companionDamage} damage`,
+                                `${attributes.companionInterval}s attack`,
+                              ]
+                            : slot === "pet"
+                              ? [
+                                  `${attributes.petDamage} damage`,
+                                  `${attributes.petInterval}s attack`,
+                                ]
+                              : [`${SKILLS[index]!.cooldown}s cooldown`, "Q · active"];
+                    return facts.map((fact) => <span key={fact}>{fact}</span>);
+                  })()}
+                </div>
                 <p>{item.description}</p>
+                <span className="item-power">
+                  Build power{" "}
+                  <b>
+                    {companyPower({
+                      ...state,
+                      meta: { ...state.meta, loadout: { ...state.meta.loadout, [slot]: item.id } },
+                    }).total.toLocaleString()}
+                  </b>
+                </span>
                 <Button
                   variant={selected ? "secondary" : "outline"}
                   data-equip={`${slot}:${item.id}`}
@@ -351,11 +451,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <small>Level {state.run.level}</small>
           </span>
         </Button>
-        <span className="damage-score">
+        <Button
+          variant="ghost"
+          className="damage-score"
+          aria-label={`Company power ${power.total}`}
+          onClick={() => setDetail("stats")}
+        >
           <GameIcon kind="battle" />
-          <b>{Math.round(stats.damage)}</b>
-          <small>DAMAGE</small>
-        </span>
+          <b>{power.total.toLocaleString()}</b>
+          <small>POWER</small>
+        </Button>
         <span className="game-wordmark">EMBER ROAD</span>
         <div className="header-actions">
           <span className="gold">
@@ -714,7 +819,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   ? "Skills & powers"
                   : "Your pets"
         }
-        className="collection-dialog"
+        className={`collection-dialog collection-${section.toLowerCase()}`}
         close={() => {
           setSection("Camp");
         }}
@@ -725,13 +830,61 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         )}
         {section !== "Camp" && saveWarning}
-        {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
-        {dashboard &&
-          section === "Pets" &&
-          selection(
-            "pet",
-            PETS.map((p) => ({ ...p, name: `${p.name} · ${p.kind}` })),
+        <div className="collection-banner">
+          <GameIcon
+            kind={
+              section === "Journey"
+                ? missionTab === "daily"
+                  ? "daily"
+                  : missionTab === "weekly"
+                    ? "weekly"
+                    : "quests"
+                : section === "Equipment"
+                  ? "equipment"
+                  : section === "Companions"
+                    ? "company"
+                    : section === "Skills"
+                      ? "skills"
+                      : "pet"
+            }
+          />
+          <div>
+            <span className="sheet-kicker">
+              {section === "Journey" ? "THE WAYFARER’S JOURNAL" : "PREPARE FOR THE ROAD"}
+            </span>
+            <h3>
+              {section === "Equipment"
+                ? "Every adventure starts at the forge."
+                : section === "Companions"
+                  ? "No one walks this road alone."
+                  : section === "Pets"
+                    ? "Small paws. Brave hearts."
+                    : section === "Skills"
+                      ? "Give your next battle an edge."
+                      : "A little further. A little stronger."}
+            </h3>
+            <p>
+              {section === "Equipment"
+                ? `${weapon.name} · ${armor.name}`
+                : section === "Companions"
+                  ? `${company.name}, your ${company.role.toLowerCase()}, is ready.`
+                  : section === "Pets"
+                    ? `${pet.name} is by your side.`
+                    : section === "Skills"
+                      ? `${skill.name} equipped · ${skill.cooldown}s cooldown`
+                      : `${missions[missionTab].filter((q) => q.claimed).length} / ${missions[missionTab].length} rewards collected · ${missions[missionTab].filter((q) => q.ready).length} ready to claim`}
+            </p>
+          </div>
+          {section !== "Journey" && (
+            <span className="collection-power">
+              <GameIcon kind="battle" />
+              <b>{power.total.toLocaleString()}</b>
+              <small>COMPANY POWER</small>
+            </span>
           )}
+        </div>
+        {dashboard && section === "Companions" && selection("companion", COMPANIONS)}
+        {dashboard && section === "Pets" && selection("pet", PETS)}
         {dashboard && section === "Skills" && (
           <>
             <p className="section-note">
@@ -751,59 +904,90 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         )}
         {dashboard && section === "Equipment" && (
           <>
-            <h2 className="section-title">Weapon</h2>
-            {selection("weapon", WEAPONS)}
-            <h2 className="section-title">Armor</h2>
-            {selection("armor", ARMORS)}
-            <h2 className="section-title">The forge</h2>
-            <p className="section-note">
-              Permanent upgrades improve every weapon, companion, and pet where stated.
-            </p>
-            <div className="selection-grid forge">
-              {(["blade", "mail", "charm"] as const).map((id) => (
-                <Card key={id}>
-                  <CardHeader>
-                    <CardTitle>
-                      {
-                        {
-                          blade: "Hone the blade",
-                          mail: "Reinforce the mail",
-                          charm: "Kindle the charm",
-                        }[id]
-                      }
-                    </CardTitle>
-                    <Badge variant="outline">
-                      Rank {state.meta.upgrades[id]} / {UPGRADE_CAP}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent>
-                    <p>
-                      {
-                        {
-                          blade: "+4 Rook damage and +1.5 companion damage per rank.",
-                          mail: "+25 maximum health and +1 armor per rank.",
-                          charm: "+2.5% critical chance and +1 pet damage per rank.",
-                        }[id]
-                      }
-                    </p>
-                    <Button
-                      variant="outline"
-                      data-upgrade={id}
-                      disabled={
-                        !inCamp ||
-                        state.meta.upgrades[id] >= UPGRADE_CAP ||
-                        state.meta.gold < upgradeCost(state, id)
-                      }
-                      onClick={() => a.upgrade(id)}
-                    >
-                      {state.meta.upgrades[id] >= UPGRADE_CAP
-                        ? "Fully forged"
-                        : `Forge · ${upgradeCost(state, id)} gold`}
-                    </Button>
-                  </CardContent>
-                </Card>
+            <nav className="equipment-tabs" aria-label="Equipment categories">
+              {(
+                [
+                  ["weapon", "Weapons"],
+                  ["armor", "Armor"],
+                  ["forge", "Forge"],
+                ] as const
+              ).map(([id, label]) => (
+                <Button
+                  key={id}
+                  variant="ghost"
+                  aria-pressed={equipmentTab === id}
+                  onClick={() => setEquipmentTab(id)}
+                >
+                  <GameIcon
+                    kind={id === "forge" ? "gold" : id === "weapon" ? "battle" : "equipment"}
+                  />
+                  {label}
+                  {id !== "forge" && <span>{id === "weapon" ? weapon.name : armor.name}</span>}
+                </Button>
               ))}
-            </div>
+            </nav>
+            {equipmentTab === "weapon" && selection("weapon", WEAPONS)}
+            {equipmentTab === "armor" && selection("armor", ARMORS)}
+            {equipmentTab === "forge" && (
+              <>
+                <h2 className="section-title">Make the whole company stronger.</h2>
+                <p className="section-note">
+                  Permanent upgrades improve every weapon, companion, and pet where stated.
+                </p>
+                <div className="selection-grid forge">
+                  {(["blade", "mail", "charm"] as const).map((id) => (
+                    <Card key={id} className={`forge-card forge-${id}`}>
+                      <CardHeader>
+                        <div className="forge-emblem">
+                          <GameIcon
+                            kind={
+                              id === "blade" ? "battle" : id === "mail" ? "equipment" : "skills"
+                            }
+                          />
+                        </div>
+                        <CardTitle>
+                          {
+                            {
+                              blade: "Hone the blade",
+                              mail: "Reinforce the mail",
+                              charm: "Kindle the charm",
+                            }[id]
+                          }
+                        </CardTitle>
+                        <Badge variant="outline">
+                          Rank {state.meta.upgrades[id]} / {UPGRADE_CAP}
+                        </Badge>
+                      </CardHeader>
+                      <CardContent>
+                        <p>
+                          {
+                            {
+                              blade: "+4 Rook damage and +1.5 companion damage per rank.",
+                              mail: "+25 maximum health and +1 armor per rank.",
+                              charm: "+2.5% critical chance and +1 pet damage per rank.",
+                            }[id]
+                          }
+                        </p>
+                        <Button
+                          variant="outline"
+                          data-upgrade={id}
+                          disabled={
+                            !inCamp ||
+                            state.meta.upgrades[id] >= UPGRADE_CAP ||
+                            state.meta.gold < upgradeCost(state, id)
+                          }
+                          onClick={() => a.upgrade(id)}
+                        >
+                          {state.meta.upgrades[id] >= UPGRADE_CAP
+                            ? "Fully forged"
+                            : `Forge · ${upgradeCost(state, id)} gold`}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
         {dashboard && section === "Journey" && (

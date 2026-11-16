@@ -1,0 +1,658 @@
+/* Collection pages belong to the same illustrated world as the chapter hub. */
+.toon-shell .damage-score[data-slot="button"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+}
+.toon-shell .game-dialog .dialog-heading > button {
+  background: #df7362;
+  color: #fff2d8;
+  padding: 5px;
+  min-height: 34px;
+  flex: none;
+}
+.toon-shell .collection-dialog {
+  max-width: 1080px;
+  --collection-accent: #57998a;
+  --collection-soft: #dcebd5;
+}
+.toon-shell .collection-equipment {
+  --collection-accent: #cb9444;
+  --collection-soft: #f2dfad;
+}
+.toon-shell .collection-skills {
+  --collection-accent: #8d73bc;
+  --collection-soft: #e5d9ef;
+}
+.toon-shell .collection-pets {
+  --collection-accent: #d28b52;
+  --collection-soft: #f2dfbe;
+}
+.toon-shell .collection-journey {
+  --collection-accent: #6a95c3;
+  --collection-soft: #dbe5ec;
+}
+.toon-shell .collection-dialog .dialog-heading {
+  position: sticky;
+  top: -25px;
+  z-index: 2;
+  background: #f3eccf;
+  padding-block: 8px 15px;
+  margin-bottom: 16px;
+}
+.collection-banner {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  border-bottom: 3px solid var(--collection-accent);
+  padding: 7px 5px 22px;
+  margin-bottom: 22px;
+}
+.collection-banner > .game-icon {
+  width: 76px;
+  height: 76px;
+  flex: none;
+}
+.collection-banner > div {
+  min-width: 0;
+  flex: 1;
+}
+.toon-shell .collection-banner h3 {
+  font-size: 24px;
+  line-height: 1.15;
+  margin: 5px 0 8px;
+}
+.toon-shell .collection-banner p {
+  font-size: 12px;
+  margin: 0;
+}
+.sheet-kicker {
+  color: #7c7151;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+.collection-power {
+  display: grid;
+  grid-template-columns: 30px auto;
+  align-items: center;
+  gap: 0 7px;
+  flex: none;
+}
+.collection-power > .game-icon {
+  height: 31px;
+  width: 31px;
+}
+.collection-power b {
+  font: 900 29px / 1 var(--game-font);
+  color: #a46b29;
+}
+.collection-power small {
+  grid-column: 1 / -1;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  margin-top: 7px;
+  text-align: center;
+}
+.toon-shell .collection-dialog .selection-grid {
+  gap: 18px;
+  margin: 0;
+}
+.toon-shell .collection-dialog .selection-card {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid #8a9275;
+  border-radius: 15px;
+  background: #fff5d7;
+  box-shadow: 0 5px #b1ad8b;
+  display: flex;
+  flex-direction: column;
+  --item-accent: #b6d9c5;
+}
+.toon-shell .collection-dialog .selection-card.item-1 {
+  --item-accent: #bad0ed;
+}
+.toon-shell .collection-dialog .selection-card.item-2 {
+  --item-accent: #d7bce9;
+}
+.toon-shell .collection-dialog .selection-card.selected {
+  border-color: #427963;
+  box-shadow: 0 5px #427963;
+}
+.toon-shell .collection-dialog .selection-card [data-slot="card-header"] {
+  padding: 13px 15px 10px;
+}
+.selection-card .selection-top {
+  min-height: 27px;
+  margin: 0;
+}
+.toon-shell .selection-card .selection-top [data-slot="badge"] {
+  background: #eee8d1;
+  color: #65664f;
+  border-color: #939783;
+}
+.toon-shell .selection-card.selected .selection-top [data-slot="badge"] {
+  background: #437e62;
+  border-color: #305644;
+  color: #fff8da;
+}
+.toon-shell .selection-card.selected .selection-top svg {
+  height: 12px;
+  width: 12px;
+}
+.item-stage {
+  height: 164px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  margin: 8px 0 16px;
+  background: radial-gradient(
+    ellipse at 50% 70%,
+    #fff9e8 0 18%,
+    var(--item-accent) 19% 49%,
+    transparent 50%
+  );
+}
+.stage-ring {
+  position: absolute;
+  bottom: 2px;
+  width: 134px;
+  height: 24px;
+  background: #f9edc5;
+  border: 3px solid #85937c;
+  border-radius: 50%;
+  box-shadow: 0 5px #b7b698;
+}
+.loadout-art {
+  height: 158px;
+  width: 158px;
+  position: relative;
+}
+.toon-shell .collection-dialog .loadout-portrait {
+  position: relative;
+  width: 172px;
+  height: 172px;
+  margin: -8px 0 0;
+}
+.item-lock {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #3b4350;
+  color: #fff0cb;
+  border: 2px solid #252e3d;
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 850;
+  padding: 4px 8px;
+}
+.item-lock svg {
+  height: 11px;
+  width: 11px;
+}
+.item-role {
+  color: #7f7459;
+  font-size: 9px;
+  text-transform: uppercase;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+}
+.toon-shell .collection-dialog .selection-card [data-slot="card-title"] {
+  font-size: 24px;
+  line-height: 1.15;
+  margin-top: 5px;
+}
+.toon-shell .collection-dialog .selection-card [data-slot="card-content"] {
+  padding: 0 15px 15px;
+  gap: 12px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+.item-facts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.item-facts > span {
+  padding: 4px 6px;
+  background: #e9e5c9;
+  color: #485449;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 850;
+}
+.toon-shell .collection-dialog .selection-card p {
+  min-height: 50px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+.item-power {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  align-items: baseline;
+  color: #7c7157;
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 2px solid #dedabb;
+}
+.item-power b {
+  color: #805d29;
+  font-size: 17px;
+}
+.toon-shell .collection-dialog .selection-card [data-slot="button"] {
+  width: 100%;
+  min-height: 39px;
+  background: #edbd58;
+  font-size: 12px;
+}
+.toon-shell .collection-dialog .selection-card.selected [data-slot="button"] {
+  background: #c2d8ae;
+  color: #355644;
+  opacity: 1;
+}
+.toon-shell .collection-dialog .selection-card.is-locked [data-slot="button"] {
+  background: #d8d8ca;
+  color: #5e635e;
+  opacity: 1;
+}
+.equipment-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 21px;
+}
+.toon-shell .equipment-tabs > button {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 2px 8px;
+  justify-items: start;
+  text-align: left;
+  background: #dcd9bf;
+  padding: 9px 13px;
+  font-size: 14px;
+}
+.equipment-tabs .game-icon {
+  width: 30px;
+  height: 30px;
+  grid-row: span 2;
+}
+.equipment-tabs span {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  font-size: 9px;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toon-shell .equipment-tabs > button[aria-pressed="true"] {
+  background: #f2c86c;
+  box-shadow: 0 4px #a67c40;
+}
+.toon-shell .forge-card [data-slot="card-header"] {
+  text-align: center;
+}
+.forge-emblem {
+  background: #ede0b8;
+  border: 3px solid #a99460;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  display: grid;
+  place-items: center;
+  margin: 4px auto 15px;
+  box-shadow:
+    inset 0 0 0 6px #fff4d5,
+    0 5px #bca66b;
+}
+.forge-emblem .game-icon {
+  width: 80px;
+  height: 80px;
+}
+.toon-shell .forge-card [data-slot="card-title"] {
+  margin-bottom: 10px;
+}
+.toon-shell .forge-card p {
+  min-height: 60px;
+}
+.toon-shell .forge-card [data-slot="button"] {
+  width: 100%;
+}
+.toon-shell .collection-skills .oath-card {
+  background: #e9e1ef;
+  border-color: #9c85b1;
+  margin-top: 25px;
+}
+.toon-shell .power-row > .loadout-art {
+  width: 86px;
+  height: 86px;
+  flex: none;
+  background: #e8d9ed;
+  border-radius: 14px;
+}
+.toon-shell .power-row {
+  padding: 16px 0;
+  border-bottom: 2px solid #d6cfb3;
+}
+.toon-shell .power-row > div {
+  min-width: 0;
+}
+.toon-shell .power-row strong {
+  font-family: var(--game-font);
+  font-size: 20px;
+}
+.toon-shell .power-row small {
+  font-size: 11px;
+}
+.toon-shell .power-row > svg {
+  background: #f2dfb0;
+  border: 2px solid #c5aa6e;
+  border-radius: 8px;
+  width: 35px;
+  height: 35px;
+  padding: 6px;
+  flex: none;
+}
+.power-summary {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  border-bottom: 3px solid #b3b99a;
+  padding-bottom: 17px;
+}
+.sheet-rook {
+  flex: none;
+  width: 130px;
+  height: 140px;
+  background: url("../assets/toon-knight.png") 0 0 / 400% 200% no-repeat;
+}
+.toon-shell .power-summary h3 {
+  font-size: 48px;
+  color: #a36d2d;
+  line-height: 1;
+  margin: 7px 0;
+}
+.power-summary h3 small {
+  font-size: 14px;
+  color: #7e704c;
+}
+.toon-shell .power-summary p {
+  font-size: 12px;
+}
+.power-breakdown {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+  margin: 20px 0 12px;
+}
+.power-breakdown > div {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: 1fr auto;
+  font-size: 11px;
+  color: #56624f;
+}
+.power-breakdown b {
+  font-size: 14px;
+  color: #46583d;
+}
+.power-breakdown progress {
+  grid-column: span 2;
+  width: 100%;
+  height: 9px;
+  --primary: #be974e;
+  --secondary: #d6d7bd;
+}
+.toon-shell .power-explainer {
+  font-size: 10px;
+  color: #7a785c;
+  margin-bottom: 23px;
+}
+.toon-shell .sheet-section-title {
+  font-size: 20px;
+  margin: 18px 0;
+}
+.toon-shell .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.stats-grid > div {
+  padding: 12px;
+  border: 2px solid #c7c7a8;
+  border-radius: 8px;
+  background: #faf3d9;
+  min-width: 0;
+}
+.toon-shell .stats-grid dt {
+  font-size: 10px;
+  color: #758066;
+  margin-bottom: 5px;
+}
+.toon-shell .stats-grid dd {
+  font: 800 22px / 1.2 var(--game-font);
+  color: #3c5344;
+  overflow-wrap: anywhere;
+}
+.toon-shell .mission-row {
+  border-left: 7px solid #97a987;
+}
+.toon-shell .mission-row.is-ready {
+  border-left-color: #dd9b35;
+}
+.toon-shell .mission-row.is-locked {
+  background: #e7e3d0;
+  opacity: 0.85;
+}
+.toon-shell .mission-marker {
+  border-radius: 10px;
+  box-shadow: 0 3px #9caa84;
+}
+.toon-shell .mission-row.is-ready .mission-marker {
+  background: #edca71;
+  border-color: #b38943;
+  color: #805c23;
+}
+.toon-shell .mission-row.is-locked .mission-marker {
+  background: #cbd0c1;
+  border-color: #989f90;
+}
+.toon-shell .mission-copy h2 {
+  font-size: 22px;
+}
+.toon-shell .mission-reward > span {
+  background: #f2e2aa;
+  border-radius: 7px;
+  padding: 7px 9px;
+}
+@media (min-width: 760px) and (max-height: 800px) {
+  .collection-banner {
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+  }
+  .collection-banner > .game-icon {
+    width: 55px;
+    height: 55px;
+  }
+  .toon-shell .collection-banner h3 {
+    font-size: 22px;
+  }
+  .item-stage {
+    height: 120px;
+    margin-block: 4px 10px;
+  }
+  .loadout-art {
+    height: 120px;
+    width: 120px;
+  }
+  .toon-shell .collection-dialog .loadout-portrait {
+    height: 132px;
+    width: 132px;
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="card-title"] {
+    font-size: 21px;
+  }
+  .toon-shell .collection-dialog .selection-card p {
+    font-size: 11px;
+    min-height: 45px;
+  }
+}
+@media (max-width: 759px) {
+  .toon-shell .collection-dialog {
+    padding: 18px;
+  }
+  .toon-shell .collection-dialog .dialog-heading {
+    top: -18px;
+  }
+  .collection-banner {
+    gap: 12px;
+    padding: 0 0 16px;
+    margin-bottom: 18px;
+  }
+  .collection-banner > .game-icon {
+    width: 48px;
+    height: 48px;
+  }
+  .toon-shell .collection-banner h3 {
+    font-size: 20px;
+  }
+  .collection-banner .sheet-kicker {
+    font-size: 7px;
+    letter-spacing: 0.07em;
+  }
+  .collection-power {
+    display: none;
+  }
+  .toon-shell .collection-dialog .selection-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .toon-shell .collection-dialog .selection-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="card-header"] {
+    padding: 12px;
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="card-content"] {
+    padding: 12px 12px 12px 0;
+    gap: 9px;
+    justify-content: center;
+  }
+  .item-stage {
+    height: 112px;
+    margin: 5px 0 14px;
+  }
+  .loadout-art {
+    height: 118px;
+    width: 118px;
+  }
+  .toon-shell .collection-dialog .loadout-portrait {
+    width: 130px;
+    height: 130px;
+  }
+  .stage-ring {
+    width: 100px;
+    height: 19px;
+  }
+  .item-role {
+    font-size: 7px;
+    letter-spacing: 0.06em;
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="card-title"] {
+    font-size: 20px;
+  }
+  .toon-shell .collection-dialog .selection-card p {
+    min-height: 0;
+    font-size: 11px;
+  }
+  .item-facts {
+    gap: 4px;
+  }
+  .item-facts > span {
+    font-size: 9px;
+    padding: 3px 5px;
+  }
+  .item-power {
+    font-size: 9px;
+  }
+  .item-power b {
+    font-size: 14px;
+  }
+  .toon-shell .collection-dialog .selection-card [data-slot="button"] {
+    padding: 6px;
+    font-size: 10px;
+    min-height: 34px;
+  }
+  .equipment-tabs {
+    gap: 7px;
+  }
+  .toon-shell .equipment-tabs > button {
+    display: flex;
+    justify-content: center;
+    padding: 8px 5px;
+    font-size: 12px;
+    gap: 5px;
+  }
+  .equipment-tabs .game-icon {
+    width: 23px;
+    height: 23px;
+  }
+  .equipment-tabs span {
+    display: none;
+  }
+  .toon-shell .forge-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .toon-shell .forge-card [data-slot="card-content"] {
+    padding: 16px 12px 16px 0;
+    justify-content: center;
+    gap: 12px;
+  }
+  .forge-emblem {
+    width: 90px;
+    height: 90px;
+  }
+  .forge-emblem .game-icon {
+    height: 60px;
+    width: 60px;
+  }
+  .toon-shell .forge-card [data-slot="card-title"] {
+    font-size: 20px;
+  }
+  .power-summary {
+    gap: 8px;
+  }
+  .sheet-rook {
+    height: 115px;
+    width: 100px;
+  }
+  .toon-shell .power-summary h3 {
+    font-size: 36px;
+  }
+  .power-summary h3 small {
+    font-size: 11px;
+  }
+  .power-breakdown {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px 18px;
+  }
+  .toon-shell .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stats-grid > div {
+    padding: 10px;
+  }
+  .toon-shell .stats-grid dd {
+    font-size: 20px;
+  }
+}
