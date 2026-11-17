@@ -105,7 +105,7 @@ test("First Light real browser: passive combat, visible permanent loot, reloads 
       .waitFor({ timeout: 15000 });
     await page.waitForFunction(() => !document.querySelector("[data-open-cache]")?.disabled);
     const loot = await stored(page);
-    assert.equal(loot.version, 6);
+    assert.equal(loot.version, 7);
     assert.equal(loot.state.phase.kind, "loot");
     assert.deepEqual(loot.state.meta.gear, { owned: ["sunfang"], equipped: null });
     assert(loot.state.run.time < 10, "Reward arrives without waiting through several empty fights");

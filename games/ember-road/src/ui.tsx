@@ -55,6 +55,8 @@ import type { AudioStatus, SoundCue } from "./audio";
 import { CombatCommands, ThreatReadout } from "./combat-ui";
 import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
+import { EMBER_MARCH, isEmberMarch } from "./ember-march";
+import { EmberMarchUi, MarchBuild, MarchChoices, MarchForge, MarchGift } from "./ember-march-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
 import { type GearId, isFirstLight } from "./first-light";
@@ -153,6 +155,8 @@ export interface UiActions {
   pause(): void;
   start(chapter: number): void;
   startFirstLight(returnChapter?: number): boolean;
+  startMarch(returnChapter?: number): boolean;
+  marchGift(id: PerkId, offerId: string): void;
   equipGear(id: GearId | null): void;
   continueLoot(): void;
   route(path: RouteId): void;
@@ -163,9 +167,9 @@ export interface UiActions {
     id: number,
     returnChapter: number,
   ): boolean;
-  choose(id: PerkId): void;
-  skip(): void;
-  reroll(): void;
+  choose(id: PerkId, offerId?: string): void;
+  skip(offerId?: string): void;
+  reroll(offerId?: string): void;
   train(id: TrainingId): void;
   equip<K extends keyof Loadout>(slot: K, id: Loadout[K]): void;
   upgrade(id: UpgradeId): void;
@@ -576,12 +580,22 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [replayIntro, setReplayIntro] = useState(false);
   const [firstLightDismissed, setFirstLightDismissed] = useState(false);
   const [firstLightWardrobe, setFirstLightWardrobe] = useState(false);
+  const [marchPreview, setMarchPreview] = useState(() =>
+    new URLSearchParams(location.search).has("march"),
+  );
+  const [marchDismissed, setMarchDismissed] = useState(false);
+  const [marchForgeOpen, setMarchForgeOpen] = useState(false);
+  const marchFocused =
+    isEmberMarch(state) || (state.phase.kind === "camp" && marchPreview && !marchDismissed);
+  const marchContext = state.run.context?.kind === "ember-march" ? state.run.context : null;
   const firstLightFocused =
-    isFirstLight(state) ||
-    (state.phase.kind === "camp" &&
-      !firstLightDismissed &&
-      !new URLSearchParams(location.search).has("campaign") &&
-      (!state.meta.firstLight?.cleared || new URLSearchParams(location.search).has("first-light")));
+    !marchFocused &&
+    (isFirstLight(state) ||
+      (state.phase.kind === "camp" &&
+        !firstLightDismissed &&
+        !new URLSearchParams(location.search).has("campaign") &&
+        (!state.meta.firstLight?.cleared ||
+          new URLSearchParams(location.search).has("first-light"))));
   const experience = experienceOf(state);
   const level = levelProgress(state);
   const progression = progressionOf(state);
@@ -625,7 +639,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     }
   }, [v.loaded, level.level, state.run.time, state.phase.kind]);
   const [tip, setTip] = useState<Lesson | null>(null);
-  const showPrologue = v.loaded && ((!experience.introSeen && !firstLightFocused) || replayIntro);
+  const showPrologue =
+    v.loaded && ((!experience.introSeen && !firstLightFocused && !marchFocused) || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
   const [inspectedLoadout, setInspectedLoadout] = useState<Partial<Loadout>>({});
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
@@ -666,6 +681,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           (showPrologue ||
             settings ||
             firstLightWardrobe ||
+            marchForgeOpen ||
             adventureOpen ||
             detail !== null ||
             campOpen ||
@@ -679,6 +695,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       v.loaded,
       settings,
       firstLightWardrobe,
+      marchForgeOpen,
       detail,
       campOpen,
       retreat,
@@ -699,6 +716,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (
       !v.loaded ||
       firstLightFocused ||
+      marchFocused ||
       showPrologue ||
       tip ||
       settings ||
@@ -727,6 +745,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     v.loaded,
     showPrologue,
     firstLightFocused,
+    marchFocused,
     tip,
     settings,
     detail,
@@ -1022,7 +1041,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     <div
       data-company-level={level.level}
       style={{ "--hero-atlas": `url("${heroAtlas(state)}")` } as CSSProperties}
-      className={`app-shell toon-shell ${firstLightFocused ? "is-first-light" : ""} ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
+      className={`app-shell toon-shell ${firstLightFocused ? "is-first-light" : ""} ${marchFocused ? "is-ember-march" : ""} ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
     >
       <header className="game-topbar">
         <Button
@@ -1048,6 +1067,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           <small>POWER</small>
         </Button>
         <span className="game-wordmark">EMBER ROAD</span>
+        {inCamp && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setMarchPreview(true);
+              setMarchDismissed(false);
+              a.finishIntro();
+            }}
+          >
+            Ember March
+          </Button>
+        )}
         {inCamp && (
           <Button
             variant="ghost"
@@ -1169,6 +1200,39 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               toggleSound={() => a.toggleSound()}
               wardrobe={() => setFirstLightWardrobe(true)}
               reveal={() => a.uiSound("claim")}
+            />
+          )}
+          {marchFocused && (
+            <EmberMarchUi
+              state={state}
+              loaded={v.loaded}
+              paused={v.paused}
+              audioControls={v.audioControls}
+              sound={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+              atCamp={inCamp}
+              kills={marchContext?.kills ?? 0}
+              total={EMBER_MARCH.total}
+              earnedGold={marchContext?.earnedGold ?? 0}
+              firstClear={state.phase.kind === "victory" && state.phase.bonusStatus === "earned"}
+              saveWarning={v.saveWarning ? v.saveMessage : null}
+              start={() => {
+                a.finishIntro();
+                setTip(null);
+                a.startMarch(hubChapter);
+              }}
+              pause={a.pause}
+              settings={() => setSettings(true)}
+              soundToggle={a.toggleSound}
+              equipment={() => setMarchForgeOpen(true)}
+              otherRoads={() => {
+                setMarchDismissed(true);
+                setFirstLightDismissed(true);
+                a.finishIntro();
+              }}
+              finish={() => {
+                a.camp();
+                setMarchForgeOpen(true);
+              }}
             />
           )}
           {dashboard && (
@@ -1682,7 +1746,70 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
-      {!showPrologue && !firstLightFocused && <PowerBelt state={state} />}
+      {!showPrologue && !firstLightFocused && !marchFocused && <PowerBelt state={state} />}
+      <Modal
+        open={v.loaded && marchForgeOpen && (marchFocused || inCamp)}
+        title="Equipment & forge"
+        className="march-forge-dialog"
+        close={() => setMarchForgeOpen(false)}
+      >
+        <MarchForge state={state} upgrade={a.upgrade} equip={() => a.equipGear("sunfang")} />
+      </Modal>
+      <Modal
+        open={
+          marchFocused &&
+          !dashboard &&
+          !settings &&
+          !marchForgeOpen &&
+          !detail &&
+          !v.paused &&
+          v.decisionReady &&
+          state.phase.kind === "choice"
+        }
+        title="Choose a new power"
+        className="march-decision"
+        heading={false}
+        initialFocus="[data-march-perk]"
+      >
+        {state.phase.kind === "choice" && (
+          <MarchChoices
+            state={state}
+            options={state.phase.options}
+            rerolls={state.phase.rerolls ?? 1}
+            choose={(id) =>
+              a.choose(id, state.phase.kind === "choice" ? state.phase.offerId : undefined)
+            }
+            reroll={() => a.reroll(state.phase.kind === "choice" ? state.phase.offerId : undefined)}
+            skip={() => a.skip(state.phase.kind === "choice" ? state.phase.offerId : undefined)}
+            inspect={() => setDetail("stats")}
+          />
+        )}
+      </Modal>
+      <Modal
+        open={
+          marchFocused &&
+          !dashboard &&
+          !settings &&
+          !marchForgeOpen &&
+          !detail &&
+          !v.paused &&
+          state.phase.kind === "march-gift"
+        }
+        title="A light along the road"
+        className="march-decision"
+        heading={false}
+        initialFocus="[data-march-gift]"
+      >
+        {state.phase.kind === "march-gift" && (
+          <MarchGift
+            state={state}
+            options={state.phase.options}
+            choose={(id) => {
+              if (state.phase.kind === "march-gift") a.marchGift(id, state.phase.offerId);
+            }}
+          />
+        )}
+      </Modal>
       <Modal
         open={v.loaded && firstLightWardrobe && (firstLightFocused || inCamp)}
         title="Rook’s equipment"
@@ -2315,10 +2442,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <Modal
         open={detail !== null}
-        title={detail === "stats" ? "Current stats" : "Current powers"}
+        title={
+          marchFocused ? "Current build" : detail === "stats" ? "Current stats" : "Current powers"
+        }
+        className={marchFocused ? "march-forge-dialog march-build-dialog" : ""}
         close={() => setDetail(null)}
       >
-        {detail === "stats" ? <StatList state={state} /> : <Powers state={state} />}
+        {marchFocused ? (
+          <MarchBuild state={state} />
+        ) : detail === "stats" ? (
+          <StatList state={state} />
+        ) : (
+          <Powers state={state} />
+        )}
       </Modal>
       <Modal open={retreat} title="Return to camp?" close={() => setRetreat(false)}>
         <p>
@@ -2341,7 +2477,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </div>
       </Modal>
       <Modal
-        open={!firstLightFocused && !dashboard && v.paused && !settings && !detail && !retreat}
+        open={
+          !firstLightFocused &&
+          !marchFocused &&
+          !dashboard &&
+          v.paused &&
+          !settings &&
+          !detail &&
+          !retreat
+        }
         title="The road can wait."
         close={a.pause}
       >
@@ -2460,7 +2604,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <Modal
         open={
-          !dashboard && !detail && !settings && v.decisionReady && state.phase.kind === "choice"
+          !marchFocused &&
+          !dashboard &&
+          !detail &&
+          !settings &&
+          v.decisionReady &&
+          state.phase.kind === "choice"
         }
         title="Choose your next oath."
         className="decision--choice"
@@ -2493,6 +2642,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       <Modal
         open={
           !firstLightFocused &&
+          !marchFocused &&
           !dashboard &&
           v.decisionReady &&
           (state.phase.kind === "defeat" || state.phase.kind === "victory")
@@ -2584,7 +2734,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <StoryOpening
         open={showPrologue}
-        fresh={!firstLightFocused && isFirstJourney(state)}
+        fresh={!firstLightFocused && !marchFocused && isFirstJourney(state)}
         companyReady={companyReady}
         petsReady={petsReady}
         paused={v.presentationPaused}
@@ -2596,7 +2746,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         skip={() => {
           a.finishIntro();
           setReplayIntro(false);
-          if (firstLightFocused) {
+          if (firstLightFocused || marchFocused) {
             setSection("Camp");
             setCampOpen(false);
             return;
@@ -2609,7 +2759,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         finish={(start) => {
           a.finishIntro();
           setReplayIntro(false);
-          if (firstLightFocused) {
+          if (firstLightFocused || marchFocused) {
             setSection("Camp");
             setCampOpen(false);
             return;

@@ -7,11 +7,13 @@ import {
 } from "@games/gamekit";
 import { activityPreview, advanceAdventures } from "./adventures";
 import { type AudioStatus, GameAudio, type SoundCue } from "./audio";
+import { isEmberMarch } from "./ember-march";
 import { type AudioPreferences, experienceOf, type Lesson, prepareExperience } from "./experience";
 import { isFirstLight } from "./first-light.ts";
 import {
   buyUpgrade,
   useSkill as castSkill,
+  chooseMarchGift,
   choosePerk,
   chooseRoute,
   continueAfterLoot,
@@ -33,6 +35,7 @@ import {
   returnToCamp,
   skipPerk,
   startActivity,
+  startEmberMarch,
   startFirstLight,
   startRun,
   stepGame,
@@ -44,6 +47,7 @@ import {
   validV5State,
   validV6State,
   validV7State,
+  visibleBattle,
 } from "./model";
 import { prepareProgression, train } from "./progression";
 import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
@@ -60,6 +64,7 @@ import "./camp.css";
 import "./oath-offering.css";
 import "./combat.css";
 import "./first-light.css";
+import "./ember-march.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -94,7 +99,7 @@ function syncAudio() {
     paused: !loaded || userPaused || platformPaused,
     permitted: platform.audioEnabled(),
     inspecting,
-    battle: state.phase.kind === "battle",
+    battle: state.phase.kind === "battle" || (isEmberMarch(state) && !!visibleBattle(state)),
   });
 }
 const savePlatform: Platform = {
@@ -175,7 +180,7 @@ function snapshot(): UiSnapshot {
     audioPermitted: platform.audioEnabled(),
     audioControls: platform.allowsMuteUi,
     reducedMotion,
-    decisionReady: loaded && !renderer?.settling,
+    decisionReady: loaded && (isEmberMarch(state) || !renderer?.settling),
     note,
     web: platform.env === "web",
   };
@@ -241,7 +246,10 @@ function events(events: GameEvent[]) {
     }
     if (event.type === "kill" && !isFirstLight(state))
       note = `Enemy defeated · +${event.gold} gold kept.`;
-    if (event.type === "level") note = `Level ${event.level}. Choose an oath.`;
+    if (event.type === "level") {
+      note = `Level ${event.level}. Choose a power.`;
+      if (isEmberMarch(state)) audio.play("claim");
+    }
     if (event.type === "skill") note = "Your skill changes the fight.";
   }
   if (events.some((e) => ["kill", "loot", "level", "defeat", "victory", "skill"].includes(e.type)))
@@ -289,6 +297,21 @@ const actions: UiActions = {
     changed(true);
     syncPause();
     return true;
+  },
+  startMarch(returnChapter) {
+    if (!loaded || !startEmberMarch(state, returnChapter)) return false;
+    userPaused = false;
+    note = "The Emberwood. Fight, level up, and shape your power.";
+    changed(true);
+    syncPause();
+    return true;
+  },
+  marchGift(id, offerId) {
+    if (!loaded || !chooseMarchGift(state, id, offerId)) return;
+    recordQuestProgress(state.quests, { type: "oath" }, Date.now());
+    audio.play("oath");
+    note = "A little strength for the road ahead.";
+    changed();
   },
   equipGear(id) {
     if (loaded && equipGear(state, id)) {
@@ -377,17 +400,17 @@ const actions: UiActions = {
     void audio.unlock();
     changed();
   },
-  choose(id) {
-    if (loaded && !renderer?.settling && choosePerk(state, id)) {
+  choose(id, offerId) {
+    if (loaded && (isEmberMarch(state) || !renderer?.settling) && choosePerk(state, id, offerId)) {
       recordQuestProgress(state.quests, { type: "oath" }, Date.now());
       prepareExperience(state).lessons.oath = true;
       audio.play("oath");
       note = `${PERKS.find((p) => p.id === id)!.title} joins your build.`;
-      changed(true);
+      changed(!isEmberMarch(state));
     }
   },
-  reroll() {
-    if (loaded && !renderer?.settling && rerollPerks(state)) {
+  reroll(offerId) {
+    if (loaded && (isEmberMarch(state) || !renderer?.settling) && rerollPerks(state, offerId)) {
       audio.play("page");
       note = "A different path. Choose a new oath.";
       changed();
@@ -400,11 +423,11 @@ const actions: UiActions = {
       changed();
     }
   },
-  skip() {
-    if (loaded && !renderer?.settling && skipPerk(state)) {
+  skip(offerId) {
+    if (loaded && (isEmberMarch(state) || !renderer?.settling) && skipPerk(state, offerId)) {
       prepareExperience(state).lessons.oath = true;
       note = "Choice skipped. The company marches on.";
-      changed(true);
+      changed(!isEmberMarch(state));
     }
   },
   equip(slot, id) {
@@ -483,8 +506,11 @@ loop = createLoop(
     const day = state.quests.daily.period;
     advanceQuests(state.quests, Date.now());
     if (calendarChanged || day !== state.quests.daily.period) void persist();
-    time += dt;
-    renderer?.advance(dt);
+    const freezeScene = isEmberMarch(state) && ["choice", "march-gift"].includes(state.phase.kind);
+    if (!freezeScene) {
+      time += dt;
+      renderer?.advance(dt);
+    }
     renderer?.capture(state);
     events(stepGame(state, dt));
     draw();
@@ -522,7 +548,7 @@ window.addEventListener("click", (event) => {
     button &&
     app.contains(button) &&
     !button.matches(
-      "[data-open-cache], [data-equip-sunfang], [data-start-first-light], [data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill, .combat-command",
+      "[data-open-cache], [data-equip-sunfang], [data-start-first-light], [data-start-march], [data-march-perk], [data-march-gift], [data-march-upgrade], [data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill, .combat-command",
     )
   )
     audio.play("page");
@@ -573,7 +599,7 @@ window.addEventListener("keydown", (event) => {
   const index = Number(event.key) - 1;
   if (
     !userPaused &&
-    !renderer?.settling &&
+    (isEmberMarch(state) || !renderer?.settling) &&
     state.phase.kind === "choice" &&
     index >= 0 &&
     index <= 2
@@ -581,7 +607,7 @@ window.addEventListener("keydown", (event) => {
     const id = state.phase.options[index];
     if (id) {
       event.preventDefault();
-      actions.choose(id);
+      actions.choose(id, state.phase.offerId);
     }
   }
 });

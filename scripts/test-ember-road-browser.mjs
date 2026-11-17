@@ -704,7 +704,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       storageKey,
     );
     const claimed = await stored(questPage);
-    assert.equal(claimed.version, 6);
+    assert.equal(claimed.version, 7);
     assert.equal(
       claimed.state.meta.gold,
       goldBeforeClaims + 45,
