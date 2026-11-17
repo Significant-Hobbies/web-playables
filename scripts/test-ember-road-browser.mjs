@@ -140,6 +140,24 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await route.click();
     return true;
   }
+  async function answerThreat(page) {
+    await page.evaluate(() => {
+      if (document.querySelector("dialog[open]")) return;
+      const bar = [...document.querySelectorAll("progress")].find((node) =>
+        /windup/.test(node.getAttribute("aria-label") || ""),
+      );
+      const remaining = bar ? bar.max - bar.value : null;
+      const brace = document.querySelector('[aria-label="Brace W"]');
+      const breakthrough = document.querySelector('[aria-label="Breakthrough E"]');
+      if (brace && !brace.disabled && remaining > 0 && remaining < 0.55) brace.click();
+      if (
+        breakthrough &&
+        !breakthrough.disabled &&
+        /curse|shield|shot/i.test(bar?.getAttribute("aria-label") || "")
+      )
+        breakthrough.click();
+    });
+  }
   async function fixture(state) {
     assert(validState(state), "Fixture uses the real state validator");
     return JSON.stringify({ version: 5, savedAt: Date.now(), state });
@@ -288,9 +306,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await originPage.keyboard.press("Enter");
     await originPage.waitForFunction(() => window.__audioLoops === 2);
     assert.equal(await originPage.evaluate(() => window.__audioContexts.length), 1);
-    await originPage.getByRole("complementary", { name: "First battle guidance" }).waitFor();
+    await originPage.getByRole("button", { name: "Brace W", exact: true }).waitFor();
+    assert(
+      await originPage.getByRole("button", { name: "Breakthrough E", exact: true }).isVisible(),
+    );
     assert.equal(
-      await originPage.locator(".cast-skill").count(),
+      await originPage.locator(":is(.cast-skill, .command-skill)").count(),
       0,
       "Fresh Rook has not earned an active skill",
     );
@@ -309,7 +330,9 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       storageKey,
     );
     for (let wait = 0; wait < 70; wait++) {
-      if (await originPage.locator(".cast-skill:not(:disabled)").count()) break;
+      if (await originPage.locator(":is(.cast-skill, .command-skill):not(:disabled)").count())
+        break;
+      await answerThreat(originPage);
       await chooseDiscoveryTrail(originPage);
       const choice = originPage.locator(".decision--choice[open] [data-perk]").first();
       if (await choice.count()) await choice.click();
@@ -317,7 +340,8 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     }
     await originPage.waitForFunction(
       () =>
-        !document.querySelector(".cast-skill")?.disabled && !!document.querySelector(".cast-skill"),
+        !document.querySelector(":is(.cast-skill, .command-skill)")?.disabled &&
+        !!document.querySelector(":is(.cast-skill, .command-skill)"),
     );
     await originPage.keyboard.press("q");
     await originPage.waitForFunction(
@@ -643,11 +667,12 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     while (Date.now() < questDeadline) {
       earned = await stored(questPage);
       if (questBoard(earned.state.quests).daily.every((q) => q.ready)) break;
+      await answerThreat(questPage);
       if (!(await chooseDiscoveryTrail(questPage))) {
         if (await questPage.locator(".decision--choice[open]").count())
           await questPage.locator("[data-perk]").first().click();
-        else if (await questPage.locator(".cast-skill").isEnabled())
-          await questPage.locator(".cast-skill").click();
+        else if (await questPage.locator(":is(.cast-skill, .command-skill)").isEnabled())
+          await questPage.locator(":is(.cast-skill, .command-skill)").click();
       }
       await questPage.waitForTimeout(150);
     }
@@ -772,7 +797,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       if (phase === "defeat") {
         state.run.hp = 0;
         state.meta.defeats = 1;
-        state.phase = { kind: "defeat", enemy: "Briar archer" };
+        state.phase = { kind: "defeat", enemy: beginBattle(state).enemies[0].name };
       }
       if (phase === "travel") startRun(state);
       const terminal = await context(await fixture(state));
@@ -795,6 +820,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     }
     const squad = initialState();
     startRun(squad);
+    delete squad.run.rules;
     squad.run.cleared = 8;
     squad.run.context = { kind: "campaign", routes: [], junctionFloor: 8 };
     squad.phase = beginBattle(squad);

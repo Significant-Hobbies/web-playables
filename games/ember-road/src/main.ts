@@ -472,7 +472,9 @@ window.addEventListener("click", (event) => {
   if (
     button &&
     app.contains(button) &&
-    !button.matches("[data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill")
+    !button.matches(
+      "[data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill, .combat-command",
+    )
   )
     audio.play("page");
 });
