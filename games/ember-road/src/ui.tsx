@@ -57,8 +57,10 @@ import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
-import type { GearId } from "./first-light.ts";
+import { type GearId, isFirstLight } from "./first-light";
+import { FirstLightUi, FirstLightWardrobe } from "./first-light-ui";
 import { GameIcon } from "./game-icon";
+import { heroAtlas } from "./hero-art";
 import { LoadoutArt } from "./loadout-art";
 import {
   ARMORS,
@@ -104,7 +106,6 @@ const campWorld = new URL("../assets/living-camp-v1.webp", import.meta.url).href
 const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
 const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
 const roadAtlas = new URL("../assets/toon-roads.png", import.meta.url).href;
-const knightAtlas = new URL("../assets/toon-knight.png", import.meta.url).href;
 const loadoutDescriptions: Readonly<Record<string, string>> = {
   mira: "Her arrows follow Cinder’s mark. A marked foe takes 50% more arrow damage.",
   bram: "A steadfast front-line fighter. Grants Rook 2 armor while he travels with you.",
@@ -573,6 +574,14 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (canvas.current) a.canvas(canvas.current);
   }, [a]);
   const [replayIntro, setReplayIntro] = useState(false);
+  const [firstLightDismissed, setFirstLightDismissed] = useState(false);
+  const [firstLightWardrobe, setFirstLightWardrobe] = useState(false);
+  const firstLightFocused =
+    isFirstLight(state) ||
+    (state.phase.kind === "camp" &&
+      !firstLightDismissed &&
+      !new URLSearchParams(location.search).has("campaign") &&
+      (!state.meta.firstLight?.cleared || new URLSearchParams(location.search).has("first-light")));
   const experience = experienceOf(state);
   const level = levelProgress(state);
   const progression = progressionOf(state);
@@ -616,7 +625,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     }
   }, [v.loaded, level.level, state.run.time, state.phase.kind]);
   const [tip, setTip] = useState<Lesson | null>(null);
-  const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
+  const showPrologue = v.loaded && ((!experience.introSeen && !firstLightFocused) || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
   const [inspectedLoadout, setInspectedLoadout] = useState<Partial<Loadout>>({});
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
@@ -653,19 +662,23 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   useEffect(
     () =>
       a.inspect(
-        showPrologue ||
-          settings ||
-          adventureOpen ||
-          detail !== null ||
-          campOpen ||
-          retreat ||
-          introChapter !== null ||
-          newDiscovery !== null ||
-          section !== "Camp",
+        v.loaded &&
+          (showPrologue ||
+            settings ||
+            firstLightWardrobe ||
+            adventureOpen ||
+            detail !== null ||
+            campOpen ||
+            retreat ||
+            introChapter !== null ||
+            newDiscovery !== null ||
+            section !== "Camp"),
       ),
     [
       a,
+      v.loaded,
       settings,
+      firstLightWardrobe,
       detail,
       campOpen,
       retreat,
@@ -683,7 +696,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     }
   }, [inCamp, state.run.chapter]);
   useEffect(() => {
-    if (!v.loaded || showPrologue || tip || settings || detail || section !== "Camp") return;
+    if (
+      !v.loaded ||
+      firstLightFocused ||
+      showPrologue ||
+      tip ||
+      settings ||
+      detail ||
+      section !== "Camp"
+    )
+      return;
     const lesson: Lesson | null =
       !dashboard && state.phase.kind === "battle"
         ? !experience.lessons.battle
@@ -704,6 +726,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     a,
     v.loaded,
     showPrologue,
+    firstLightFocused,
     tip,
     settings,
     detail,
@@ -998,7 +1021,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   return (
     <div
       data-company-level={level.level}
-      className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
+      style={{ "--hero-atlas": `url("${heroAtlas(state)}")` } as CSSProperties}
+      className={`app-shell toon-shell ${firstLightFocused ? "is-first-light" : ""} ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
     >
       <header className="game-topbar">
         <Button
@@ -1024,6 +1048,23 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           <small>POWER</small>
         </Button>
         <span className="game-wordmark">EMBER ROAD</span>
+        {inCamp && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setFirstLightDismissed(false);
+              a.finishIntro();
+              a.startFirstLight(hubChapter);
+            }}
+          >
+            First Light
+          </Button>
+        )}
+        {inCamp && state.meta.gear?.owned.includes("sunfang") && (
+          <Button variant="ghost" onClick={() => setFirstLightWardrobe(true)}>
+            Your blade
+          </Button>
+        )}
         <div className="header-actions">
           <span className="gold">
             <GameIcon kind="gold" />
@@ -1050,7 +1091,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           {v.web && (
             <span
               data-playables-account-slot=""
-              style={{ "--playables-account-avatar": `url("${knightAtlas}")` } as CSSProperties}
+              style={
+                { "--playables-account-avatar": `url("${heroAtlas(state)}")` } as CSSProperties
+              }
             />
           )}
           {v.audioControls && (
@@ -1088,10 +1131,45 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <canvas
               id="world"
               ref={canvas}
-              aria-label={`Rook${companyReady ? " and his companion" : ""}${petsReady ? " with his pet" : ""} on the old road`}
+              aria-label={`Rook${companyReady && !firstLightFocused ? " and his companion" : ""}${petsReady && !firstLightFocused ? " with his pet" : ""} on the old road`}
               role="img"
             />
           </div>
+          {firstLightFocused && (
+            <FirstLightUi
+              state={state}
+              loaded={v.loaded}
+              settled={v.decisionReady}
+              paused={v.paused}
+              sound={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+              reducedMotion={v.reducedMotion}
+              saveWarning={v.saveWarning ? v.saveMessage : null}
+              start={() => {
+                a.finishIntro();
+                setTip(null);
+                a.startFirstLight(hubChapter);
+              }}
+              equip={() => {
+                a.equipGear("sunfang");
+                a.continueLoot();
+              }}
+              continueLoot={() => a.continueLoot()}
+              camp={() => {
+                a.camp();
+                setFirstLightDismissed(false);
+              }}
+              campaign={() => {
+                a.finishIntro();
+                setFirstLightDismissed(true);
+                setFirstLightWardrobe(false);
+              }}
+              pause={() => a.pause()}
+              settings={() => setSettings(true)}
+              toggleSound={() => a.toggleSound()}
+              wardrobe={() => setFirstLightWardrobe(true)}
+              reveal={() => a.uiSound("claim")}
+            />
+          )}
           {dashboard && (
             <section className="chapter-hub living-camp" aria-label="Chapter selection">
               <img
@@ -1603,7 +1681,20 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
-      {!showPrologue && <PowerBelt state={state} />}
+      {!showPrologue && !firstLightFocused && <PowerBelt state={state} />}
+      <Modal
+        open={firstLightWardrobe}
+        title="Rook’s equipment"
+        className="fl-wardrobe"
+        close={() => setFirstLightWardrobe(false)}
+      >
+        <FirstLightWardrobe
+          state={state}
+          canChange={state.phase.kind === "camp" || state.phase.kind === "loot"}
+          equip={() => a.equipGear("sunfang")}
+          ordinary={() => a.equipGear(null)}
+        />
+      </Modal>
       <Modal
         open={dashboard && section !== "Camp"}
         title={
@@ -2249,7 +2340,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </div>
       </Modal>
       <Modal
-        open={!dashboard && v.paused && !settings && !detail && !retreat}
+        open={!firstLightFocused && !dashboard && v.paused && !settings && !detail && !retreat}
         title="The road can wait."
         close={a.pause}
       >
@@ -2400,6 +2491,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <Modal
         open={
+          !firstLightFocused &&
           !dashboard &&
           v.decisionReady &&
           (state.phase.kind === "defeat" || state.phase.kind === "victory")

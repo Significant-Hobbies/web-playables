@@ -57,6 +57,7 @@ import "./collection.css";
 import "./camp.css";
 import "./oath-offering.css";
 import "./combat.css";
+import "./first-light.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -517,7 +518,7 @@ window.addEventListener("click", (event) => {
     button &&
     app.contains(button) &&
     !button.matches(
-      "[data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill, .combat-command",
+      "[data-open-cache], [data-equip-sunfang], [data-start-first-light], [data-equip], [data-upgrade], [data-perk], [data-claim-quest], .cast-skill, .combat-command",
     )
   )
     audio.play("page");

@@ -1,6 +1,8 @@
 export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import { attackMotion } from "./attack-motion";
+import { isFirstLight, weaponAppearance } from "./first-light";
+import { HERO_ATLASES } from "./hero-art";
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
 import { COMBO_TUNING, enemyIntent, rank } from "./model";
 import { systemUnlocked } from "./progression";
@@ -15,6 +17,8 @@ interface ActorMotion {
   projectile: boolean;
 }
 export interface Scene {
+  firstLight?: boolean;
+  blade?: "ordinary" | "sunfang";
   time: number;
   distance: number;
   walking: boolean;
@@ -58,6 +62,8 @@ const TEAL = "#486d64";
 export class WorldRenderer {
   private ctx: CanvasRenderingContext2D;
   private heroImage = new Image();
+  private sunfangImage = new Image();
+  private clearingImage = new Image();
   private enemyImage = new Image();
   private partyImage = new Image();
   private petImage = new Image();
@@ -82,7 +88,12 @@ export class WorldRenderer {
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("The game needs a browser with Canvas 2D support.");
     this.ctx = ctx;
-    this.heroImage.src = new URL("../assets/toon-knight.png", import.meta.url).href;
+    this.heroImage.src = HERO_ATLASES.ordinary;
+    this.sunfangImage.src = HERO_ATLASES.sunfang;
+    this.clearingImage.src = new URL(
+      "../assets/first-light-clearing-v1.webp",
+      import.meta.url,
+    ).href;
     this.enemyImage.src = new URL("../assets/toon-enemies.png", import.meta.url).href;
     this.partyImage.src = new URL("../assets/toon-party.png", import.meta.url).href;
     this.petImage.src = new URL("../assets/toon-pets.png", import.meta.url).href;
@@ -279,6 +290,8 @@ export class WorldRenderer {
     if (camp) return;
     const enemies = !camp && (state.phase.kind === "battle" || this.settling) ? this.foes : [];
     this.draw({
+      firstLight: isFirstLight(state),
+      blade: weaponAppearance(state),
       time,
       distance: state.run.distance,
       walking: state.phase.kind === "travel",
@@ -289,12 +302,16 @@ export class WorldRenderer {
       thorns: rank(state, "thorns"),
       reducedMotion,
       companion: state.meta.loadout.companion,
-      companyReady: systemUnlocked(state, "company"),
-      petsReady: systemUnlocked(state, "pets"),
+      companyReady: !isFirstLight(state) && systemUnlocked(state, "company"),
+      petsReady: !isFirstLight(state) && systemUnlocked(state, "pets"),
       weapon: state.meta.loadout.weapon,
       pet: state.meta.loadout.pet,
       shield: state.run.shield,
-      brace: state.phase.kind === "battle" ? state.phase.commands?.brace : 0,
+      brace: isFirstLight(state)
+        ? undefined
+        : state.phase.kind === "battle"
+          ? state.phase.commands?.brace
+          : 0,
       exposed: state.phase.kind === "battle" ? (state.phase.commands?.exposed ?? 0) > 0 : false,
       marked: state.phase.kind === "battle" ? state.phase.mark?.target : undefined,
       enemies,
@@ -308,16 +325,31 @@ export class WorldRenderer {
       if (id === "companion") return { x: 535, y: ground, scale: this.actorScale * 0.92 };
       if (id === "pet") return { x: 850, y: ground, scale: this.actorScale * 0.5 };
     }
-    if (id === "hero") return { x: 355, y: ground, scale: this.actorScale };
+    if (id === "hero")
+      return { x: this.scene?.firstLight ? 300 : 355, y: ground, scale: this.actorScale };
     if (id === "companion") return { x: 155, y: ground - 18, scale: this.actorScale * 0.88 };
     if (id === "pet") return { x: 270, y: ground + 14, scale: this.actorScale * 0.5 };
     const foe = this.foes.find((e) => e.id === id);
     const slot = foe?.slot ?? 0;
     const back = foe?.row === "back";
     return {
-      x: back ? 795 + (slot % 2) * 120 : 540 + (slot % 2) * 125,
+      x: this.scene?.firstLight
+        ? (back ? 790 : 610) + (slot % 2) * (back ? 100 : 140)
+        : back
+          ? 795 + (slot % 2) * 120
+          : 540 + (slot % 2) * 125,
       y: ground - (back ? 30 : 0) + (slot % 2) * 15,
-      scale: this.actorScale * (back ? 0.77 : 0.89),
+      scale:
+        this.actorScale *
+        (this.scene?.firstLight
+          ? foe?.kind === "warden"
+            ? 1.15
+            : back
+              ? 0.82
+              : 0.98
+          : back
+            ? 0.77
+            : 0.89),
     };
   }
 
@@ -411,16 +443,16 @@ export class WorldRenderer {
     this.scene = s;
     this.drawActors(s);
     this.drawEffects(s);
-    if (!s.reducedMotion) {
+    if (!s.reducedMotion && !s.firstLight) {
       this.particles(s);
       this.weather(s);
     }
-    this.foreground(s);
+    if (!s.firstLight) this.foreground(s);
     c.save();
     for (const p of this.sparks) {
       c.globalAlpha = Math.min(1, (1 - p.age / p.life) * 2);
       if (p.text) {
-        c.font = `700 ${p.label ? 15 : p.text.includes("!") ? 32 : 26}px ${p.label ? "sans-serif" : "Georgia, serif"}`;
+        c.font = `700 ${p.label ? 15 : p.text.includes("!") ? 32 : 26}px ${p.label || s.firstLight ? "Nunito, sans-serif" : "Georgia, serif"}`;
         c.textAlign = "center";
         c.lineWidth = p.label ? 3 : 5;
         c.strokeStyle = "#25362e";
@@ -437,6 +469,7 @@ export class WorldRenderer {
       }
     }
     c.restore();
+    if (s.firstLight) return;
     const vignette = c.createRadialGradient(w / 2, h / 2, h * 0.3, w / 2, h / 2, w * 0.7);
     vignette.addColorStop(0, "#19352d00");
     vignette.addColorStop(1, direction === "moon" ? "#0c112966" : "#1f352e55");
@@ -809,6 +842,14 @@ export class WorldRenderer {
     const c = this.ctx;
     const h = this.height;
     const ground = h * 0.73;
+    if (s.firstLight && this.clearingImage.complete && this.clearingImage.naturalWidth) {
+      const image = this.clearingImage;
+      const scale = Math.max(1000 / image.naturalWidth, h / image.naturalHeight);
+      const width = image.naturalWidth * scale,
+        height = image.naturalHeight * scale;
+      c.drawImage(image, (1000 - width) / 2, (h - height) / 2, width, height);
+      return;
+    }
     const image = this.backdrop(s.chapter);
     if (image.complete && image.naturalWidth) {
       const img = image;
@@ -1248,7 +1289,11 @@ export class WorldRenderer {
     const skeleton = kind === "sentinel";
     let scale = size * (boss ? 1.3 : mage ? 0.9 : hero ? 1 : 0.9);
     if (scene.direction === "tabletop") scale *= 0.95;
-    const spriteImage = hero ? this.heroImage : this.enemyImage;
+    const spriteImage = hero
+      ? scene.blade === "sunfang" && this.sunfangImage.complete && this.sunfangImage.naturalWidth
+        ? this.sunfangImage
+        : this.heroImage
+      : this.enemyImage;
     if (spriteImage.complete && spriteImage.naturalWidth) {
       this.spriteCharacter(x, y, scale, kind, attack, hurt, death, scene, spriteImage);
       return;
@@ -1635,15 +1680,20 @@ export class WorldRenderer {
       c.translate(hero ? -death * 35 : death * 35, death * 12);
       c.rotate((hero ? -1 : 1) * death * 0.9);
     }
+    // Sunfang's follow-through crosses the nominal cell boundary. Keep its tip
+    // with that pose and exclude it from the next pose, without stretching either.
+    const sunfang = hero && scene.blade === "sunfang" && row === 1;
+    const inset = sunfang && column === 3 ? 0.065 : 0;
+    const extra = sunfang && column === 2 ? 0.065 : 0;
     c.drawImage(
       img,
-      column * cell,
+      (column + inset) * cell,
       row * cellHeight,
-      cell,
+      cell * (1 - inset + extra),
       cellHeight,
-      -extent / 2,
+      -extent / 2 + extent * inset,
       -extent * bottom + 4,
-      extent,
+      extent * (1 - inset + extra),
       extent,
     );
     if (attack > 0.32 && attack < 0.65 && !scene.reducedMotion) {

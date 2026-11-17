@@ -888,7 +888,8 @@ export function equipGear(state: GameState, id: GearId | null): boolean {
   )
     return false;
   gear.equipped = id;
-  if (id === "sunfang") state.meta.loadout.weapon = "sword";
+  // Both choices in the blade rack are swords, including the ordinary road blade.
+  state.meta.loadout.weapon = "sword";
   return true;
 }
 export function continueAfterLoot(state: GameState): boolean {

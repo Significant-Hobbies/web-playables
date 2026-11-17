@@ -187,6 +187,11 @@ describe("First Light permanent blade expedition", () => {
     expect(equipGear(state, "sunfang")).toBe(true);
     expect(state.meta.loadout.weapon).toBe("sword");
     expect(heroStats(state).damage).toBe(35);
+    state.meta.loadout.weapon = "spear";
+    expect(equipGear(state, null)).toBe(true);
+    expect(state.meta.loadout.weapon).toBe("sword");
+    expect(weaponAppearance(state)).toBe("ordinary");
+    expect(heroStats(state).damage).toBe(23);
   });
   it("keeps veteran companions off this solo trail and leaves their campaign behavior available", () => {
     const state = initialState(42);

@@ -114,7 +114,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     return c;
   }
   async function ready(page, skipOpening = true) {
-    await page.goto(origin);
+    await page.goto(`${origin}/?campaign=1`);
     await page.waitForFunction(
       () => !document.getElementById("save-status")?.textContent.includes("Loading"),
     );
@@ -704,7 +704,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       storageKey,
     );
     const claimed = await stored(questPage);
-    assert.equal(claimed.version, 5);
+    assert.equal(claimed.version, 6);
     assert.equal(
       claimed.state.meta.gold,
       goldBeforeClaims + 45,
@@ -863,7 +863,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       };
     }, savedJourney);
     const delayedPage = await delayed.newPage();
-    await delayedPage.goto(origin);
+    await delayedPage.goto(`${origin}/?campaign=1`);
     await delayedPage.waitForFunction(() => typeof window.__sdkPause === "function");
     await delayedPage.locator("#settings-toggle").click();
     await delayedPage.evaluate(() => window.__sdkPause());
