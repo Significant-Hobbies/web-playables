@@ -15,7 +15,7 @@
   display: block;
   height: 100%;
   padding: 0;
-  overflow: hidden;
+  overflow: clip;
 }
 .toon-shell.is-first-light .main-content > :not(.world-stage):not(.first-light-ui) {
   display: none;
@@ -1463,6 +1463,10 @@
   }
 }
 @media (max-height: 540px) and (min-width: 760px) {
+  .fl-loot-copy > strong,
+  .fl-loot-copy > p {
+    display: none;
+  }
   .fl-welcome {
     inset-block: 75px 20px;
   }

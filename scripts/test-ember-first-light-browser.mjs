@@ -70,6 +70,11 @@ test("First Light real browser: passive combat, visible permanent loot, reloads 
       ]),
       await page.evaluate(() => [innerWidth, innerHeight]),
     );
+    assert.deepEqual(
+      await page.locator(".main-content").evaluate((e) => [e.scrollLeft, e.scrollTop]),
+      [0, 0],
+      "The game scene cannot pan when a control receives focus",
+    );
   }
   async function screenshot(page, name) {
     await page.evaluate(async () => {
