@@ -53,7 +53,7 @@ import {
   type Tier,
 } from "./adventures";
 import type { AudioStatus, SoundCue } from "./audio";
-import { discoveriesOnRoad, journalDiscoveries } from "./discoveries";
+import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
@@ -98,7 +98,7 @@ import {
 import { type QuestCard, type QuestScope, questBoard, resetAt } from "./quests";
 import { journeyStory } from "./story";
 
-const chapterIsland = new URL("../assets/toon-island.png", import.meta.url).href;
+const campWorld = new URL("../assets/living-camp-v1.webp", import.meta.url).href;
 const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
 const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
 const roadAtlas = new URL("../assets/toon-roads.png", import.meta.url).href;
@@ -706,128 +706,168 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     slot: K,
     items: readonly { id: Loadout[K]; name: string; description: string; chapter: number }[],
   ) {
+    const equipped = items.find((item) => item.id === state.meta.loadout[slot])!;
+    const equippedIndex = items.indexOf(equipped);
     return (
-      <div className="selection-grid">
-        {items.map((item, index) => {
-          const locked = item.chapter > state.meta.unlockedChapter,
-            selected = state.meta.loadout[slot] === item.id;
-          return (
-            <Card
-              key={item.id}
-              className={`selection-card slot-${slot} item-${index} ${selected ? "selected" : ""} ${locked ? "is-locked" : ""}`}
-            >
-              <CardHeader>
-                <div className="selection-top">
-                  <Badge variant="outline">
-                    {locked ? (
-                      <>
-                        <LockKeyhole /> Chapter {item.chapter}
-                      </>
-                    ) : selected ? (
-                      <>
-                        <Check /> Equipped
-                      </>
+      <div className={`loadout-workbench workbench-${slot}`}>
+        <aside className="loadout-showcase" aria-label={`Equipped ${slot}`}>
+          <span className="showcase-label">
+            <Check size={15} /> EQUIPPED
+          </span>
+          <div className="showcase-art">
+            {slot === "companion" || slot === "pet" ? (
+              <span
+                className="showcase-character"
+                role="img"
+                aria-label={`${equipped.name} at camp`}
+                style={{
+                  backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
+                  backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
+                  backgroundPosition: `0 ${(equippedIndex / (slot === "pet" ? 2 : 3)) * 100}%`,
+                }}
+              />
+            ) : (
+              <LoadoutArt slot={slot} id={equipped.id} />
+            )}
+          </div>
+          <h3>{equipped.name}</h3>
+          <p>{equipped.description}</p>
+          <span className="showcase-power">
+            <GameIcon kind="battle" />
+            <b>{power.total.toLocaleString()}</b>
+            <small>COMPANY POWER</small>
+          </span>
+        </aside>
+        <div className="selection-grid">
+          {items.map((item, index) => {
+            const locked = item.chapter > state.meta.unlockedChapter,
+              selected = state.meta.loadout[slot] === item.id;
+            return (
+              <Card
+                key={item.id}
+                className={`selection-card slot-${slot} item-${index} ${selected ? "selected" : ""} ${locked ? "is-locked" : ""}`}
+              >
+                <CardHeader>
+                  <div className="selection-top">
+                    <Badge variant="outline">
+                      {locked ? (
+                        <>
+                          <LockKeyhole /> Chapter {item.chapter}
+                        </>
+                      ) : selected ? (
+                        <>
+                          <Check /> Equipped
+                        </>
+                      ) : (
+                        "Available"
+                      )}
+                    </Badge>
+                  </div>
+                  <div className="item-stage">
+                    <span className="stage-ring" />
+                    {slot === "companion" || slot === "pet" ? (
+                      <span
+                        role="img"
+                        aria-label={`${item.name} portrait`}
+                        className="loadout-portrait"
+                        style={{
+                          backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
+                          backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
+                          backgroundPosition: `0 ${(index / (slot === "pet" ? 2 : 3)) * 100}%`,
+                        }}
+                      />
                     ) : (
-                      "Available"
+                      <LoadoutArt slot={slot} id={item.id} />
                     )}
-                  </Badge>
-                </div>
-                <div className="item-stage">
-                  <span className="stage-ring" />
-                  {slot === "companion" || slot === "pet" ? (
-                    <span
-                      role="img"
-                      aria-label={`${item.name} portrait`}
-                      className="loadout-portrait"
-                      style={{
-                        backgroundImage: `url("${slot === "pet" ? petAtlas : partyAtlas}")`,
-                        backgroundSize: `400% ${slot === "pet" ? 300 : 400}%`,
-                        backgroundPosition: `0 ${(index / (slot === "pet" ? 2 : 3)) * 100}%`,
-                      }}
-                    />
-                  ) : (
-                    <LoadoutArt slot={slot} id={item.id} />
-                  )}
-                  {locked && (
-                    <span className="item-lock">
-                      <LockKeyhole /> Chapter {item.chapter}
-                    </span>
-                  )}
-                </div>
-                <span className="item-role">
-                  {slot === "companion"
-                    ? COMPANIONS[index]!.role
-                    : slot === "pet"
-                      ? PETS[index]!.kind
-                      : slot === "weapon"
-                        ? ["Balanced blade", "Heavy blade", "Piercing reach"][index]
-                        : slot === "armor"
-                          ? ["Balanced protection", "Heavy protection", "Evasive protection"][index]
-                          : ["Front-line sweep", "Rear-line strike", "Company defense"][index]}
-                </span>
-                <CardTitle>{item.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="item-facts">
-                  {(() => {
-                    const preview = {
-                      ...state,
-                      meta: { ...state.meta, loadout: { ...state.meta.loadout, [slot]: item.id } },
-                    };
-                    const attributes = heroStats(preview);
-                    const facts =
-                      slot === "weapon"
-                        ? [
-                            `${attributes.damage.toFixed(1)} damage`,
-                            `${(1 / attributes.interval).toFixed(2)} hits / sec`,
-                          ]
-                        : slot === "armor"
-                          ? [`${attributes.hp} health`, `${attributes.armor} armor`]
-                          : slot === "companion"
-                            ? [
-                                `${Number(attributes.companionDamage.toFixed(1))} damage`,
-                                `${attributes.companionInterval}s attack`,
+                    {locked && (
+                      <span className="item-lock">
+                        <LockKeyhole /> Chapter {item.chapter}
+                      </span>
+                    )}
+                  </div>
+                  <span className="item-role">
+                    {slot === "companion"
+                      ? COMPANIONS[index]!.role
+                      : slot === "pet"
+                        ? PETS[index]!.kind
+                        : slot === "weapon"
+                          ? ["Balanced blade", "Heavy blade", "Piercing reach"][index]
+                          : slot === "armor"
+                            ? ["Balanced protection", "Heavy protection", "Evasive protection"][
+                                index
                               ]
-                            : slot === "pet"
+                            : ["Front-line sweep", "Rear-line strike", "Company defense"][index]}
+                  </span>
+                  <CardTitle>{item.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="item-facts">
+                    {(() => {
+                      const preview = {
+                        ...state,
+                        meta: {
+                          ...state.meta,
+                          loadout: { ...state.meta.loadout, [slot]: item.id },
+                        },
+                      };
+                      const attributes = heroStats(preview);
+                      const facts =
+                        slot === "weapon"
+                          ? [
+                              `${attributes.damage.toFixed(1)} damage`,
+                              `${(1 / attributes.interval).toFixed(2)} hits / sec`,
+                            ]
+                          : slot === "armor"
+                            ? [`${attributes.hp} health`, `${attributes.armor} armor`]
+                            : slot === "companion"
                               ? [
-                                  `${Number(attributes.petDamage.toFixed(1))} damage`,
-                                  `${attributes.petInterval}s attack`,
+                                  `${Number(attributes.companionDamage.toFixed(1))} damage`,
+                                  `${attributes.companionInterval}s attack`,
                                 ]
-                              : [
-                                  `${effectiveSkillCooldown(state, SKILLS[index]!.id).toFixed(1)}s cooldown`,
-                                  "Q · active",
-                                ];
-                    return facts.map((fact) => <span key={fact}>{fact}</span>);
-                  })()}
-                </div>
-                <p>{item.description}</p>
-                <span className="item-power">
-                  Build power{" "}
-                  <b>
-                    {companyPower({
-                      ...state,
-                      meta: { ...state.meta, loadout: { ...state.meta.loadout, [slot]: item.id } },
-                    }).total.toLocaleString()}
-                  </b>
-                </span>
-                <Button
-                  variant={selected ? "secondary" : "outline"}
-                  data-equip={`${slot}:${item.id}`}
-                  disabled={locked || selected || !inCamp}
-                  onClick={() => a.equip(slot, item.id)}
-                >
-                  {selected
-                    ? "Equipped"
-                    : locked
-                      ? `Unlock in chapter ${item.chapter}`
-                      : !inCamp
-                        ? "Change at camp"
-                        : "Equip"}
-                </Button>
-              </CardContent>
-            </Card>
-          );
-        })}
+                              : slot === "pet"
+                                ? [
+                                    `${Number(attributes.petDamage.toFixed(1))} damage`,
+                                    `${attributes.petInterval}s attack`,
+                                  ]
+                                : [
+                                    `${effectiveSkillCooldown(state, SKILLS[index]!.id).toFixed(1)}s cooldown`,
+                                    "Q · active",
+                                  ];
+                      return facts.map((fact) => <span key={fact}>{fact}</span>);
+                    })()}
+                  </div>
+                  <p>{item.description}</p>
+                  <span className="item-power">
+                    Build power{" "}
+                    <b>
+                      {companyPower({
+                        ...state,
+                        meta: {
+                          ...state.meta,
+                          loadout: { ...state.meta.loadout, [slot]: item.id },
+                        },
+                      }).total.toLocaleString()}
+                    </b>
+                  </span>
+                  <Button
+                    variant={selected ? "secondary" : "outline"}
+                    data-equip={`${slot}:${item.id}`}
+                    disabled={locked || selected || !inCamp}
+                    onClick={() => a.equip(slot, item.id)}
+                  >
+                    {selected
+                      ? "Equipped"
+                      : locked
+                        ? `Unlock in chapter ${item.chapter}`
+                        : !inCamp
+                          ? "Change at camp"
+                          : "Equip"}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -934,9 +974,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             />
           </div>
           {dashboard && (
-            <section className="chapter-hub" aria-label="Chapter selection">
+            <section className="chapter-hub living-camp" aria-label="Chapter selection">
+              <img
+                className="camp-world"
+                src={campWorld}
+                alt="A woodland camp with a glowing forge, company tent, training ground and a path through the old gate"
+              />
+              <div className="camp-shade" aria-hidden="true" />
               <Button
-                className="bounty-banner"
+                className="camp-renown"
                 variant="ghost"
                 aria-label="Missions and quests"
                 onClick={() => {
@@ -947,162 +993,124 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <GameIcon kind="quests" />
                 <span>
                   <strong>COMPANY LEVEL {level.level}</strong>
-                  <small>
-                    {upcoming
-                      ? `${upcoming.title} · ${upcoming.description}`
-                      : "A seasoned company. The road still calls."}
-                  </small>
-                  <span className="bounty-track">
-                    <NativeProgress
-                      max={level.needed ?? 1}
-                      value={level.needed === null ? 1 : level.current}
-                      aria-label="Company renown"
-                    />
-                    <b>
-                      {level.needed === null
-                        ? "MASTERED"
-                        : `${level.current} / ${level.needed} RENOWN`}
-                    </b>
-                  </span>
+                  <small>{upcoming ? upcoming.title : "A seasoned company"}</small>
+                  <NativeProgress
+                    max={level.needed ?? 1}
+                    value={level.needed === null ? 1 : level.current}
+                    aria-label="Company renown"
+                  />
                 </span>
-                <span className="bounty-reward">
-                  <GameIcon kind="skills" />
-                  <b>{level.level}</b>
-                </span>
+                <b>{level.needed === null ? "MAX" : `${level.current}/${level.needed}`}</b>
               </Button>
-              <aside className="hub-rail rail-left" aria-label="Build your company">
+              <nav className="game-dock camp-locations" aria-label="Camp sections">
+                <Button
+                  className="camp-sign sign-forge"
+                  variant="ghost"
+                  aria-label="Equipment"
+                  onClick={() => go("Equipment")}
+                >
+                  <GameIcon kind="forge" />
+                  <span>
+                    Forge<small>Gear & upgrades</small>
+                  </span>
+                </Button>
                 {companyReady && (
-                  <Button variant="ghost" onClick={() => go("Companions")}>
+                  <Button
+                    className="camp-sign sign-company"
+                    aria-label="Company"
+                    variant="ghost"
+                    onClick={() => go("Companions")}
+                  >
                     <GameIcon kind="company" />
-                    <span>Company</span>
+                    <span>
+                      Company<small>{company.name}</small>
+                    </span>
                   </Button>
                 )}
                 {petsReady && (
-                  <Button variant="ghost" onClick={() => go("Pets")}>
+                  <Button
+                    className="camp-sign sign-pets"
+                    aria-label="Pets"
+                    variant="ghost"
+                    onClick={() => go("Pets")}
+                  >
                     <GameIcon kind="pet" />
-                    <span>Pets</span>
+                    <span>
+                      Pets<small>{pet.name}</small>
+                    </span>
                   </Button>
                 )}
-                <Button variant="ghost" onClick={() => setDetail("stats")}>
-                  <GameIcon kind="battle" />
-                  <span>Stats</span>
-                </Button>
-              </aside>
-              <div className="chapter-center">
-                <div className="chapter-title">
-                  <span>CHAPTER {hubChapter}</span>
-                  <h1>{CHAPTERS[hubChapter - 1]!.name}</h1>
-                </div>
-                <div className={`chapter-island island-${hubChapter}`}>
-                  <div className="island-frame">
-                    {hubChapter === 1 ? (
-                      <img
-                        className="island-art"
-                        src={chapterIsland}
-                        alt="The Cinder March woodland watchtower"
-                      />
-                    ) : (
-                      <span
-                        className="island-art chapter-tile"
-                        role="img"
-                        aria-label={`${CHAPTERS[hubChapter - 1]!.name}, the next road for your company`}
-                        style={{
-                          backgroundPosition: `${((hubChapter - 2) % 2) * 100}% ${Math.floor((hubChapter - 2) / 2) * 100}%`,
-                        }}
-                      />
-                    )}
-                  </div>
-                  <span className="island-spark spark-one" />
-                  <span className="island-spark spark-two" />
-                  <span
-                    className="island-rook toon-actor"
-                    role="img"
-                    aria-label="Rook ready for the journey"
-                  />
-                  {companyReady && (
-                    <span
-                      className="island-companion toon-actor"
-                      style={{
-                        backgroundPosition: `0 ${{ mira: 0, bram: 100 / 3, sable: 200 / 3 }[state.meta.loadout.companion]}%`,
-                      }}
-                      role="img"
-                      aria-label={`${company.name} ready for the journey`}
-                    />
-                  )}
-                  {petsReady && (
-                    <span
-                      className="island-pet toon-actor"
-                      style={{
-                        backgroundPosition: `0 ${{ fox: 0, hound: 50, owl: 100 }[state.meta.loadout.pet]}%`,
-                      }}
-                      role="img"
-                      aria-label={`${pet.name} ready for the journey`}
-                    />
-                  )}
+                {skillReady && (
                   <Button
-                    className="chapter-prev chapter-arrow"
+                    className="camp-sign sign-skills"
+                    aria-label="Skills"
                     variant="ghost"
-                    aria-label="Previous chapter"
-                    disabled={!inCamp || hubChapter <= 1}
-                    onClick={() => setChapter(hubChapter - 1)}
+                    onClick={() => go("Skills")}
                   >
-                    ◀
+                    <GameIcon kind="skills" />
+                    <span>
+                      Skills<small>Train & prepare</small>
+                    </span>
                   </Button>
-                  <Button
-                    className="chapter-next chapter-arrow"
-                    variant="ghost"
-                    aria-label="Next chapter"
-                    disabled={!inCamp || hubChapter >= state.meta.unlockedChapter}
-                    onClick={() => setChapter(hubChapter + 1)}
-                  >
-                    ▶
-                  </Button>
-                </div>
-                <p className="chapter-goal">{journeyStory(hubChapter).goal}</p>
-                <div className="chapter-mini-actions">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      setMissionTab("discoveries");
-                      go("Journey");
-                    }}
-                  >
-                    <GameIcon kind="quests" />
-                    <span>Discoveries</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    data-open-adventures=""
-                    onClick={() => {
-                      a.refreshMissions();
-                      setAdventureOpen(true);
-                    }}
-                  >
-                    <GameIcon kind="rewards" />
-                    <span>Adventures</span>
-                  </Button>
-                </div>
-                {saveWarning}
+                )}
                 <Button
-                  id="start"
-                  className="start-adventure"
-                  disabled={!v.loaded}
-                  onClick={inCamp ? launch : () => setCampOpen(false)}
+                  className="camp-sign sign-discoveries"
+                  variant="ghost"
+                  aria-label="Discoveries"
+                  onClick={() => {
+                    setMissionTab("discoveries");
+                    go("Journey");
+                  }}
                 >
-                  {inCamp ? "START" : "RESUME"}
-                  <small>{inCamp ? "Begin the march" : "Resume journey"}</small>
+                  <GameIcon kind="discoveries" />
+                  <span>
+                    Discoveries<small>The valley remembers</small>
+                  </span>
                 </Button>
-                {!inCamp && (
-                  <Button
-                    className="retreat-from-hub"
-                    variant="ghost"
-                    onClick={() => setRetreat(true)}
-                  >
-                    Return to camp and change build
-                  </Button>
+              </nav>
+              <span className="camp-ember ember-one" aria-hidden="true" />
+              <span className="camp-ember ember-two" aria-hidden="true" />
+              <span className="camp-ember ember-three" aria-hidden="true" />
+              <div className="camp-company">
+                <span
+                  className="camp-rook toon-actor"
+                  role="img"
+                  aria-label="Rook ready for the journey"
+                />
+                {companyReady && (
+                  <span
+                    className="camp-companion toon-actor"
+                    role="img"
+                    aria-label={`${company.name} ready for the journey`}
+                    style={{
+                      backgroundPosition: `0 ${{ mira: 0, bram: 100 / 3, sable: 200 / 3 }[state.meta.loadout.companion]}%`,
+                    }}
+                  />
+                )}
+                {petsReady && (
+                  <span
+                    className="camp-pet toon-actor"
+                    role="img"
+                    aria-label={`${pet.name} ready for the journey`}
+                    style={{
+                      backgroundPosition: `0 ${{ fox: 0, hound: 50, owl: 100 }[state.meta.loadout.pet]}%`,
+                    }}
+                  />
                 )}
               </div>
-              <aside className="hub-rail rail-right" aria-label="Missions and rewards">
+              <aside className="camp-contracts" aria-label="Missions and rewards">
+                <Button
+                  variant="ghost"
+                  aria-label="Open story missions"
+                  onClick={() => {
+                    setMissionTab("story");
+                    go("Journey");
+                  }}
+                >
+                  <GameIcon kind="quests" />
+                  <span>Missions</span>
+                  {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
+                </Button>
                 {dailyReady && (
                   <Button
                     variant="ghost"
@@ -1133,17 +1141,70 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 )}
                 <Button
                   variant="ghost"
-                  aria-label="Open story missions"
+                  data-open-adventures=""
                   onClick={() => {
-                    setMissionTab("story");
-                    go("Journey");
+                    a.refreshMissions();
+                    setAdventureOpen(true);
                   }}
                 >
-                  <GameIcon kind="quests" />
-                  <span>Missions</span>
-                  {readyRewards > 0 && <b className="notification">{readyRewards}</b>}
+                  <GameIcon kind="rewards" />
+                  <span>Adventures</span>
                 </Button>
               </aside>
+              <div className="camp-departure">
+                <div className="camp-destination">
+                  <Button
+                    className="camp-arrow"
+                    variant="ghost"
+                    aria-label="Previous chapter"
+                    disabled={!inCamp || hubChapter <= 1}
+                    onClick={() => setChapter(hubChapter - 1)}
+                  >
+                    ◀
+                  </Button>
+                  <span>
+                    <small>
+                      CHAPTER {hubChapter} · {state.meta.unlockedChapter} OF {CHAPTERS.length} OPEN
+                    </small>
+                    <strong>{CHAPTERS[hubChapter - 1]!.name}</strong>
+                  </span>
+                  <Button
+                    className="camp-arrow"
+                    variant="ghost"
+                    aria-label="Next chapter"
+                    disabled={!inCamp || hubChapter >= state.meta.unlockedChapter}
+                    onClick={() => setChapter(hubChapter + 1)}
+                  >
+                    ▶
+                  </Button>
+                </div>
+                <p className="chapter-goal">{journeyStory(hubChapter).goal}</p>
+                {saveWarning}
+                <Button
+                  id="start"
+                  className="camp-start"
+                  disabled={!v.loaded}
+                  onClick={inCamp ? launch : () => setCampOpen(false)}
+                >
+                  <GameIcon kind="battle" />
+                  <span>
+                    {inCamp ? "SET OUT" : "RESUME JOURNEY"}
+                    <small>
+                      {inCamp ? "Leave camp. Carry the light." : "Your company is waiting."}
+                    </small>
+                  </span>
+                  <ArrowRight />
+                </Button>
+                {!inCamp && (
+                  <Button
+                    className="retreat-from-hub"
+                    variant="ghost"
+                    onClick={() => setRetreat(true)}
+                  >
+                    Return to camp and change build
+                  </Button>
+                )}
+              </div>
             </section>
           )}
           {!dashboard && (
@@ -1376,33 +1437,6 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </main>
       </div>
       {!showPrologue && <PowerBelt state={state} />}
-      {dashboard && (
-        <nav className="game-dock" aria-label="Camp sections">
-          {(
-            [
-              ["Equipment", "equipment", "Equipment"],
-              ["Companions", "company", "Company"],
-              ["Camp", "battle", "Battle"],
-              ["Skills", "skills", "Skills"],
-              ["Pets", "pet", "Pets"],
-            ] as const
-          )
-            .filter(([name]) => name !== "Companions" || companyReady)
-            .filter(([name]) => name !== "Skills" || skillReady)
-            .filter(([name]) => name !== "Pets" || petsReady)
-            .map(([name, icon, label]) => (
-              <Button
-                key={name}
-                variant="ghost"
-                aria-current={section === name ? "page" : undefined}
-                onClick={() => go(name)}
-              >
-                <GameIcon kind={icon} />
-                <span>{label}</span>
-              </Button>
-            ))}
-        </nav>
-      )}
       <Modal
         open={dashboard && section !== "Camp"}
         title={
@@ -1429,77 +1463,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         )}
         {section !== "Camp" && saveWarning}
-        {!(section === "Journey" && missionTab === "discoveries") && (
-          <>
-            <div className="collection-banner">
-              <GameIcon
-                kind={
-                  section === "Journey"
-                    ? missionTab === "daily"
-                      ? "daily"
-                      : missionTab === "weekly"
-                        ? "weekly"
-                        : "quests"
-                    : section === "Equipment"
-                      ? "equipment"
-                      : section === "Companions"
-                        ? "company"
-                        : section === "Skills"
-                          ? "skills"
-                          : "pet"
-                }
-              />
-              <div>
-                <span className="sheet-kicker">
-                  {section === "Journey" ? "THE WAYFARER’S JOURNAL" : "PREPARE FOR THE ROAD"}
-                </span>
-                <h3>
-                  {section === "Equipment"
-                    ? "Every adventure starts at the forge."
-                    : section === "Companions"
-                      ? "No one walks this road alone."
-                      : section === "Pets"
-                        ? "Small paws. Brave hearts."
-                        : section === "Skills"
-                          ? "Give your next battle an edge."
-                          : missionTab === "discoveries"
-                            ? "The road has more to give."
-                            : "A little further. A little stronger."}
-                </h3>
-                <p>
-                  {section === "Equipment"
-                    ? `${weapon.name} · ${armor.name}`
-                    : section === "Companions"
-                      ? `${company.name}, your ${company.role.toLowerCase()}, is ready.`
-                      : section === "Pets"
-                        ? `${pet.name} is by your side.`
-                        : section === "Skills"
-                          ? `${skill.name} equipped · ${effectiveSkillCooldown(state).toFixed(1)}s cooldown`
-                          : missionTab === "discoveries"
-                            ? `${journalDiscoveries(state).filter((d) => d.found).length} discoveries found · a valley worth restoring`
-                            : `${missions[missionTab].filter((q) => q.claimed).length} / ${missions[missionTab].length} rewards collected · ${missions[missionTab].filter((q) => q.ready).length} ready to claim`}
-                </p>
-              </div>
-              {section !== "Journey" && (
-                <span className="collection-power">
-                  <GameIcon kind="battle" />
-                  <b>{power.total.toLocaleString()}</b>
-                  <small>COMPANY POWER</small>
-                </span>
-              )}
-            </div>
-          </>
-        )}
         {dashboard && section === "Companions" && (
           <>
-            <Training state={state} id="companion" actions={a} />
             {selection("companion", COMPANIONS)}
+            <Training state={state} id="companion" actions={a} />
           </>
         )}
         {dashboard && section === "Pets" && (
           <>
-            <Training state={state} id="pet" actions={a} />
             {selection("pet", PETS)}
+            <Training state={state} id="pet" actions={a} />
           </>
         )}
         {dashboard && section === "Skills" && (
@@ -1508,8 +1481,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               Equip one active skill. Press Q or tap its button during combat. Your oaths add
               passive powers on each journey.
             </p>
-            <Training state={state} id="skill" actions={a} />
             {selection("skill", SKILLS)}
+            <Training state={state} id="skill" actions={a} />
             <Card className="oath-card">
               <CardHeader>
                 <CardTitle>Current powers</CardTitle>

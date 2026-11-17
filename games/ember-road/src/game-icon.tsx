@@ -1,4 +1,6 @@
 export type GameIconKind =
+  | "forge"
+  | "discoveries"
   | "battle"
   | "equipment"
   | "company"
@@ -20,6 +22,33 @@ export function GameIcon({ kind }: { kind: GameIconKind }) {
       aria-hidden="true"
     >
       <g stroke="#171a24" strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
+        {kind === "forge" && (
+          <>
+            <path d="M13 28h66l-4 20-18 9v12l18 6v11H27V75l15-6V54L22 47 8 33Z" fill="#92a4b4" />
+            <path d="M12 28h68l10-12H50v12Z" fill="#dce7ec" />
+            <path d="M42 56h15v13H42Z" fill="#63768c" strokeWidth="3" />
+            <path d="M28 76h46v10H28Z" fill="#d0dae1" strokeWidth="3" />
+            <path d="m22 17-7-9m16 6 2-10m10 12 8-8" stroke="#ffcb51" strokeWidth="4" />
+          </>
+        )}
+        {kind === "discoveries" && (
+          <>
+            <path d="M9 23q20-9 41 1 21-10 41-1v62q-20-9-41 1-21-10-41-1Z" fill="#c76a35" />
+            <path d="M16 16q18-7 34 4 16-11 34-4v61q-17-6-34 5-17-11-34-5Z" fill="#ecbd67" />
+            <path
+              d="M50 20v62M24 30q8-3 18 2m-18 10q8-3 18 2m-18 10q8-3 18 2"
+              stroke="#8f5a30"
+              strokeWidth="3"
+            />
+            <path
+              d="m62 33 11 9-12 16 12 8"
+              stroke="#97613c"
+              strokeWidth="3"
+              strokeDasharray="4 5"
+            />
+            <path d="m67 59 12 12m0-12L67 71" stroke="#b14435" strokeWidth="5" />
+          </>
+        )}
         {kind === "battle" && (
           <>
             <path d="m19 12 19 4 42 56-15 12-44-54Z" fill="#b9c8dc" />

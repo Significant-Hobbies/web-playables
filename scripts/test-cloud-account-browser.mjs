@@ -158,10 +158,21 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     const guest = await page.evaluate(() => JSON.parse(window.playablesCloud.exportLocal().data));
     await account.click();
     await page.getByRole("dialog", { name: "Keep your journey safe.", exact: true }).waitFor();
-    const still = await page.locator("#world").screenshot();
-    await page.waitForTimeout(300);
+    const still = await page.locator("#world").evaluate((canvas) => canvas.toDataURL());
     assert(
-      still.equals(await page.locator("#world").screenshot()),
+      await page
+        .locator(".camp-ember")
+        .evaluateAll(
+          (embers) =>
+            embers.length > 0 &&
+            embers.every((ember) => getComputedStyle(ember).animationPlayState === "paused"),
+        ),
+      "Account panel freezes the illustrated camp motion",
+    );
+    await page.waitForTimeout(300);
+    assert.equal(
+      await page.locator("#world").evaluate((canvas) => canvas.toDataURL()),
+      still,
       "Account panel pauses the actual canvas",
     );
     await page.getByRole("button", { name: "Close account", exact: true }).click();

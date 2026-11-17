@@ -23,6 +23,28 @@ export function DiscoveryJournal({
     discoveries[0]!;
   return (
     <section className="discovery-journal" aria-label="Discoveries of the old road">
+      <section className="valley-beacons" aria-label="Lights restored in the valley">
+        <div>
+          <span className="sheet-kicker">THE VALLEY REMEMBERS</span>
+          <p>Every chapter you complete brings another light home.</p>
+        </div>
+        <ol>
+          {CHAPTERS.map((chapter, index) => {
+            const lit = state.quests.story.completed.includes(index + 1);
+            return (
+              <li
+                key={chapter.name}
+                className={lit ? "is-lit" : ""}
+                title={lit ? journeyStory(index + 1).outcome : journeyStory(index + 1).goal}
+              >
+                <Flame aria-hidden="true" />
+                <span>{chapter.name}</span>
+                <small>{lit ? "Light restored" : `Chapter ${index + 1}`}</small>
+              </li>
+            );
+          })}
+        </ol>
+      </section>
       <nav className="discovery-tabs" aria-label="Discovery trails">
         {discoveries.map((discovery) => (
           <Button
@@ -103,28 +125,6 @@ export function DiscoveryJournal({
           )}
         </div>
       </article>
-      <section className="valley-beacons" aria-label="Lights restored in the valley">
-        <div>
-          <span className="sheet-kicker">THE VALLEY REMEMBERS</span>
-          <p>Every chapter you complete brings another light home.</p>
-        </div>
-        <ol>
-          {CHAPTERS.map((chapter, index) => {
-            const lit = state.quests.story.completed.includes(index + 1);
-            return (
-              <li
-                key={chapter.name}
-                className={lit ? "is-lit" : ""}
-                title={lit ? journeyStory(index + 1).outcome : journeyStory(index + 1).goal}
-              >
-                <Flame aria-hidden="true" />
-                <span>{chapter.name}</span>
-                <small>{lit ? "Light restored" : `Chapter ${index + 1}`}</small>
-              </li>
-            );
-          })}
-        </ol>
-      </section>
       <p className="discovery-promise">
         These trails never expire. Explore at your own pace; your discoveries stay with you.
       </p>

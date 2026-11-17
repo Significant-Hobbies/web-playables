@@ -624,7 +624,7 @@
   color: #6a4928;
   line-height: 1;
 }
-.game-dock {
+.game-dock:not(.camp-locations) {
   display: flex;
   justify-content: center;
   gap: 5px;
@@ -635,7 +635,7 @@
   border-top: 5px solid #171b22;
   z-index: 5;
 }
-.toon-shell .game-dock > button {
+.toon-shell .game-dock:not(.camp-locations) > button {
   flex: 1;
   max-width: 210px;
   height: 94px;
@@ -652,18 +652,18 @@
   font-size: 13px;
   position: relative;
 }
-.game-dock .game-icon {
+.game-dock:not(.camp-locations) .game-icon {
   width: 64px;
   height: 64px;
   transition: transform 0.12s;
 }
-.game-dock span {
+.game-dock:not(.camp-locations) span {
   line-height: 1;
   font-weight: 900;
   -webkit-text-stroke: 2px #171b24;
   paint-order: stroke fill;
 }
-.toon-shell .game-dock > button[aria-current="page"] {
+.toon-shell .game-dock:not(.camp-locations) > button[aria-current="page"] {
   background: #555759;
   box-shadow: inset 0 5px #e9bf62;
   transform: translateY(-6px);
@@ -671,7 +671,7 @@
   border-top: 3px solid #171b22;
   border-radius: 12px 12px 0 0;
 }
-.game-dock > button[aria-current="page"] > .game-icon {
+.game-dock:not(.camp-locations) > button[aria-current="page"] > .game-icon {
   width: 70px;
   height: 70px;
   margin-top: -5px;
@@ -1191,21 +1191,21 @@
     font-size: 30px;
     width: 300px;
   }
-  .game-dock {
+  .game-dock:not(.camp-locations) {
     height: 87px;
     flex-basis: 87px;
   }
-  .toon-shell .game-dock > button {
+  .toon-shell .game-dock:not(.camp-locations) > button {
     height: 82px;
   }
-  .game-dock .game-icon {
+  .game-dock:not(.camp-locations) .game-icon {
     height: 54px;
     width: 54px;
   }
-  .toon-shell .game-dock > button[aria-current="page"] {
+  .toon-shell .game-dock:not(.camp-locations) > button[aria-current="page"] {
     height: 88px;
   }
-  .game-dock > button[aria-current="page"] > .game-icon {
+  .game-dock:not(.camp-locations) > button[aria-current="page"] > .game-icon {
     height: 60px;
     width: 60px;
   }
@@ -1527,14 +1527,14 @@
   .start-adventure small {
     font-size: 8px;
   }
-  .game-dock {
+  .game-dock:not(.camp-locations) {
     height: 82px;
     flex-basis: 82px;
     padding: 0 3px;
     gap: 2px;
     border-top-width: 4px;
   }
-  .toon-shell .game-dock > button {
+  .toon-shell .game-dock:not(.camp-locations) > button {
     height: 78px;
     max-width: initial;
     padding: 2px 3px 6px;
@@ -1542,20 +1542,20 @@
     border-width: 2px;
     box-shadow: inset 0 4px #53565b;
   }
-  .game-dock .game-icon {
+  .game-dock:not(.camp-locations) .game-icon {
     width: 48px;
     height: 48px;
   }
-  .game-dock span {
+  .game-dock:not(.camp-locations) span {
     -webkit-text-stroke: 1.5px #171b24;
   }
-  .toon-shell .game-dock > button[aria-current="page"] {
+  .toon-shell .game-dock:not(.camp-locations) > button[aria-current="page"] {
     height: 85px;
     transform: translateY(-7px);
     border-top-width: 3px;
     border-radius: 9px 9px 0 0;
   }
-  .game-dock > button[aria-current="page"] > .game-icon {
+  .game-dock:not(.camp-locations) > button[aria-current="page"] > .game-icon {
     height: 54px;
     width: 54px;
     margin-top: -2px;
@@ -1799,26 +1799,26 @@
     height: 32px;
     width: 32px;
   }
-  .game-dock {
+  .game-dock:not(.camp-locations) {
     height: 58px;
     flex-basis: 58px;
   }
-  .toon-shell .game-dock > button {
+  .toon-shell .game-dock:not(.camp-locations) > button {
     height: 53px;
     font-size: 9px;
     flex-direction: row;
     justify-content: center;
     gap: 7px;
   }
-  .game-dock .game-icon {
+  .game-dock:not(.camp-locations) .game-icon {
     height: 36px;
     width: 36px;
   }
-  .toon-shell .game-dock > button[aria-current="page"] {
+  .toon-shell .game-dock:not(.camp-locations) > button[aria-current="page"] {
     height: 59px;
     transform: translateY(-6px);
   }
-  .game-dock > button[aria-current="page"] > .game-icon {
+  .game-dock:not(.camp-locations) > button[aria-current="page"] > .game-icon {
     height: 40px;
     width: 40px;
   }

@@ -377,8 +377,8 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     await ready(page);
     await page.waitForFunction(
       () =>
-        document.querySelector(".island-art")?.complete &&
-        document.querySelector(".island-art").naturalWidth > 0,
+        document.querySelector(".camp-world")?.complete &&
+        document.querySelector(".camp-world").naturalWidth > 0,
     );
     await assertCampActors(page);
     assert.equal(
