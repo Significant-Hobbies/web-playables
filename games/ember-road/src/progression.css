@@ -461,9 +461,6 @@
     padding: 4px 9px;
     margin-block: 3px;
   }
-  .chapter-center {
-    padding-top: 0;
-  }
 }
 @media (max-width: 760px) {
   .currency {
@@ -522,9 +519,6 @@
 .toon-shell.is-dashboard .main-content > .powers-belt {
   position: relative;
   inset: auto;
-}
-.toon-shell .chapter-center {
-  bottom: 8px;
 }
 @media (max-width: 760px) {
   .toon-shell > .powers-belt {

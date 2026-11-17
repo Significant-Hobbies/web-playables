@@ -690,7 +690,7 @@
   }
   .sign-discoveries {
     right: 12px;
-    top: 66%;
+    top: 60%;
   }
   .camp-company .camp-rook {
     left: 29%;
@@ -757,10 +757,6 @@
     margin: 4px 0 8px;
     font-size: 11px;
   }
-}
-
-.living-camp::before {
-  display: none;
 }
 
 .toon-shell .decision--choice .choice-card {
@@ -883,4 +879,112 @@
   box-shadow: none;
   padding: 0;
   height: auto;
+}
+
+@media (max-height: 500px) and (min-width: 601px) {
+  .toon-shell .camp-renown {
+    height: 58px;
+    padding: 6px 10px;
+  }
+  .camp-renown small {
+    font-size: 10px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-width: 126px;
+    min-height: 44px;
+    padding: 6px 12px;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 17px;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 27px;
+    height: 27px;
+  }
+  .camp-sign small {
+    font-size: 8px;
+  }
+  .sign-forge {
+    left: 12px;
+    top: 87px;
+  }
+  .sign-company {
+    left: 166px;
+    top: 87px;
+  }
+  .sign-skills {
+    right: 12px;
+    top: 87px;
+  }
+  .sign-pets {
+    left: 12px;
+    top: auto;
+    bottom: 14px;
+  }
+  .sign-discoveries {
+    right: 12px;
+    top: auto;
+    bottom: 14px;
+  }
+  .camp-departure {
+    width: 40%;
+    bottom: 13px;
+  }
+  .camp-departure .chapter-goal {
+    display: none;
+  }
+  .camp-destination {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .camp-destination strong {
+    font-size: 18px;
+  }
+  .camp-destination small {
+    font-size: 8px;
+  }
+  .toon-shell .camp-destination .camp-arrow {
+    width: 27px;
+    height: 27px;
+    min-width: 27px;
+    font-size: 12px;
+    padding: 4px;
+  }
+  .toon-shell .living-camp #start {
+    min-height: 45px;
+    height: 45px;
+    padding: 5px 12px;
+    border-width: 3px;
+    gap: 8px;
+  }
+  .living-camp #start > span {
+    font-size: 21px;
+  }
+  .living-camp #start small {
+    font-size: 8px;
+  }
+  .living-camp #start > .game-icon {
+    width: 27px;
+    height: 27px;
+  }
+  .toon-shell .living-camp .retreat-from-hub {
+    height: auto;
+    min-height: 30px;
+    white-space: normal;
+    font-size: 10px;
+    padding: 4px 8px;
+    margin-top: 8px;
+  }
+  .camp-company .toon-actor {
+    bottom: 29%;
+  }
+}
+.toon-shell.is-road .tutorial-card {
+  background: #2a3038f2;
+  border-color: #b9ac89;
+}
+.toon-shell.is-road > .powers-belt,
+.toon-shell .decision--choice .powers-belt {
+  background: #1c2228;
+  border-color: #626d79;
 }

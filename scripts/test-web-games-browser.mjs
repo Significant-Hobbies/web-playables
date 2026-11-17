@@ -5,3 +5,4 @@ await import("./test-game-viewport.mjs");
 await import("./test-cloud-account-browser.mjs");
 await import("./test-ember-account-overlay.mjs");
 await import("./test-ember-discoveries-browser.mjs");
+await import("./test-ember-camp-browser.mjs");

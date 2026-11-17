@@ -552,6 +552,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       options,
       "Inspection preserves the exact offer",
     );
+    await page.waitForFunction(() => {
+      const dialog = document.querySelector(".decision--choice[open]");
+      return (
+        dialog &&
+        Number(getComputedStyle(dialog).opacity) === 1 &&
+        [...dialog.querySelectorAll(".choice-card")].every(
+          (card) => Number(getComputedStyle(card).opacity) === 1,
+        )
+      );
+    });
     await page.screenshot({ path: join(evidence, "choice-1440.png") });
     await page.evaluate(() => {
       window.__closedChoiceFrames = [];
