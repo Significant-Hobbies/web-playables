@@ -243,7 +243,7 @@ function finish(state, build, policy, now, validate = true) {
     const events = [];
     if (policy !== "skip" && state.phase.kind === "battle") {
       const threats = state.phase.enemies.filter((enemy) => enemy.hp > 0 && enemy.pendingHit);
-      if (policy === "immediate" || threats.some((enemy) => enemy.pendingHit.remaining < 0.2))
+      if (policy === "immediate" || threats.some((enemy) => enemy.pendingHit.remaining < 0.55))
         events.push(...M.issueCommand(state, "brace"));
       if (
         policy === "immediate" ||
@@ -286,7 +286,7 @@ if (progression === "fresh") {
     assert(M.validState(state));
     checkpoints.push(clone(state));
     assert(M.startRun(state, chapter));
-    const result = finish(state, builds.balanced, "immediate", fixedDay * A.DAY_MS);
+    const result = finish(state, builds.balanced, "tactical", fixedDay * A.DAY_MS);
     assert(result.win, `Earned progression must reach chapter ${chapter + 1}`);
     earningTrail.push({
       chapter,

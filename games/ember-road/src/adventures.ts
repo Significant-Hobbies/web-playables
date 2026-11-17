@@ -267,6 +267,7 @@ export function validRunContext(state: GameState): boolean {
         .every((at) => c.routes.some((r) => r.at === at)) &&
       (state.phase.kind === "camp" ||
         state.phase.kind === "defeat" ||
+        state.phase.kind === "choice" ||
         state.phase.kind === "route" ||
         nextJunction(state) === undefined)
     );

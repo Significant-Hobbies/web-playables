@@ -95,6 +95,29 @@ describe("adventure routes and discoveries", () => {
     expect(state.run.chapter).toBe(2);
     expect(state.run.context).toMatchObject({ kind: "campaign", routes: [] });
   });
+  it("reloads the chapter-two oath before continuing to the rescue fork", () => {
+    const state = initialState(927113);
+    state.meta.unlockedChapter = 2;
+    state.quests.story.completed = [1];
+    expect(startRun(state, 2)).toBe(true);
+    for (let frame = 0; frame < 1200 && state.phase.kind !== "choice"; frame++) {
+      answerThreats(state);
+      stepGame(state, 1 / 30);
+    }
+    expect(state.run.cleared).toBe(3);
+    expect(state.phase.kind).toBe("choice");
+    const restored: GameState = JSON.parse(JSON.stringify(state));
+    expect(validState(restored)).toBe(true);
+    expect(restored.adventures!.discoveries.mira).toBe(false);
+    expect(chooseRoute(restored, "rescue")).toBe(false);
+    if (restored.phase.kind !== "choice") throw new Error("Expected the saved oath");
+    expect(choosePerk(restored, restored.phase.options[0]!)).toBe(true);
+    expect(restored.phase).toEqual({ kind: "route", at: 3 });
+    expect(validState(restored)).toBe(true);
+    expect(chooseRoute(restored, "rescue")).toBe(true);
+    expect(restored.adventures!.discoveries.mira).toBe(true);
+    expect(validState(restored)).toBe(true);
+  });
   it("gives spring, elite and discovery trails distinct outcomes without repeating a saved choice", () => {
     const initial = initialState();
     delete initial.run.rules;
