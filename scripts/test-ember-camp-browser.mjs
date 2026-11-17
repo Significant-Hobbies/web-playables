@@ -17,9 +17,9 @@ test("Living Camp locations remain reachable before departure and during a journ
   const { chromium } = require("@playwright/test");
   const evidence = process.env.EMBER_CAMP_EVIDENCE_DIR || join(tmpdir(), "ember-camp-evidence");
   await mkdir(evidence, { recursive: true });
-  const server = createSiteServer(join(root, "games/ember-road/dist/web"));
+  const server = createSiteServer(join(root, "apps/hub/dist"));
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
-  const origin = `http://127.0.0.1:${server.address().port}`;
+  const origin = `http://127.0.0.1:${server.address().port}/play/ember-road/`;
   const browser = await chromium.launch({
     headless: true,
     executablePath:
@@ -52,6 +52,17 @@ test("Living Camp locations remain reachable before departure and during a journ
         },
         JSON.stringify({ version: 5, savedAt: Date.now(), state }),
       );
+      await context.route("https://historia.aliveville.com/**", (route) =>
+        route.fulfill({
+          status: 401,
+          contentType: "application/json",
+          headers: {
+            "Access-Control-Allow-Origin": new URL(origin).origin,
+            "Access-Control-Allow-Credentials": "true",
+          },
+          body: "{}",
+        }),
+      );
       const page = await context.newPage();
       await page.goto(origin);
       if (midRun) await page.getByRole("button", { name: "Camp", exact: true }).click();
@@ -75,6 +86,19 @@ test("Living Camp locations remain reachable before departure and during a journ
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
           );
         });
+        const account = await page
+          .getByRole("button", { name: "Account and saves", exact: true })
+          .boundingBox();
+        const header = await page.locator(".game-topbar").boundingBox();
+        assert(
+          account &&
+            header &&
+            account.x >= header.x &&
+            account.y >= header.y &&
+            account.x + account.width <= header.x + header.width &&
+            account.y + account.height <= header.y + header.height,
+          `Account stays in the header at ${width}x${height}`,
+        );
         const covered = await page
           .locator(
             ".camp-sign, .camp-contracts button, .camp-renown, #start, .retreat-from-hub, .camp-arrow:not(:disabled)",
