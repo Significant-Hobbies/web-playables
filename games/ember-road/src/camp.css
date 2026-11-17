@@ -1127,3 +1127,12 @@
     bottom: 22%;
   }
 }
+
+@media (max-width: 650px) {
+  .toon-shell .header-actions [data-playables-account-slot] {
+    position: static;
+    transform: none;
+    max-width: none;
+    flex: none;
+  }
+}
