@@ -143,9 +143,9 @@ describe("bounded build reactions", () => {
     const state: GameState = setup();
     state.run.shield = 10;
     state.run.shieldCast = { absorbed: 5, attack: heroStats(state).damage };
-    state.run.cleared = 3;
+    state.run.cleared = 6;
     state.run.context = { kind: "campaign", routes: [], junctionFloor: 0 };
-    state.phase = { kind: "route", at: 3 };
+    state.phase = { kind: "route", at: 6 };
     expect(validState(state)).toBe(true);
     state.run.cleared = 2;
     state.phase = { kind: "choice", options: ["edge", "tempo", "heart"], rerolls: 1 };
