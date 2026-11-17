@@ -217,6 +217,154 @@ describe("Ember March", () => {
     expect(final.meta.gold).toBe(90);
   });
 
+  it("persists camp selection while accepting existing v7 ledgers without a preference", () => {
+    const state = M.initialState(7);
+    expect(M.validV7State(clone(state))).toBe(true);
+    expect(state.meta.emberMarch!.selected).toBeUndefined();
+    expect(M.selectMarchCamp(state, true)).toBe(true);
+    expect(clone(state).meta.emberMarch!.selected).toBe(true);
+    expect(M.selectMarchCamp(state, false)).toBe(true);
+    expect(M.startEmberMarch(state)).toBe(true);
+    expect(state.meta.emberMarch!.selected).toBe(true);
+    expect(M.selectMarchCamp(state, false)).toBe(false);
+    delete state.meta.emberMarch!.selected;
+    expect(M.validV7State(clone(state))).toBe(true);
+    expect(M.retreatToCamp(state)).toBe(true);
+    expect(state.meta.emberMarch!.selected).toBe(true);
+    expect(M.validV7State(clone(state))).toBe(true);
+    expect(M.selectMarchCamp(state, false)).toBe(true);
+    expect(clone(state).meta.emberMarch!.selected).toBe(false);
+    expect(M.startEmberMarch(state)).toBe(true);
+    advance(state, done, ["blood", "heart", "bastion", "edge", "tempo"]);
+    expect(state.phase.kind).toBe("victory");
+    expect(state.meta.emberMarch).toEqual({ cleared: true, selected: true });
+    delete state.meta.emberMarch!.selected;
+    expect(M.validV7State(clone(state))).toBe(true);
+    expect(M.returnToCamp(state)).toBe(true);
+    expect(state.meta.emberMarch).toEqual({ cleared: true, selected: true });
+    expect(M.validV7State(clone(state))).toBe(true);
+    const invalid = clone(state);
+    Object.assign(invalid.meta.emberMarch!, { selected: "true" });
+    expect(M.validV7State(invalid)).toBe(false);
+  });
+
+  it("publishes saveable manual casts immediately, including kills and owed choices", () => {
+    const state = fresh(4);
+    state.adventures!.discoveries.whirlwind = true;
+    state.meta.upgrades.blade = 3;
+    const battle = M.visibleBattle(state)!;
+    expect(M.validV7State(clone(state))).toBe(true);
+    const events = castSkill(state);
+    expect(events.filter((e) => e.type === "kill")).toHaveLength(2);
+    expect(M.validV7State(clone(state))).toBe(true);
+    expect(battle.enemies).toEqual([]);
+
+    const owed = fresh(4),
+      c = context(owed),
+      pending = M.visibleBattle(owed)!;
+    owed.adventures!.discoveries.whirlwind = true;
+    c.nextSpawn = 6;
+    c.kills = 5;
+    c.earnedGold = 5;
+    owed.meta.gold = owed.meta.earnedGold = 5;
+    owed.run.xp = 5;
+    pending.enemies = [marchEnemy(5, 0)];
+    pending.enemies[0]!.hp = 1;
+    expect(M.validV7State(clone(owed))).toBe(true);
+    const cast = castSkill(owed);
+    expect(cast.filter((e) => e.type === "level")).toEqual([{ type: "level", level: 2 }]);
+    expect(owed.phase.kind).toBe("choice");
+    expect(M.validV7State(clone(owed))).toBe(true);
+    const saved = clone(owed);
+    expect(castSkill(owed)).toEqual([]);
+    expect(owed).toEqual(saved);
+  });
+
+  it("saves the tenth choice after a final four-kill strike and pays once after pick or skip", () => {
+    for (const replay of [false, true])
+      for (const action of ["pick", "skip"] as const) {
+        const state = fresh(),
+          c = context(state),
+          battle = M.visibleBattle(state)!;
+        state.meta.emberMarch!.cleared = replay;
+        c.nextSpawn = 54;
+        c.kills = c.earnedGold = 50;
+        c.gift = "taken";
+        state.meta.gold = state.meta.earnedGold = 50;
+        state.run.level = 10;
+        state.run.xp = 4;
+        state.run.strikes = 2;
+        state.run.perks = { cleave: 2, pierce: 2, chain: 1 };
+        battle.enemies = [46, 47, 52, 53].map((i, slot) => marchEnemy(i, (slot + 2) % 4));
+        for (const enemy of battle.enemies) enemy.hp = 1;
+        battle.heroHit = {
+          source: "hero",
+          remaining: 0.01,
+          damage: M.heroStats(state).damage,
+          critical: false,
+          target: "enemy-52",
+          projectile: false,
+        };
+        expect(M.validV7State(clone(state))).toBe(true);
+        const events = M.stepGame(state, 0.02);
+        expect(events.filter((e) => e.type === "kill")).toHaveLength(4);
+        expect(events.filter((e) => e.type === "level")).toEqual([{ type: "level", level: 11 }]);
+        expect(events.some((e) => e.type === "victory")).toBe(false);
+        expect(state.meta.gold).toBe(54);
+        expect(c.earnedGold).toBe(54);
+        const loaded = suspended(state);
+        expect(M.visibleBattle(loaded)!.enemies).toEqual([]);
+        if (loaded.phase.kind !== "choice") throw new Error("Expected final choice.");
+        const { offerId, options } = loaded.phase;
+        expect(
+          action === "pick"
+            ? M.choosePerk(loaded, options[0]!, offerId)
+            : M.skipPerk(loaded, offerId),
+        ).toBe(true);
+        expect(loaded.phase.kind).toBe("victory");
+        expect(loaded.meta.gold).toBe(replay ? 66 : 90);
+        expect(context(loaded).earnedGold).toBe(replay ? 66 : 90);
+        expect(M.validV7State(clone(loaded))).toBe(true);
+        const paid = clone(loaded);
+        expect(M.choosePerk(loaded, options[0]!, offerId)).toBe(false);
+        expect(M.skipPerk(loaded, offerId)).toBe(false);
+        expect(M.stepGame(loaded, 0.02)).toEqual([]);
+        expect(loaded).toEqual(paid);
+      }
+  });
+
+  it("publishes immutable spawn positions before same-tick damage, XP and death", () => {
+    for (const lethal of [false, true]) {
+      const state = fresh(),
+        c = context(state),
+        battle = M.visibleBattle(state)!;
+      c.nextSpawn = c.kills = c.earnedGold = 6;
+      c.spawnRemaining = 0;
+      state.meta.gold = state.meta.earnedGold = 6;
+      state.run.level = 2;
+      state.run.xp = 0;
+      state.meta.upgrades.blade = 5;
+      state.adventures!.discoveries.whirlwind = lethal;
+      battle.enemies = [];
+      battle.heroCooldown = 5;
+      expect(M.validV7State(clone(state))).toBe(true);
+      const events = M.stepGame(state, 0.02);
+      expect(events[0]).toEqual({ type: "spawn", enemy: marchEnemy(6, 2) });
+      if (lethal) {
+        expect(
+          events.filter((e) => ["hit", "xp", "kill"].includes(e.type)).map((e) => e.type),
+        ).toEqual(["hit", "xp", "kill"]);
+        expect(battle.enemies).toEqual([]);
+      } else {
+        const enemy = battle.enemies[0]!;
+        expect(enemy.cooldown).toBeLessThan(1.2);
+        enemy.hp--;
+        expect(events[0]).toEqual({ type: "spawn", enemy: marchEnemy(6, 2) });
+      }
+      expect(M.validV7State(clone(state))).toBe(true);
+    }
+  });
+
   it("never retargets a launched projectile to a reused formation slot", () => {
     const state = fresh();
     state.adventures!.discoveries.mira = true;
