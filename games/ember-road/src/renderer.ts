@@ -217,7 +217,10 @@ export class WorldRenderer {
 
   handle(events: GameEvent[], state: GameState) {
     for (const event of events) {
-      if (event.type === "command") {
+      if (event.type === "spawn") {
+        if (!this.foes.some((foe) => foe.id === event.enemy.id)) this.foes.push({ ...event.enemy });
+        this.motion(event.enemy.id).arrival = 0;
+      } else if (event.type === "command") {
         if (event.command === "breakthrough" || event.result === "perfect")
           Object.assign(this.motion("hero"), {
             attack: 0.22,
@@ -315,7 +318,7 @@ export class WorldRenderer {
       else if (event.type === "kill") {
         const foe = this.foes.find((foe) => foe.id === event.target);
         if (isEmberMarch(state) && foe && !this.fallen.some((dead) => dead.id === foe.id))
-          this.fallen.push({ ...foe });
+          this.fallen.push({ ...foe, hp: 0 });
         this.motion(event.target).death = 0.001;
         this.motion(event.target).attack = -1;
       } else if (event.type === "defeat") this.motion("hero").death = 0.001;
@@ -346,8 +349,7 @@ export class WorldRenderer {
       blade: weaponAppearance(state),
       time,
       distance: state.run.distance,
-      walking:
-        state.phase.kind === "travel" || (isEmberMarch(state) && state.phase.kind === "battle"),
+      walking: state.phase.kind === "travel" || (isEmberMarch(state) && !!visibleBattle(state)),
       chapter: state.run.chapter,
       beacons: state.run.cleared,
       upgrades: state.meta.upgrades,

@@ -1685,3 +1685,18 @@
     gap: 6px;
   }
 }
+
+.march-paused-sign {
+  flex-wrap: wrap;
+  max-width: calc(100vw - 28px);
+}
+.toon-shell .march-forge-dialog [data-march-retreat] {
+  width: 100%;
+  background: #374252;
+  color: #eff4ff;
+  border: 1px solid #8190a4;
+  border-radius: 6px;
+  box-shadow: 0 3px #151e2a;
+  font-size: 12px;
+  gap: 8px;
+}

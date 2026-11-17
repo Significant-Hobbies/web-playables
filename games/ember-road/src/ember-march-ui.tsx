@@ -22,7 +22,7 @@ import {
 import { type CSSProperties, useId } from "react";
 import { SunfangArt } from "./first-light-ui";
 import { GameIcon } from "./game-icon";
-import { heroAtlas } from "./hero-art";
+import { heroAtlas, sunfangEquipped } from "./hero-art";
 import { LoadoutArt } from "./loadout-art";
 import {
   type GameState,
@@ -79,7 +79,7 @@ const powerCopy: Record<PerkId, { trigger: string; effect: string }> = {
   },
 };
 
-function MarchPower({ state, id }: { state: GameState; id: PerkId }) {
+function MarchPower({ state, id, inspect }: { state: GameState; id: PerkId; inspect(): void }) {
   const label = useId();
   const p = PERKS.find((p) => p.id === id)!;
   return (
@@ -89,6 +89,7 @@ function MarchPower({ state, id }: { state: GameState; id: PerkId }) {
       aria-label={`${p.title}, rank ${rank(state, id)}`}
       aria-describedby={label}
       data-march-power={id}
+      onClick={inspect}
     >
       <PerkArt id={id} />
       <b>{rank(state, id)}</b>
@@ -120,6 +121,8 @@ interface MarchProps {
   settings(): void;
   soundToggle(): void;
   equipment(): void;
+  inspectBuild(): void;
+  retreat(): void;
   otherRoads(): void;
   finish(): void;
 }
@@ -185,6 +188,8 @@ export function EmberMarchUi(p: MarchProps) {
     <section
       className={`ember-march-ui ${p.atCamp ? "march-at-camp" : ""} ${won || lost ? "march-ended" : ""}`}
       aria-label="Ember March"
+      data-run-time={state.run.time}
+      data-march-phase={state.phase.kind}
     >
       <header className="march-header">
         <Button
@@ -312,6 +317,9 @@ export function EmberMarchUi(p: MarchProps) {
               <Button variant="ghost" onClick={p.pause}>
                 <Play /> Resume
               </Button>
+              <Button variant="ghost" onClick={p.retreat} data-march-retreat="">
+                Return to camp
+              </Button>
             </div>
           )}
           <footer className="march-ledger">
@@ -396,8 +404,8 @@ export function EmberMarchUi(p: MarchProps) {
                     </span>
                   </span>
                 )}
-                {powers.map((p) => (
-                  <MarchPower key={p.id} state={state} id={p.id} />
+                {powers.map((perk) => (
+                  <MarchPower key={perk.id} state={state} id={perk.id} inspect={p.inspectBuild} />
                 ))}
                 {!powers.length && <small>Your first power arrives at level 2.</small>}
               </div>
@@ -597,12 +605,15 @@ export function MarchForge({
   state,
   upgrade,
   equip,
+  retreat,
 }: {
   state: GameState;
   upgrade(id: UpgradeId): void;
   equip(): void;
+  retreat(): void;
 }) {
   const atCamp = state.phase.kind === "camp";
+  const activeSunfang = sunfangEquipped(state);
   const stats = heroStats(state);
   return (
     <section className="march-forge">
@@ -622,6 +633,11 @@ export function MarchForge({
           </p>
         </div>
       </div>
+      {!atCamp && (
+        <Button variant="outline" onClick={retreat} data-march-retreat="">
+          Return to camp to upgrade <ArrowRight />
+        </Button>
+      )}
       <div className="march-forge-wallet">
         <Coins /> {state.meta.gold} gold{" "}
         <small>{atCamp ? "Forge permanent upgrades." : "Inspect freely. Upgrade at camp."}</small>
@@ -685,8 +701,8 @@ export function MarchForge({
             <strong>Sunfang</strong>
             <p>+12 damage · Cleave</p>
           </span>
-          <Button disabled={!atCamp || state.meta.gear.equipped === "sunfang"} onClick={equip}>
-            {state.meta.gear.equipped === "sunfang" ? (
+          <Button disabled={!atCamp || activeSunfang} onClick={equip}>
+            {activeSunfang ? (
               <>
                 <Check /> Equipped
               </>

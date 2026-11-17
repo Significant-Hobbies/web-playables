@@ -33,6 +33,7 @@ import {
   rerollPerks,
   retreatToCamp,
   returnToCamp,
+  selectMarchCamp,
   skipPerk,
   startActivity,
   startEmberMarch,
@@ -297,6 +298,9 @@ const actions: UiActions = {
     changed(true);
     syncPause();
     return true;
+  },
+  selectMarchCamp(selected) {
+    if (loaded && selectMarchCamp(state, selected)) changed();
   },
   startMarch(returnChapter) {
     if (!loaded || !startEmberMarch(state, returnChapter)) return false;

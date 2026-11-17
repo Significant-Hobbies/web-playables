@@ -156,6 +156,7 @@ export interface UiActions {
   start(chapter: number): void;
   startFirstLight(returnChapter?: number): boolean;
   startMarch(returnChapter?: number): boolean;
+  selectMarchCamp(selected: boolean): void;
   marchGift(id: PerkId, offerId: string): void;
   equipGear(id: GearId | null): void;
   continueLoot(): void;
@@ -586,7 +587,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [marchDismissed, setMarchDismissed] = useState(false);
   const [marchForgeOpen, setMarchForgeOpen] = useState(false);
   const marchFocused =
-    isEmberMarch(state) || (state.phase.kind === "camp" && marchPreview && !marchDismissed);
+    isEmberMarch(state) ||
+    (state.phase.kind === "camp" &&
+      (marchPreview || state.meta.emberMarch?.selected === true) &&
+      !marchDismissed);
   const marchContext = state.run.context?.kind === "ember-march" ? state.run.context : null;
   const firstLightFocused =
     !marchFocused &&
@@ -1073,6 +1077,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             onClick={() => {
               setMarchPreview(true);
               setMarchDismissed(false);
+              a.selectMarchCamp(true);
               a.finishIntro();
             }}
           >
@@ -1224,12 +1229,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               settings={() => setSettings(true)}
               soundToggle={a.toggleSound}
               equipment={() => setMarchForgeOpen(true)}
+              inspectBuild={() => setDetail("stats")}
+              retreat={() => setRetreat(true)}
               otherRoads={() => {
                 setMarchDismissed(true);
+                setMarchPreview(false);
+                a.selectMarchCamp(false);
                 setFirstLightDismissed(true);
                 a.finishIntro();
               }}
               finish={() => {
+                setMarchPreview(true);
+                setMarchDismissed(false);
                 a.camp();
                 setMarchForgeOpen(true);
               }}
@@ -1753,7 +1764,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         className="march-forge-dialog"
         close={() => setMarchForgeOpen(false)}
       >
-        <MarchForge state={state} upgrade={a.upgrade} equip={() => a.equipGear("sunfang")} />
+        <MarchForge
+          state={state}
+          upgrade={a.upgrade}
+          equip={() => a.equipGear("sunfang")}
+          retreat={() => {
+            setMarchForgeOpen(false);
+            setRetreat(true);
+          }}
+        />
       </Modal>
       <Modal
         open={
@@ -1762,6 +1781,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           !settings &&
           !marchForgeOpen &&
           !detail &&
+          !retreat &&
           !v.paused &&
           v.decisionReady &&
           state.phase.kind === "choice"
@@ -1792,6 +1812,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           !settings &&
           !marchForgeOpen &&
           !detail &&
+          !retreat &&
           !v.paused &&
           state.phase.kind === "march-gift"
         }
@@ -2434,7 +2455,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             Skip combat tips
           </Button>
         </div>
-        <p>Space to pause · Q to cast · 1–3 to choose an oath.</p>
+        <p>
+          {marchFocused
+            ? "Fighting and skills are automatic. Space to pause · 1–3 to choose a power."
+            : "Space to pause · Q to cast · 1–3 to choose an oath."}
+        </p>
         <p>
           Gold, equipment, and unlocked chapters stay with you. Oaths belong to the current journey.
         </p>

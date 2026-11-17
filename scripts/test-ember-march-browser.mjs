@@ -24,7 +24,7 @@ test("Ember March real browser: build choices, saved live battle, result and per
   await mkdir(evidence, { recursive: true });
   const server = createSiteServer(join(root, "games/ember-road/dist/web"));
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
-  const origin = `http://127.0.0.1:${server.address().port}/?march=1`;
+  const origin = `http://127.0.0.1:${server.address().port}/`;
   const browser = await chromium.launch({
     headless: true,
     executablePath:
@@ -78,18 +78,29 @@ test("Ember March real browser: build choices, saved live battle, result and per
   }
   try {
     await page.goto(origin);
+    await page.waitForFunction(() => {
+      const button = document.querySelector("[data-start-first-light]");
+      return button && !button.disabled;
+    });
+    await page.getByRole("button", { name: "Return to camp", exact: true }).click();
+    await page.getByRole("button", { name: "Ember March", exact: true }).click();
     await page.locator("[data-start-march]").waitFor();
     assert.equal(await page.locator("dialog[open]").count(), 0);
     await noScroll();
     await shot("march-camp");
     await page.locator("[data-start-march]").click();
     await page.getByRole("button", { name: "Pause Ember March", exact: true }).click();
+    await page.getByRole("button", { name: "Resume Ember March", exact: true }).waitFor();
     await waitSaved("battle");
-    const paused = await read();
+    const pausedClock = await page.locator(".ember-march-ui").getAttribute("data-run-time");
     await page.waitForTimeout(400);
-    assert.equal((await read()).state.run.time, paused.state.run.time);
+    assert.equal(await page.locator(".ember-march-ui").getAttribute("data-run-time"), pausedClock);
     await shot("march-battle");
     await page.getByRole("button", { name: "Resume Ember March", exact: true }).click();
+    await page.waitForFunction(
+      (t) => Number(document.querySelector(".ember-march-ui").dataset.runTime) > Number(t),
+      pausedClock,
+    );
     const began = Date.now();
     let reloaded = false,
       refreshed = false,
@@ -123,7 +134,9 @@ test("Ember March real browser: build choices, saved live battle, result and per
         await waitSaved("march-gift");
         const offer = await read();
         const snapshot = structuredClone(offer.state);
+        const clock = await page.locator(".ember-march-ui").getAttribute("data-run-time");
         await page.waitForTimeout(350);
+        assert.equal(await page.locator(".ember-march-ui").getAttribute("data-run-time"), clock);
         assert.deepEqual((await read()).state, snapshot, "The encounter freezes the model");
         await shot("march-gift");
         await page.locator("[data-march-gift]").first().click();
@@ -144,7 +157,15 @@ test("Ember March real browser: build choices, saved live battle, result and per
         JSON.stringify({ level: offer.state.run.level, kills: offer.state.run.context.kills }),
       );
       const frozen = structuredClone(offer.state);
+      const liveClock = await page.locator(".ember-march-ui").getAttribute("data-run-time");
+      const frame = await page.locator("#world").evaluate((canvas) => canvas.toDataURL());
       await page.waitForTimeout(250);
+      assert.equal(await page.locator(".ember-march-ui").getAttribute("data-run-time"), liveClock);
+      assert.equal(
+        await page.locator("#world").evaluate((canvas) => canvas.toDataURL()),
+        frame,
+        "Combat canvas stays frozen during the offer",
+      );
       assert.deepEqual((await read()).state, frozen, "Choice doesn't advance battle, XP or timers");
       if (!refreshed) {
         await page.locator("[data-march-reroll]").click();
@@ -210,6 +231,15 @@ test("Ember March real browser: build choices, saved live battle, result and per
         await page.locator(`[data-march-power="${pick}"]`).isVisible(),
         "Chosen power remains visible",
       );
+      if (picks.length === 1) {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.locator(`[data-march-power="${pick}"]`).click();
+        await page.getByRole("dialog", { name: "Current build", exact: true }).waitFor();
+        assert.equal(await page.locator("dialog[open]").count(), 1);
+        assert((await page.locator(".march-build-powers > div").count()) > 0);
+        await page.keyboard.press("Escape");
+        await page.setViewportSize({ width: 1440, height: 900 });
+      }
     }
     await page.locator("[data-march-finish]").waitFor();
     await waitSaved("victory");
