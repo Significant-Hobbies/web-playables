@@ -76,6 +76,7 @@ test("First Light real browser: passive combat, visible permanent loot, reloads 
       await document.fonts.ready;
       await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
     });
+    await page.waitForTimeout(300);
     await page.screenshot({ path: join(evidence, `${name}.png`) });
   }
   try {
@@ -201,6 +202,7 @@ test("First Light real browser: passive combat, visible permanent loot, reloads 
       await layout.getByRole("button", { name: "Inspect Rook’s equipment", exact: true }).click();
       const d = layout.getByRole("dialog", { name: "Rook’s equipment", exact: true });
       await d.waitFor();
+      await layout.waitForTimeout(300);
       await noScroll(layout);
       await d.evaluate((d) => {
         d.scrollTop = d.scrollHeight;

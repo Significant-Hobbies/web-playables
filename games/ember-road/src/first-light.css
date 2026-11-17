@@ -829,6 +829,13 @@
   display: grid;
   gap: 20px;
 }
+.toon-shell .fl-wardrobe .dialog-heading {
+  position: sticky;
+  top: -25px;
+  z-index: 5;
+  padding-top: 6px;
+  background: #292e37;
+}
 .fl-loadout-stage {
   position: relative;
   display: grid;
@@ -1037,6 +1044,10 @@
   }
 }
 @media (min-width: 760px) and (max-height: 760px) {
+  .fl-dressed-hero > .fl-standing-rook {
+    width: 245px;
+    height: 245px;
+  }
   .fl-topbar {
     top: 17px;
   }
@@ -1398,8 +1409,13 @@
     gap: 5px;
   }
   .fl-dressed-hero > .fl-standing-rook {
-    width: 230px;
-    height: 230px;
+    width: 100%;
+    max-width: 190px;
+    height: auto;
+    aspect-ratio: 1;
+  }
+  .toon-shell .fl-wardrobe .dialog-heading {
+    top: -17px;
   }
   .fl-equipped-slot {
     padding: 10px 4px;
