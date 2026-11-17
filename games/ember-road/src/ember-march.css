@@ -262,10 +262,6 @@
   animation-play-state: paused !important;
   transition-duration: 0s !important;
 }
-.ember-march-ui[data-combat-paused="true"] .march-power,
-.ember-march-ui[data-combat-paused="true"] .march-auto-skill {
-  animation: none !important;
-}
 .ember-march-ui[data-combat-paused="true"] progress::-webkit-progress-value {
   transition-duration: 0s !important;
 }
@@ -491,7 +487,6 @@
   padding-right: 9px;
   margin-right: 2px;
   border-right: 1px solid #596374;
-  animation: march-power-in 240ms ease-out;
 }
 .march-auto-skill > svg {
   width: 36px;
@@ -554,7 +549,6 @@
     inset 0 0 0 2px #131b24,
     0 3px #0b1118;
   color: #fff;
-  animation: march-power-in 240ms ease-out;
 }
 .march-power .perk-art {
   width: 34px;
@@ -1210,16 +1204,6 @@
   }
   to {
     color: #f7fbff;
-  }
-}
-@keyframes march-power-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: none;
   }
 }
 @keyframes march-offer-in {

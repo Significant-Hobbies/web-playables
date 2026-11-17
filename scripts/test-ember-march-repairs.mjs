@@ -202,6 +202,21 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 45000 }
         .evaluate((el) => getComputedStyle(el).animationPlayState),
       "running",
     );
+    await reloaded.page.locator("[data-march-skip]").click();
+    await reloaded.page.waitForFunction(
+      () =>
+        document.querySelector(".ember-march-ui")?.getAttribute("data-march-phase") === "battle",
+    );
+    for (const power of await powers.all()) {
+      assert.equal(await power.evaluate((el) => getComputedStyle(el).opacity), "1");
+      assert.equal(
+        await power.evaluate(
+          (el) => el.getAnimations().filter((a) => a.animationName === "march-power-in").length,
+        ),
+        0,
+        "Previously earned powers never replay their entrance after an offer",
+      );
+    }
     await reloaded.context.close();
     const won = await open(result, true);
     if (process.env.EMBER_MARCH_EVIDENCE_DIR)
