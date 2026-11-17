@@ -1,9 +1,35 @@
 .toon-shell.is-first-light {
   background: #98bd55;
 }
-.toon-shell.is-first-light > .game-topbar,
 .toon-shell.is-first-light > .powers-belt {
   display: none;
+}
+.toon-shell.is-first-light > .game-topbar,
+.toon-shell.is-first-light > .game-topbar > .header-actions {
+  display: contents;
+}
+.toon-shell.is-first-light > .game-topbar > :not(.header-actions),
+.toon-shell.is-first-light > .game-topbar > .header-actions > :not([data-playables-account-slot]) {
+  display: none;
+}
+.toon-shell.is-first-light [data-playables-account-slot] {
+  position: absolute;
+  top: 22px;
+  right: 200px;
+  z-index: 10;
+}
+@media (max-width: 1100px) {
+  .toon-shell.is-first-light [data-playables-account-slot] {
+    top: 105px;
+    left: 28px;
+    right: auto;
+  }
+}
+@media (max-width: 759px) {
+  .toon-shell.is-first-light [data-playables-account-slot] {
+    top: 82px;
+    left: 14px;
+  }
 }
 .toon-shell.is-first-light .workspace {
   flex: 1;

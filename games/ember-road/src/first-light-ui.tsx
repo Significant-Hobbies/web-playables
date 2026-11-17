@@ -89,6 +89,7 @@ interface FirstLightProps {
   settled: boolean;
   paused: boolean;
   sound: boolean;
+  audioControls: boolean;
   reducedMotion: boolean;
   saveWarning: string | null;
   start(): void;
@@ -147,6 +148,7 @@ export function FirstLightUi(p: FirstLightProps) {
           variant="ghost"
           className="fl-profile"
           onClick={p.wardrobe}
+          disabled={!p.loaded}
           aria-label="Inspect Rook’s equipment"
         >
           <span className="fl-avatar" style={{ backgroundImage: `url("${heroAtlas(state)}")` }} />
@@ -174,14 +176,17 @@ export function FirstLightUi(p: FirstLightProps) {
           </ol>
         </nav>
         <div className="fl-tools">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={p.toggleSound}
-            aria-label={p.sound ? "Mute game audio" : "Enable game audio"}
-          >
-            {p.sound ? <Volume2 /> : <VolumeX />}
-          </Button>
+          {p.audioControls && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={p.toggleSound}
+              disabled={!p.loaded}
+              aria-label={p.sound ? "Mute game audio" : "Enable game audio"}
+            >
+              {p.sound ? <Volume2 /> : <VolumeX />}
+            </Button>
+          )}
           {!atCamp && !victory && !loot && (
             <Button
               variant="ghost"
@@ -196,6 +201,7 @@ export function FirstLightUi(p: FirstLightProps) {
             variant="ghost"
             size="icon"
             onClick={p.settings}
+            disabled={!p.loaded}
             aria-label="First Light settings"
           >
             <Settings />
@@ -240,7 +246,7 @@ export function FirstLightUi(p: FirstLightProps) {
                 : "Five little battles. Something worth finding."}
             </small>
             <div className="fl-welcome-secondary">
-              <Button variant="ghost" onClick={p.wardrobe}>
+              <Button variant="ghost" onClick={p.wardrobe} disabled={!p.loaded}>
                 <Shield /> Your hero
               </Button>
               <Button variant="ghost" onClick={completed ? p.start : p.campaign}>

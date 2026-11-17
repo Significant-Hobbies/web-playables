@@ -52,7 +52,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
   async function session(
     state,
     viewport,
-    { storageBlocked = false, initiallySignedIn = false } = {},
+    { storageBlocked = false, initiallySignedIn = false, firstLight = false } = {},
   ) {
     const context = await browser.newContext({ viewport });
     let signedIn = initiallySignedIn,
@@ -139,7 +139,9 @@ test("Ember account prompt suspends and restores decisions without changing the 
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${origin}/play/ember-road/`, { waitUntil: "domcontentloaded" });
+    await page.goto(`${origin}/play/ember-road/${firstLight ? "" : "?campaign=1"}`, {
+      waitUntil: "domcontentloaded",
+    });
     if (initiallySignedIn)
       await page.waitForFunction(
         () =>
@@ -170,7 +172,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
           gameId: "ember-road",
           slotId: "main",
           revision: 1,
-          schemaVersion: "6",
+          schemaVersion: "7",
           checksum: createHash("sha256").update(data).digest("hex"),
           bytes: Buffer.byteLength(data),
           data,
@@ -183,6 +185,43 @@ test("Ember account prompt suspends and restores decisions without changing the 
     };
   }
   try {
+    for (const [width, height] of [
+      [1440, 900],
+      [1000, 600],
+      [390, 844],
+    ]) {
+      const s = await session(fresh(), { width, height }, { firstLight: true });
+      const trigger = s.page.getByRole("button", { name: "Account and saves", exact: true });
+      assert(await trigger.isVisible(), "First Light keeps account and recovery reachable");
+      assert(
+        await trigger.evaluate((b) => {
+          const r = b.getBoundingClientRect();
+          const host = b.getRootNode().host;
+          return (
+            r.left >= 0 &&
+            r.top >= 0 &&
+            r.right <= innerWidth &&
+            r.bottom <= innerHeight &&
+            document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === host
+          );
+        }),
+      );
+      await s.page.getByRole("button", { name: "Inspect Rook’s equipment", exact: true }).click();
+      await s.page.locator(".fl-wardrobe[open]").waitFor();
+      await s.login();
+      const prompt = s.page.getByRole("dialog", { name: "Keep your journey safe.", exact: true });
+      await prompt.waitFor();
+      assert.equal(
+        await s.page.locator(".game-dialog[open]").count(),
+        0,
+        "Account entry suspends the wardrobe",
+      );
+      await prompt.getByRole("button", { name: "Not now · keep playing", exact: true }).click();
+      await s.page.locator(".fl-wardrobe[open]").waitFor();
+      assert.equal(await s.page.locator("dialog[open]").count(), 1);
+      await s.page.screenshot({ path: join(evidence, `first-light-account-${width}.png`) });
+      await s.context.close();
+    }
     for (const [width, height] of [
       [1280, 800],
       [768, 1024],
@@ -306,7 +345,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
       );
       assert.equal(
         JSON.parse((await s.page.evaluate(() => window.playablesCloud.exportLocal())).data).version,
-        5,
+        6,
       );
       await s.page.screenshot({ path: join(evidence, "update-required.png") });
       await s.context.close();

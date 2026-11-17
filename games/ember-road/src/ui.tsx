@@ -1142,6 +1142,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               settled={v.decisionReady}
               paused={v.paused}
               sound={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+              audioControls={v.audioControls}
               reducedMotion={v.reducedMotion}
               saveWarning={v.saveWarning ? v.saveMessage : null}
               start={() => {
@@ -1683,7 +1684,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </div>
       {!showPrologue && !firstLightFocused && <PowerBelt state={state} />}
       <Modal
-        open={firstLightWardrobe}
+        open={v.loaded && firstLightWardrobe && (firstLightFocused || inCamp)}
         title="Rook’s equipment"
         className="fl-wardrobe"
         close={() => setFirstLightWardrobe(false)}
@@ -2583,7 +2584,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <StoryOpening
         open={showPrologue}
-        fresh={isFirstJourney(state)}
+        fresh={!firstLightFocused && isFirstJourney(state)}
         companyReady={companyReady}
         petsReady={petsReady}
         paused={v.presentationPaused}
@@ -2595,6 +2596,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         skip={() => {
           a.finishIntro();
           setReplayIntro(false);
+          if (firstLightFocused) {
+            setSection("Camp");
+            setCampOpen(false);
+            return;
+          }
           if (!inCamp) {
             setSection("Camp");
             setCampOpen(true);
@@ -2603,6 +2609,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         finish={(start) => {
           a.finishIntro();
           setReplayIntro(false);
+          if (firstLightFocused) {
+            setSection("Camp");
+            setCampOpen(false);
+            return;
+          }
           if (start) a.start(1);
           else if (!inCamp) {
             setSection("Camp");
