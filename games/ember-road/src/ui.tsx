@@ -1495,6 +1495,14 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         )}
         {dashboard && section === "Equipment" && (
           <>
+            <output
+              className="workshop-wallet"
+              aria-label={`${state.meta.gold} gold available at the forge`}
+            >
+              <GameIcon kind="gold" />
+              <b>{state.meta.gold.toLocaleString()}</b>
+              <span>GOLD</span>
+            </output>
             <nav className="equipment-tabs" aria-label="Equipment categories">
               {(
                 [
@@ -1520,22 +1528,57 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             {equipmentTab === "weapon" && selection("weapon", WEAPONS)}
             {equipmentTab === "armor" && selection("armor", ARMORS)}
             {equipmentTab === "forge" && (
-              <>
-                <h2 className="section-title">Make the whole company stronger.</h2>
-                <p className="section-note">
-                  {state.meta.gold.toLocaleString()} gold available. Permanent upgrades improve
-                  every weapon, companion, and pet where stated.
-                </p>
+              <div className="loadout-workbench forge-workbench">
+                <aside className="loadout-showcase forge-showcase" aria-label="Permanent upgrades">
+                  <span className="showcase-label">THE CAMP FORGE</span>
+                  <div className="showcase-art">
+                    <LoadoutArt slot="weapon" id={weapon.id} />
+                  </div>
+                  <h3>Tempered for the road.</h3>
+                  <p>Every upgrade stays with your company, through every journey.</p>
+                  <span className="showcase-power">
+                    <GameIcon kind="battle" />
+                    <b>{power.total.toLocaleString()}</b>
+                    <small>COMPANY POWER</small>
+                  </span>
+                </aside>
                 <div className="selection-grid forge">
                   {(["blade", "mail", "charm"] as const).map((id) => (
                     <Card key={id} className={`forge-card forge-${id}`}>
                       <CardHeader>
                         <div className="forge-emblem">
-                          <GameIcon
-                            kind={
-                              id === "blade" ? "battle" : id === "mail" ? "equipment" : "skills"
-                            }
-                          />
+                          {id === "charm" ? (
+                            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                              <path
+                                d="M27 15q-5 39 23 45 28-6 23-45"
+                                stroke="#202735"
+                                strokeWidth="10"
+                              />
+                              <path
+                                d="M27 15q-5 39 23 45 28-6 23-45"
+                                stroke="#d5a859"
+                                strokeWidth="5"
+                              />
+                              <path
+                                d="m50 46 23 17-8 24H35l-8-24Z"
+                                fill="#f5bf50"
+                                stroke="#263041"
+                                strokeWidth="4"
+                              />
+                              <path
+                                d="m50 55 13 11-5 13H42l-5-13Z"
+                                fill="#e86532"
+                                stroke="#9d392d"
+                                strokeWidth="3"
+                              />
+                              <path d="m49 58-5 12h7l-2 8 9-15h-8l3-5Z" fill="#ffe7a1" />
+                            </svg>
+                          ) : (
+                            <LoadoutArt
+                              slot={id === "blade" ? "weapon" : "armor"}
+                              id={id === "blade" ? weapon.id : armor.id}
+                            />
+                          )}
                         </div>
                         <CardTitle>
                           {
@@ -1560,6 +1603,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                             }[id]
                           }
                         </p>
+                        <div className="forge-ranks" aria-hidden="true">
+                          {Array.from({ length: UPGRADE_CAP }, (_, index) => index + 1).map(
+                            (rank) => (
+                              <span
+                                key={rank}
+                                className={rank <= state.meta.upgrades[id] ? "is-forged" : ""}
+                              />
+                            ),
+                          )}
+                        </div>
                         <Button
                           variant="outline"
                           data-upgrade={id}
@@ -1578,7 +1631,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     </Card>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </>
         )}
