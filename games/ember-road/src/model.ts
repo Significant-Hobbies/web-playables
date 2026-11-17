@@ -17,6 +17,13 @@ import {
   validAdventureLedger,
   validRunContext,
 } from "./adventures.ts";
+import {
+  EMBER_MARCH,
+  isEmberMarch,
+  marchEnemy,
+  marchRow,
+  validMarchTemplate,
+} from "./ember-march.ts";
 import { type Experience, initialExperience, validExperience } from "./experience.ts";
 import {
   equippedBlade,
@@ -486,13 +493,18 @@ export interface BattlePhase {
   companionHit: TargetHit | null;
   petHit: TargetHit | null;
 }
+export interface MarchResume {
+  kind: "ember-march";
+  battle: BattlePhase;
+}
 export type Phase =
   | { kind: "camp" }
   | { kind: "loot"; item: GearId }
   | { kind: "travel"; remaining: number }
   | BattlePhase
   | { kind: "route"; at: number }
-  | { kind: "choice"; options: PerkId[]; rerolls?: number }
+  | { kind: "choice"; options: PerkId[]; rerolls?: number; offerId?: string; resume?: MarchResume }
+  | { kind: "march-gift"; options: PerkId[]; offerId: string; resume: MarchResume }
   | { kind: "defeat"; enemy: string }
   | {
       kind: "victory";
@@ -506,6 +518,7 @@ export interface GameState {
   meta: {
     gear?: GearLedger;
     firstLight?: { cleared: boolean };
+    emberMarch?: { cleared: boolean };
     experience?: Experience;
     progression?: Progression;
     gold: number;
@@ -578,6 +591,7 @@ export type GameEvent =
   | { type: "combo"; effect: SynergyId | "mark" | "brace"; actor: ActorId; target: ActorId }
   | { type: "heal"; amount: number }
   | { type: "kill"; gold: number; target: ActorId }
+  | { type: "xp"; amount: number; target: ActorId }
   | { type: "loot"; item: GearId }
   | { type: "level"; level: number }
   | { type: "defeat" }
@@ -599,6 +613,7 @@ export function initialState(seed = 927113): GameState {
     meta: {
       gear: { owned: [], equipped: null },
       firstLight: { cleared: false },
+      emberMarch: { cleared: false },
       experience: initialExperience(),
       progression: initialProgression(),
       gold: 0,
@@ -820,6 +835,7 @@ function random(state: GameState) {
   return state.run.seed / 4294967296;
 }
 export function xpNeeded(state: GameState) {
+  if (isEmberMarch(state)) return state.run.level === 1 ? 6 : 5;
   return state.run.rules === 1 ? (state.run.level === 1 ? 6 : 10) : 3 + state.run.level;
 }
 export function upgradeCost(state: GameState, id: UpgradeId) {
@@ -923,7 +939,8 @@ export function returnToCamp(state: GameState) {
 }
 
 export function retreatToCamp(state: GameState): boolean {
-  if (!["travel", "battle", "choice", "route", "loot"].includes(state.phase.kind)) return false;
+  if (!["travel", "battle", "choice", "march-gift", "route", "loot"].includes(state.phase.kind))
+    return false;
   const context = state.run.context;
   const chapter =
     context && context.kind !== "campaign" ? context.returnChapter : state.run.chapter;
@@ -1196,6 +1213,7 @@ export function adventureEnemies(state: GameState): EnemyFighter[] {
     return enemies;
   }
   if (context.kind === "first-light") return firstLightEnemies(state.run.cleared);
+  if (context.kind === "ember-march") return [];
   const tier = TIERS[context.tier - 1]!,
     round = state.run.cleared;
   let enemies: EnemyFighter[];
@@ -1303,8 +1321,138 @@ function rearTarget(battle: BattlePhase) {
 function weakestTarget(battle: BattlePhase) {
   return livingEnemies(battle).sort((a, b) => a.hp - b.hp || a.slot - b.slot)[0];
 }
-export function choosePerk(state: GameState, id: PerkId) {
-  if (state.phase.kind !== "choice" || !state.phase.options.includes(id)) return false;
+export function visibleBattle(state: GameState): BattlePhase | undefined {
+  if (state.phase.kind === "battle") return state.phase;
+  if (isEmberMarch(state) && (state.phase.kind === "choice" || state.phase.kind === "march-gift"))
+    return state.phase.resume?.battle;
+  return undefined;
+}
+export function startEmberMarch(state: GameState, returnChapter = state.run.chapter): boolean {
+  if (
+    state.phase.kind !== "camp" ||
+    !Number.isInteger(returnChapter) ||
+    returnChapter < 1 ||
+    returnChapter > state.meta.unlockedChapter
+  )
+    return false;
+  if (!startRun(state, 1)) return false;
+  random(state);
+  state.meta.emberMarch ??= { cleared: false };
+  state.run.context = {
+    kind: "ember-march",
+    rules: "march-v1",
+    runId: state.run.seed,
+    returnChapter,
+    nextSpawn: 0,
+    spawnRemaining: EMBER_MARCH.spawnInterval,
+    kills: 0,
+    earnedGold: 0,
+    gift: "pending",
+    offerSerial: 0,
+  };
+  state.run.hp = heroStats(state).hp;
+  state.run.shield = state.run.hp * 0.3;
+  state.run.shieldCast = null;
+  const battle = beginBattle(state);
+  delete battle.commands;
+  state.phase = battle;
+  spawnMarch(state, battle);
+  spawnMarch(state, battle);
+  return true;
+}
+function spawnMarch(state: GameState, battle: BattlePhase): boolean {
+  const c = state.run.context;
+  if (
+    c?.kind !== "ember-march" ||
+    c.nextSpawn >= EMBER_MARCH.total ||
+    livingEnemies(battle).length >= (c.nextSpawn < 12 ? 2 : 4)
+  )
+    return false;
+  const row = marchRow(c.nextSpawn);
+  const slot = (row === "front" ? [0, 1] : [2, 3]).find(
+    (s) => !battle.enemies.some((e) => e.hp > 0 && e.slot === s),
+  );
+  if (slot === undefined) return false;
+  battle.enemies.push(marchEnemy(c.nextSpawn++, slot));
+  return true;
+}
+function replenishMarch(state: GameState, battle: BattlePhase, dt: number) {
+  const c = state.run.context;
+  if (c?.kind !== "ember-march") return;
+  pruneMarch(battle);
+  c.spawnRemaining = Math.max(0, c.spawnRemaining - dt);
+  if (c.spawnRemaining === 0 && spawnMarch(state, battle))
+    c.spawnRemaining = EMBER_MARCH.spawnInterval;
+}
+function referencedMarchTargets(battle: BattlePhase): Set<ActorId> {
+  return new Set([
+    ...[battle.heroHit, battle.companionHit, battle.petHit].flatMap((h) => (h ? [h.target] : [])),
+    ...(battle.reactions ?? []).map((r) => r.target),
+  ]);
+}
+function pruneMarch(battle: BattlePhase) {
+  const retained = referencedMarchTargets(battle);
+  for (let i = battle.enemies.length - 1; i >= 0; i--) {
+    const enemy = battle.enemies[i];
+    if (enemy && enemy.hp <= 0 && !retained.has(enemy.id)) battle.enemies.splice(i, 1);
+  }
+}
+function nextMarchOffer(state: GameState): string {
+  const c = state.run.context;
+  if (c?.kind !== "ember-march") throw new Error("A March offer needs its run.");
+  return `${c.runId}:${++c.offerSerial}`;
+}
+function matchesMarchOffer(state: GameState, expected?: string): boolean {
+  return (
+    !isEmberMarch(state) ||
+    ((state.phase.kind === "choice" || state.phase.kind === "march-gift") &&
+      typeof expected === "string" &&
+      expected === state.phase.offerId)
+  );
+}
+function settleMarch(state: GameState, battle: BattlePhase, events: GameEvent[]) {
+  const c = state.run.context;
+  if (c?.kind !== "ember-march" || state.phase.kind !== "battle" || state.run.hp <= 0) return;
+  pruneMarch(battle);
+  battle.heroCooldown = Math.max(0, battle.heroCooldown);
+  battle.companionCooldown = Math.max(0, battle.companionCooldown);
+  battle.petCooldown = Math.max(0, battle.petCooldown);
+  if (c.kills === EMBER_MARCH.total) {
+    const bonus = state.meta.emberMarch?.cleared ? 0 : EMBER_MARCH.firstClearGold;
+    const reward = EMBER_MARCH.clearGold + bonus;
+    awardGold(state, reward);
+    c.earnedGold += reward;
+    state.meta.emberMarch = { cleared: true };
+    state.run.cleared = 1;
+    state.run.shieldCast = null;
+    state.phase = { kind: "victory", reward, bonus, bonusStatus: bonus ? "earned" : "claimed" };
+    events.push({ type: "victory", gold: reward });
+    return;
+  }
+  if (state.run.level <= EMBER_MARCH.levels.length && state.run.xp >= xpNeeded(state)) {
+    state.run.xp -= xpNeeded(state);
+    state.run.level++;
+    state.phase = {
+      kind: "choice",
+      options: offeredPerks(state),
+      rerolls: 1,
+      offerId: nextMarchOffer(state),
+      resume: { kind: "ember-march", battle },
+    };
+    events.push({ type: "level", level: state.run.level });
+  } else if (c.kills >= EMBER_MARCH.giftAt && c.gift === "pending") {
+    const options = (["heart", "bastion", "ward", "blood"] as PerkId[])
+      .filter((id) => rank(state, id) < PERKS.find((p) => p.id === id)!.max)
+      .slice(0, 2);
+    state.phase = {
+      kind: "march-gift",
+      options,
+      offerId: nextMarchOffer(state),
+      resume: { kind: "ember-march", battle },
+    };
+  }
+}
+function grantPerk(state: GameState, id: PerkId): boolean {
   const perk = PERKS.find((p) => p.id === id);
   if (!perk || rank(state, id) >= perk.max) return false;
   state.run.perks[id] = rank(state, id) + 1;
@@ -1314,16 +1462,56 @@ export function choosePerk(state: GameState, id: PerkId) {
     d.oaths = Math.min(2, d.oaths + 1);
     if (d.oaths === 2) d.whirlwind = true;
   }
-  resumeTrail(state);
   return true;
 }
-export function skipPerk(state: GameState) {
-  if (state.phase.kind !== "choice") return false;
-  resumeTrail(state);
+export function chooseMarchGift(state: GameState, id: PerkId, expectedOfferId: string): boolean {
+  if (
+    state.phase.kind !== "march-gift" ||
+    state.run.context?.kind !== "ember-march" ||
+    !matchesMarchOffer(state, expectedOfferId) ||
+    !state.phase.options.includes(id) ||
+    state.run.context.gift !== "pending" ||
+    !grantPerk(state, id)
+  )
+    return false;
+  const battle = state.phase.resume.battle;
+  state.run.context.gift = "taken";
+  state.phase = battle;
+  settleMarch(state, battle, []);
   return true;
 }
-export function rerollPerks(state: GameState) {
-  if (state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0) return false;
+
+export function choosePerk(state: GameState, id: PerkId, expectedOfferId?: string) {
+  if (
+    state.phase.kind !== "choice" ||
+    !state.phase.options.includes(id) ||
+    !matchesMarchOffer(state, expectedOfferId)
+  )
+    return false;
+  const resume = isEmberMarch(state) ? state.phase.resume : undefined;
+  if (!grantPerk(state, id)) return false;
+  if (resume) {
+    state.phase = resume.battle;
+    settleMarch(state, resume.battle, []);
+  } else resumeTrail(state);
+  return true;
+}
+export function skipPerk(state: GameState, expectedOfferId?: string) {
+  if (state.phase.kind !== "choice" || !matchesMarchOffer(state, expectedOfferId)) return false;
+  const resume = isEmberMarch(state) ? state.phase.resume : undefined;
+  if (resume) {
+    state.phase = resume.battle;
+    settleMarch(state, resume.battle, []);
+  } else resumeTrail(state);
+  return true;
+}
+export function rerollPerks(state: GameState, expectedOfferId?: string) {
+  if (
+    state.phase.kind !== "choice" ||
+    (state.phase.rerolls ?? 1) <= 0 ||
+    !matchesMarchOffer(state, expectedOfferId)
+  )
+    return false;
   const old = state.phase.options;
   const alternatives = PERKS.filter((p) => rank(state, p.id) < p.max && !old.includes(p.id));
   if (!alternatives.length) return false;
@@ -1331,7 +1519,9 @@ export function rerollPerks(state: GameState) {
     state,
     alternatives.map((p) => p.id),
   );
-  state.phase = { kind: "choice", options, rerolls: 0 };
+  state.phase = isEmberMarch(state)
+    ? { ...state.phase, options, rerolls: 0 }
+    : { kind: "choice", options, rerolls: 0 };
   return true;
 }
 function offeredPerks(state: GameState, allowed?: PerkId[]): PerkId[] {
@@ -1339,6 +1529,7 @@ function offeredPerks(state: GameState, allowed?: PerkId[]): PerkId[] {
   const pool = PERKS.filter(
     (p) =>
       rank(state, p.id) < p.max &&
+      !(isEmberMarch(state) && p.id === "renewal") &&
       (!allowed || allowed.includes(p.id)) &&
       !(state.run.rules === 1 && p.id === "renewal" && state.run.cleared >= runLength(state) - 2),
   ).map((p) => ({
@@ -1399,10 +1590,17 @@ function damageEnemy(
     if (!isFirstLight(state)) awardRenown(state, 1);
     enemy.pendingHit = null;
     if (!isFirstLight(state)) awardGold(state, enemy.gold);
+    if (state.run.context?.kind === "ember-march") {
+      state.run.context.kills++;
+      state.run.context.earnedGold += enemy.gold;
+      state.run.xp++;
+      events.push({ type: "xp", amount: 1, target: enemy.id });
+    }
     events.push({ type: "kill", gold: enemy.gold, target: enemy.id });
   }
 }
 function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]): boolean {
+  if (isEmberMarch(state)) return false;
   if (livingEnemies(battle).length) return false;
   state.run.cleared++;
   const campaign = !state.run.context || state.run.context.kind === "campaign";
@@ -1532,7 +1730,9 @@ export function issueCommand(state: GameState, command: CommandId): GameEvent[] 
   }
   return events;
 }
-export function useSkill(state: GameState): GameEvent[] {
+export { castSkill as useSkill };
+
+function castSkill(state: GameState): GameEvent[] {
   if (
     state.phase.kind !== "battle" ||
     state.run.skillCooldown > 0 ||
@@ -1689,6 +1889,10 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
   }
   if (state.phase.kind !== "battle") return events;
   const battle = state.phase;
+  if (isEmberMarch(state)) {
+    state.run.distance += dt;
+    replenishMarch(state, battle, dt);
+  }
   const stats = heroStats(state);
   const commands = battle.commands;
   if (commands) {
@@ -1849,7 +2053,10 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
     (commands?.focus
       ? livingEnemies(battle).find((foe) => foe.id === commands.focus)
       : undefined) ?? frontTarget(battle);
-  if (!front) return events;
+  if (!front) {
+    if (isEmberMarch(state)) settleMarch(state, battle, events);
+    return events;
+  }
   if (battle.heroCooldown <= 0 && !battle.heroHit) {
     const critical = random(state) < stats.crit;
     const execution = front.hp < front.maxHp / 2 ? 1 + rank(state, "execution") * 0.4 : 1;
@@ -1960,6 +2167,11 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
         contact: windup,
       });
     }
+  }
+  if (isEmberMarch(state)) {
+    events.push(...castSkill(state));
+    pruneMarch(battle);
+    settleMarch(state, battle, events);
   }
   return events;
 }
@@ -2193,7 +2405,7 @@ export function migrateV2State(value: unknown): GameState {
 export function validV2State(value: unknown): value is Omit<GameState, "quests"> {
   return validCoreState(value, false);
 }
-function validCoreState(value: unknown, adventure: boolean): value is GameState {
+function validCoreState(value: unknown, adventure: boolean, march = false): value is GameState {
   if (!record(value) || !record(value.meta) || !record(value.run) || !record(value.phase))
     return false;
   const m = value.meta,
@@ -2253,6 +2465,7 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
   )
     return false;
   const state = value as unknown as GameState;
+  if (march && isEmberMarch(state)) return validMarchCore(state);
   const maxHp = heroStats(
     adventure
       ? state
@@ -2325,7 +2538,7 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
       );
     if (
       !context ||
-      context.kind === "first-light" ||
+      (context.kind !== "daily" && context.kind !== "hunt") ||
       !state.adventures ||
       !["earned", "claimed", "expired"].includes(p.bonusStatus as string)
     )
@@ -2432,7 +2645,11 @@ export function validV4State(value: unknown): value is GameState {
     false,
   );
 }
-function validAdventureState(value: unknown, firstLight: boolean): value is GameState {
+function validAdventureState(
+  value: unknown,
+  firstLight: boolean,
+  march = false,
+): value is GameState {
   if (
     !record(value) ||
     !validAdventureLedger(value.adventures) ||
@@ -2449,8 +2666,8 @@ function validAdventureState(value: unknown, firstLight: boolean): value is Game
     return false;
   const state = value as unknown as GameState;
   return (
-    validRunContext(state, firstLight) &&
-    validCoreState(state, true) &&
+    validRunContext(state, firstLight, march) &&
+    validCoreState(state, true, march) &&
     (["companion", "pet", "skill"] as const).every(
       (id) =>
         progressionOf(state).training[id] === 0 ||
@@ -2528,6 +2745,8 @@ export function migrateV5State(value: unknown): GameState {
   return state;
 }
 export function validState(value: unknown): value is GameState {
+  if (record(value) && record(value.meta) && value.meta.emberMarch !== undefined)
+    return validV7State(value);
   if (
     record(value) &&
     record(value.meta) &&
@@ -2538,6 +2757,24 @@ export function validState(value: unknown): value is GameState {
   return validV6State(value);
 }
 export function validV6State(value: unknown): value is GameState {
+  return validEquipmentState(value, false);
+}
+export function validV7State(value: unknown): value is GameState {
+  return (
+    record(value) &&
+    record(value.meta) &&
+    record(value.meta.emberMarch) &&
+    typeof value.meta.emberMarch.cleared === "boolean" &&
+    validEquipmentState(value, true)
+  );
+}
+export function migrateV6State(value: unknown): GameState {
+  if (!validV6State(value)) throw new Error("The existing version-six journey is invalid.");
+  const state = structuredClone(value);
+  state.meta.emberMarch = { cleared: false };
+  return state;
+}
+function validEquipmentState(value: unknown, march: boolean): value is GameState {
   if (
     !record(value) ||
     !record(value.meta) ||
@@ -2555,7 +2792,7 @@ export function validV6State(value: unknown): value is GameState {
     (value.meta.firstLight.cleared && !gear.owned.includes("sunfang"))
   )
     return false;
-  if (!validAdventureState(value, true)) return false;
+  if (!validAdventureState(value, true, march)) return false;
   if (isFirstLight(value)) {
     if (Object.keys(value.run.perks).length !== 0) return false;
     if (value.run.cleared >= 1 && !gear.owned.includes("sunfang")) return false;
@@ -2565,7 +2802,126 @@ export function validV6State(value: unknown): value is GameState {
     )
       return false;
   } else if (value.phase.kind === "loot") return false;
-  return validCombatState(value, true);
+  const battle = visibleBattle(value);
+  return validCombatState(battle ? { ...value, phase: battle } : value, true);
+}
+function validMarchCore(state: GameState): boolean {
+  const c = state.run.context;
+  if (c?.kind !== "ember-march") return false;
+  const r = state.run,
+    p = state.phase;
+  const integer = (value: unknown, max: number) => number(value, 0, max, true);
+  if (
+    c.rules !== "march-v1" ||
+    r.rules !== 1 ||
+    r.chapter !== 1 ||
+    !number(c.runId, 1, 4294967295, true) ||
+    !number(c.returnChapter, 1, state.meta.unlockedChapter, true) ||
+    !integer(c.nextSpawn, EMBER_MARCH.total) ||
+    c.nextSpawn < 2 ||
+    !number(c.spawnRemaining, 0, EMBER_MARCH.spawnInterval) ||
+    !integer(c.kills, c.nextSpawn) ||
+    !integer(c.earnedGold, 90) ||
+    !["pending", "taken"].includes(c.gift) ||
+    !integer(c.offerSerial, 21) ||
+    rank(state, "renewal") !== 0 ||
+    r.hp > heroStats(state).hp ||
+    r.shield > heroStats(state).hp * 0.3 ||
+    !number(r.level, 1, 11, true) ||
+    r.xp !== c.kills - (r.level === 1 ? 0 : 6 + (r.level - 2) * 5) ||
+    (c.gift === "taken" && c.kills < EMBER_MARCH.giftAt)
+  )
+    return false;
+  if (p.kind === "victory")
+    return (
+      c.kills === EMBER_MARCH.total &&
+      r.cleared === 1 &&
+      r.hp > 0 &&
+      state.meta.emberMarch?.cleared === true &&
+      [0, EMBER_MARCH.firstClearGold].includes(p.bonus ?? -1) &&
+      p.reward === EMBER_MARCH.clearGold + (p.bonus ?? 0) &&
+      p.bonusStatus === (p.bonus ? "earned" : "claimed") &&
+      c.earnedGold === c.kills + p.reward
+    );
+  if (c.earnedGold !== c.kills || r.cleared !== 0 || c.kills >= EMBER_MARCH.total) return false;
+  if (p.kind === "defeat")
+    return (
+      r.hp === 0 &&
+      typeof p.enemy === "string" &&
+      Array.from({ length: c.nextSpawn }, (_, i) => marchEnemy(i, 0).name).includes(p.enemy)
+    );
+  if (r.hp <= 0 || !["battle", "choice", "march-gift"].includes(p.kind)) return false;
+  if (p.kind === "choice" || p.kind === "march-gift") {
+    if (
+      !record(p.resume) ||
+      p.resume.kind !== "ember-march" ||
+      p.offerId !== `${c.runId}:${c.offerSerial}` ||
+      c.offerSerial < 1 ||
+      !Array.isArray(p.options) ||
+      new Set(p.options).size !== p.options.length ||
+      !p.options.every(
+        (id) =>
+          id !== "renewal" && PERKS.some((perk) => perk.id === id && rank(state, id) < perk.max),
+      )
+    )
+      return false;
+    if (p.kind === "choice") {
+      if (p.options.length !== 3 || !number(p.rerolls, 0, 1, true) || r.level < 2) return false;
+    } else {
+      const expected = (["heart", "bastion", "ward", "blood"] as PerkId[])
+        .filter((id) => rank(state, id) < PERKS.find((perk) => perk.id === id)!.max)
+        .slice(0, 2);
+      if (
+        c.gift !== "pending" ||
+        c.kills < EMBER_MARCH.giftAt ||
+        p.options.length !== 2 ||
+        p.options.some((id, i) => id !== expected[i])
+      )
+        return false;
+    }
+  }
+  const battle = visibleBattle(state);
+  if (
+    !record(battle) ||
+    battle.kind !== "battle" ||
+    battle.formation !== "squad" ||
+    battle.commands !== undefined ||
+    !Array.isArray(battle.enemies) ||
+    battle.enemies.length > 10 ||
+    !battle.enemies.every(record) ||
+    new Set(battle.enemies.map((e) => e.id)).size !== battle.enemies.length
+  )
+    return false;
+  if (!validCombatState({ ...state, phase: battle }, true)) return false;
+  const alive = livingEnemies(battle);
+  if (
+    alive.length !== c.nextSpawn - c.kills ||
+    alive.length > 4 ||
+    new Set(alive.map((e) => e.slot)).size !== alive.length
+  )
+    return false;
+  const retained = referencedMarchTargets(battle);
+  for (const e of battle.enemies) {
+    if (
+      !validMarchTemplate(e, c.nextSpawn) ||
+      !number(e.hp, 0, e.maxHp) ||
+      !number(e.cooldown, -0.25, 6) ||
+      !validPending(e.pendingHit, 0.7) ||
+      (e.hp === 0 && (e.pendingHit !== null || !retained.has(e.id))) ||
+      (e.pendingHit && (e.pendingHit.damage !== e.damage || e.pendingHit.critical !== false))
+    )
+      return false;
+  }
+  return (
+    number(battle.heroCooldown, 0, 5) &&
+    number(battle.companionCooldown, 0, 5) &&
+    number(battle.petCooldown, 0, 5) &&
+    [battle.heroHit, battle.companionHit, battle.petHit].every((hit) =>
+      validAllyHit(hit, battle),
+    ) &&
+    (systemUnlocked(state, "company") || battle.companionHit === null) &&
+    (systemUnlocked(state, "pets") || battle.petHit === null)
+  );
 }
 function validCombatState(state: GameState, equipmentSwaps = false): boolean {
   const cast = state.run.shieldCast;

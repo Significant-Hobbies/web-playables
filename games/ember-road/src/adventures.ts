@@ -1,3 +1,4 @@
+import type { EmberMarchContext } from "./ember-march.ts";
 import { FIRST_LIGHT } from "./first-light.ts";
 import type { GameState } from "./model";
 
@@ -6,6 +7,7 @@ export type ActivityKind = "daily" | "hunt";
 export type Tier = 1 | 2 | 3;
 export type RouteId = "spring" | "elite" | "rescue" | "shrine" | "tracks";
 export type RunContext =
+  | EmberMarchContext
   | { kind: "campaign"; routes: { at: number; path: RouteId }[]; junctionFloor: number }
   | { kind: "first-light"; returnChapter: number }
   | { kind: ActivityKind; id: number; period: number; tier: Tier; returnChapter: number };
@@ -252,7 +254,7 @@ export function validAdventureLedger(value: unknown): value is AdventureLedger {
     integer(l.discoveries.oaths, 2)
   );
 }
-export function validRunContext(state: GameState, firstLight = false): boolean {
+export function validRunContext(state: GameState, firstLight = false, march = false): boolean {
   const c = state.run.context;
   if (!c || typeof c !== "object") return false;
   if (c.kind === "campaign")
@@ -294,6 +296,7 @@ export function validRunContext(state: GameState, firstLight = false): boolean {
       c.returnChapter >= 1 &&
       c.returnChapter <= state.meta.unlockedChapter
     );
+  if (c.kind === "ember-march") return march;
   const ledger = state.adventures;
   if (!ledger || !["daily", "hunt"].includes(c.kind)) return false;
   const period = c.kind === "daily" ? ledger.day : ledger.week;
