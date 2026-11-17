@@ -203,7 +203,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
       await s.page
         .getByRole("button", { name: "Account and saves", exact: true })
         .evaluate((button) => button.click());
-      await s.page.getByRole("dialog", { name: "Keep your checkpoint.", exact: true }).waitFor();
+      await s.page.getByRole("dialog", { name: "Keep your journey safe.", exact: true }).waitFor();
       assert.equal(await s.page.locator("dialog[open]").count(), 1);
       assert.equal(await s.page.locator(".march-decision[open]").count(), 0);
       assert.deepEqual(await checkpoint(s.page), before);
