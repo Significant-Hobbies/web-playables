@@ -31,6 +31,7 @@ import {
   trainingCost,
   validProgression,
 } from "./progression";
+import { answerThreats } from "./tactics-test-helper";
 
 describe("permanent company progression", () => {
   it("finishes a fresh chapter, keeps earned currencies and training through the next journey", () => {
@@ -47,6 +48,7 @@ describe("permanent company progression", () => {
           state,
           state.phase.at === 3 ? "rescue" : state.phase.at === 6 ? "shrine" : "tracks",
         );
+      answerThreats(state);
       castSkill(state);
       stepGame(state, 1 / 60);
       expect(validState(state)).toBe(true);
@@ -54,7 +56,7 @@ describe("permanent company progression", () => {
     }
     expect(state.phase.kind).toBe("victory");
     expect(companyLevel(state)).toBe(4);
-    expect(progressionOf(state)).toMatchObject({ renown: 48, trailmarks: 18, embers: 4 });
+    expect(progressionOf(state)).toMatchObject({ renown: 41, trailmarks: 12, embers: 4 });
     expect(returnToCamp(state)).toBe(true);
     expect(train(state, "companion")).toBe(false);
     expect(train(state, "pet")).toBe(false);
@@ -114,7 +116,7 @@ describe("permanent company progression", () => {
       expect(validState(state)).toBe(true);
     }
     expect(actors).toEqual(new Set(["hero"]));
-    expect(progressionOf(state)).toMatchObject({ renown: 2, trailmarks: 1, embers: 0 });
+    expect(progressionOf(state)).toMatchObject({ renown: 1, trailmarks: 1, embers: 0 });
     const after = structuredClone(progressionOf(state));
     stepGame(state, 0);
     expect(progressionOf(state)).toEqual(after);

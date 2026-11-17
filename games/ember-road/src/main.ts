@@ -17,6 +17,7 @@ import {
   type GameEvent,
   type GameState,
   initialState,
+  issueCommand,
   migrateV1State,
   migrateV2State,
   migrateV3State,
@@ -48,6 +49,7 @@ import "./discovery.css";
 import "./collection.css";
 import "./camp.css";
 import "./oath-offering.css";
+import "./combat.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
@@ -68,7 +70,7 @@ let uiElapsed = 0;
 let saveElapsed = 0;
 let saveBusy = false;
 let saveAgain = false;
-let note = "Rook fights automatically. Shape your company and cast with Q.";
+let note = "Rook attacks. You read the enemy: W to brace, E to break a channel.";
 let renderer: WorldRenderer | undefined;
 let loop: Loop | undefined;
 let renderUi: ReturnType<typeof mountUi> | undefined;
@@ -224,7 +226,7 @@ function events(events: GameEvent[]) {
 function launch(chapter: number) {
   if (!loaded || !startRun(state, chapter)) return;
   userPaused = false;
-  note = "Rook fights automatically. Cast your equipped skill with Q.";
+  note = "Watch the enemy windup. W braces at contact; E breaks a channel.";
   changed(true);
   syncPause();
 }
@@ -382,6 +384,12 @@ const actions: UiActions = {
       syncPause();
     }
   },
+  command(command) {
+    if (!loaded || userPaused || platformPaused || inspecting) return;
+    events(issueCommand(state, command));
+    draw();
+    publish();
+  },
   skill() {
     if (!loaded || userPaused || platformPaused || inspecting) return;
     advanceAdventures(state, Date.now());
@@ -501,6 +509,14 @@ window.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() === "q" && !userPaused) {
     event.preventDefault();
     actions.skill();
+  }
+  if (
+    ["w", "e"].includes(event.key.toLowerCase()) &&
+    !userPaused &&
+    state.phase.kind === "battle"
+  ) {
+    event.preventDefault();
+    actions.command(event.key.toLowerCase() === "w" ? "brace" : "breakthrough");
   }
   const index = Number(event.key) - 1;
   if (

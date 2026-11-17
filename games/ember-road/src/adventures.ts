@@ -92,6 +92,13 @@ export const DISCOVERY_CHAPTERS = { mira: 2, cinder: 3 } as const;
 
 export function routeDetails(state: GameState, path: RouteId) {
   const discoveries = state.adventures?.discoveries;
+  if (path === "spring" && state.run.rules === 1)
+    return { ...ROUTES.spring, risk: "Gentler road · weaker foes ahead" };
+  if (path === "shrine" && discoveries?.whirlwind)
+    return {
+      ...ROUTES.shrine,
+      reward: "+20% Rook damage for this run · Whirlwind already learned",
+    };
   if (path === "rescue" && !discoveries?.mira && state.run.chapter < DISCOVERY_CHAPTERS.mira)
     return {
       ...ROUTES[path],
@@ -196,10 +203,15 @@ export function currentRoute(state: GameState): RouteId | undefined {
   const context = state.run.context;
   return context?.kind === "campaign" ? context.routes.at(-1)?.path : undefined;
 }
+export function junctions(state: GameState): number[] {
+  return state.run.rules === 1
+    ? [state.run.chapter === 2 ? 3 : state.run.chapter === 3 ? 9 : 6]
+    : [3, 6, 9];
+}
 export function nextJunction(state: GameState): number | undefined {
   const context = state.run.context;
   if (context?.kind !== "campaign") return undefined;
-  return [3, 6, 9].find(
+  return junctions(state).find(
     (at) =>
       at > context.junctionFloor &&
       at === state.run.cleared &&
@@ -250,7 +262,7 @@ export function validRunContext(state: GameState): boolean {
           routeOptions(r.at).includes(r.path) &&
           (i === 0 || r.at > c.routes[i - 1]!.at),
       ) &&
-      [3, 6, 9]
+      junctions(state)
         .filter((at) => at > c.junctionFloor && at < state.run.cleared)
         .every((at) => c.routes.some((r) => r.at === at)) &&
       (state.phase.kind === "camp" ||

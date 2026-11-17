@@ -241,6 +241,16 @@ function finish(state, build, policy, now, validate = true) {
         ),
       );
     const events = [];
+    if (policy !== "skip" && state.phase.kind === "battle") {
+      const threats = state.phase.enemies.filter((enemy) => enemy.hp > 0 && enemy.pendingHit);
+      if (policy === "immediate" || threats.some((enemy) => enemy.pendingHit.remaining < 0.2))
+        events.push(...M.issueCommand(state, "brace"));
+      if (
+        policy === "immediate" ||
+        threats.some((enemy) => enemy.kind === "hexer" || enemy.kind === "sentinel")
+      )
+        events.push(...M.issueCommand(state, "breakthrough"));
+    }
     if (castAllowed(state, policy)) events.push(...castSkill(state));
     if (state.phase.kind === "battle") stats.combatSeconds += 1 / 30;
     events.push(...M.stepGame(state, 1 / 30));

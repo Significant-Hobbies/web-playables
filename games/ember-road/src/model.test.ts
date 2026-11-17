@@ -39,6 +39,7 @@ function initialState(seed?: number) {
   delete state.meta.progression;
   delete state.adventures;
   delete state.run.context;
+  delete state.run.rules;
   return state;
 }
 

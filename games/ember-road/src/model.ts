@@ -78,7 +78,7 @@ export const PERKS: readonly Perk[] = [
     id: "tempo",
     title: "Quick hands",
     caption: "STEEL / SPEED",
-    description: "Attack 18% faster. More strikes, more chances to trigger your build.",
+    description: "Attack 18% faster. Breakthrough recovers 12% faster per rank.",
     family: "steel",
     rarity: "common",
     max: 3,
@@ -124,7 +124,8 @@ export const PERKS: readonly Perk[] = [
     id: "thorns",
     title: "Briar mail",
     caption: "EMBER / RETALIATION",
-    description: "Return 5 damage per rank to the enemy that hits you.",
+    description:
+      "Return 5 damage per rank on hit. Perfect Brace counters gain +20% sword damage per rank.",
     family: "ember",
     rarity: "rare",
     max: 3,
@@ -383,11 +384,62 @@ export interface Enemy {
   armor: number;
   gold: number;
 }
+export type CommandId = "brace" | "breakthrough";
+export interface BattleCommands {
+  brace: number;
+  braceCooldown: number;
+  breakthroughCooldown: number;
+  focus: ActorId | null;
+  focusTime: number;
+  exposed: number;
+  feedback: string;
+  feedbackTime: number;
+}
+export const ENEMY_INTENTS: Record<
+  EnemyKind,
+  { label: string; answer: string; windup: number; recovery: number }
+> = {
+  raider: { label: "Lunge", answer: "Brace as the blade falls", windup: 0.8, recovery: 2.1 },
+  sentinel: {
+    label: "Shield crush",
+    answer: "Break through its raised shield",
+    windup: 1.25,
+    recovery: 2.5,
+  },
+  archer: {
+    label: "Aimed shot",
+    answer: "Brace the arrow or break the rear line",
+    windup: 1.6,
+    recovery: 2.8,
+  },
+  hexer: {
+    label: "Expose curse",
+    answer: "Break the channel before it finishes",
+    windup: 2.2,
+    recovery: 3.4,
+  },
+  warden: {
+    label: "Crownfall",
+    answer: "Time a brace, then punish the opening",
+    windup: 1.5,
+    recovery: 3,
+  },
+};
+export function enemyIntent(enemy: EnemyFighter) {
+  const intent = ENEMY_INTENTS[enemy.kind];
+  return enemy.kind === "warden" &&
+    (enemy.pendingHit?.windup !== undefined
+      ? enemy.pendingHit.windup < ENEMY_INTENTS.warden.windup
+      : enemy.hp < enemy.maxHp / 2)
+    ? { ...intent, label: "Desperate crownfall", windup: 1.05, recovery: 2.3 }
+    : intent;
+}
 export interface PendingHit {
   remaining: number;
   damage: number;
   critical: boolean;
   legacy?: boolean;
+  windup?: number;
 }
 export type SynergyId = "shatterguard" | "storm-relay" | "hunters-signal";
 export interface TargetHit extends PendingHit {
@@ -410,6 +462,7 @@ export interface BattlePhase {
   formation: "legacy" | "squad";
   mark?: { target: ActorId; remaining: number; serial: number } | null;
   markSerial?: number;
+  commands?: BattleCommands;
   reactions?: {
     target: ActorId;
     remaining: number;
@@ -453,6 +506,7 @@ export interface GameState {
     loadout: Loadout;
   };
   run: {
+    rules?: 1;
     context?: RunContext;
     chapter: number;
     cleared: number;
@@ -486,7 +540,20 @@ export interface HeroStats {
   pierce: number;
 }
 export type GameEvent =
-  | { type: "swing"; side: "hero" | "enemy"; actor: ActorId; target: ActorId; projectile: boolean }
+  | {
+      type: "swing";
+      side: "hero" | "enemy";
+      actor: ActorId;
+      target: ActorId;
+      projectile: boolean;
+      contact?: number;
+    }
+  | {
+      type: "command";
+      command: CommandId;
+      result: "ready" | "block" | "perfect" | "interrupt";
+      target: ActorId;
+    }
   | {
       type: "hit";
       side: "hero" | "enemy";
@@ -529,6 +596,7 @@ export function initialState(seed = 927113): GameState {
       loadout: { ...DEFAULT_LOADOUT },
     },
     run: {
+      rules: 1,
       context: { kind: "campaign", routes: [], junctionFloor: 0 },
       chapter: 1,
       cleared: 0,
@@ -731,7 +799,7 @@ function random(state: GameState) {
   return state.run.seed / 4294967296;
 }
 export function xpNeeded(state: GameState) {
-  return 3 + state.run.level;
+  return state.run.rules === 1 ? (state.run.level === 1 ? 6 : 10) : 3 + state.run.level;
 }
 export function upgradeCost(state: GameState, id: UpgradeId) {
   return Math.round({ blade: 24, mail: 22, charm: 30 }[id] * 1.65 ** state.meta.upgrades[id]);
@@ -755,6 +823,7 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
     return false;
   const seed = state.run.seed;
   state.run = {
+    rules: state.adventures ? 1 : undefined,
     context: state.adventures ? { kind: "campaign", routes: [], junctionFloor: 0 } : undefined,
     chapter,
     cleared: 0,
@@ -800,6 +869,7 @@ export function retreatToCamp(state: GameState): boolean {
     context && context.kind !== "campaign" ? context.returnChapter : state.run.chapter;
   const seed = state.run.seed;
   state.run = {
+    rules: state.adventures ? 1 : undefined,
     context: state.adventures ? { kind: "campaign", routes: [], junctionFloor: 0 } : undefined,
     chapter,
     cleared: 0,
@@ -905,6 +975,77 @@ export function encounterGroup(chapter: number, cleared: number): EnemyFighter[]
     };
   });
 }
+export function tacticalEncounterGroup(chapter: number, cleared: number): EnemyFighter[] {
+  const base = encounterGroup(chapter, cleared);
+  const lessons: EnemyKind[][] = [
+    ["raider"],
+    ["raider", "archer"],
+    ["sentinel", "archer"],
+    ["raider", "hexer"],
+    ["sentinel", "hexer"],
+    ["raider", "archer", "hexer"],
+    ["sentinel", "archer"],
+    ["raider", "sentinel", "hexer"],
+    ["sentinel", "archer", "archer"],
+    ["raider", "hexer", "archer"],
+    ["sentinel", "hexer", "archer"],
+    ["warden", "archer", "hexer"],
+  ];
+  const later: EnemyKind[][] = [
+    ["sentinel", "hexer"],
+    ["raider", "archer", "archer"],
+    ["sentinel", "raider", "hexer"],
+    ["raider", "hexer", "hexer"],
+    ["sentinel", "archer", "hexer"],
+  ];
+  const kinds =
+    chapter === 1 || cleared === 11
+      ? lessons[Math.min(11, cleared)]!
+      : later[(cleared + chapter * 2) % later.length]!;
+  return kinds.map((kind, slot) => {
+    const original = base[Math.min(slot, base.length - 1)]!;
+    const factor = 1 + (chapter - 1) * 0.34;
+    const maxHp = Math.round(
+      (kind === "warden" ? 285 : slot === 0 ? 62 + cleared * 5 : 40 + cleared * 3) * factor,
+    );
+    return {
+      ...original,
+      id: `enemy-${slot}`,
+      slot,
+      kind,
+      row: kind === "archer" || kind === "hexer" ? "back" : "front",
+      name:
+        kind === "warden"
+          ? CHAPTERS[chapter - 1]!.boss
+          : {
+              raider: "Briar raider",
+              sentinel: "Hollow shieldbearer",
+              archer: "Briar sharpshot",
+              hexer: "Cinder hexer",
+            }[kind],
+      hp: maxHp,
+      maxHp,
+      damage: Math.round(
+        (kind === "warden"
+          ? 32
+          : kind === "hexer"
+            ? 13
+            : kind === "archer"
+              ? 10
+              : kind === "sentinel"
+                ? 13
+                : cleared === 0
+                  ? 5
+                  : 8) * factor,
+      ),
+      armor: kind === "sentinel" ? 3 + chapter : kind === "warden" ? 2 + chapter : 0,
+      interval: ENEMY_INTENTS[kind].recovery,
+      cooldown: 1 + slot * 0.7,
+      pendingHit: null,
+      braced: false,
+    };
+  });
+}
 export function startActivity(
   state: GameState,
   kind: ActivityKind,
@@ -971,7 +1112,10 @@ function resumeTrail(state: GameState, remaining = 0.9) {
 export function adventureEnemies(state: GameState): EnemyFighter[] {
   const context = state.run.context;
   if (!context || context.kind === "campaign") {
-    const enemies = encounterGroup(state.run.chapter, state.run.cleared),
+    const enemies = (state.run.rules === 1 ? tacticalEncounterGroup : encounterGroup)(
+        state.run.chapter,
+        state.run.cleared,
+      ),
       route = currentRoute(state);
     for (const enemy of enemies) {
       if (route === "spring") {
@@ -1061,6 +1205,20 @@ export function beginBattle(state: GameState): BattlePhase {
     mark: null,
     markSerial: 0,
     reactions: [],
+    ...(state.run.rules === 1
+      ? {
+          commands: {
+            brace: 0,
+            braceCooldown: 0,
+            breakthroughCooldown: 0,
+            focus: null,
+            focusTime: 0,
+            exposed: 0,
+            feedback: "Read the windup. W braces; E breaks a channel.",
+            feedbackTime: 5,
+          },
+        }
+      : {}),
     enemies: adventureEnemies(state),
     heroCooldown: 0.22,
     companionCooldown: 0.45,
@@ -1116,7 +1274,10 @@ export function rerollPerks(state: GameState) {
 function offeredPerks(state: GameState, allowed?: PerkId[]): PerkId[] {
   const weights: Record<Rarity, number> = { common: 5, rare: 4, epic: 3, legendary: 1 };
   const pool = PERKS.filter(
-    (p) => rank(state, p.id) < p.max && (!allowed || allowed.includes(p.id)),
+    (p) =>
+      rank(state, p.id) < p.max &&
+      (!allowed || allowed.includes(p.id)) &&
+      !(state.run.rules === 1 && p.id === "renewal" && state.run.cleared >= runLength(state) - 2),
   ).map((p) => ({
     id: p.id,
     score: -Math.log(Math.max(0.000001, random(state))) / weights[p.rarity],
@@ -1147,7 +1308,16 @@ function damageEnemy(
   reaction?: SynergyId,
 ) {
   if (enemy.hp <= 0) return;
-  const actual = Math.min(enemy.hp, Math.max(reaction ? 0 : 1, damage - enemy.armor));
+  const raisedShield =
+    state.run.rules === 1 &&
+    enemy.kind === "sentinel" &&
+    enemy.pendingHit !== null &&
+    actor === "hero" &&
+    !reaction;
+  const actual = Math.min(
+    enemy.hp,
+    Math.max(reaction ? 0 : 1, damage * (raisedShield ? 0.35 : 1) - enemy.armor),
+  );
   enemy.hp = Math.max(0, enemy.hp - actual);
   events.push({
     type: "hit",
@@ -1239,6 +1409,48 @@ export function effectiveSkillCooldown(state: GameState, id: SkillId = state.met
     SKILLS.find((skill) => skill.id === id)!.cooldown *
     (1 - progressionOf(state).training.skill * 0.08)
   );
+}
+export function issueCommand(state: GameState, command: CommandId): GameEvent[] {
+  if (state.phase.kind !== "battle" || !state.phase.commands) return [];
+  const battle = state.phase,
+    commands = battle.commands!;
+  const events: GameEvent[] = [];
+  if (command === "brace") {
+    if (commands.braceCooldown > 0) return [];
+    commands.brace = 0.9;
+    commands.braceCooldown = 3.2;
+    commands.feedback = "Brace raised · last-moment contact counters";
+    commands.feedbackTime = 1.2;
+    events.push({ type: "command", command, result: "ready", target: "hero" });
+  } else {
+    if (commands.breakthroughCooldown > 0) return [];
+    const foes = livingEnemies(battle);
+    const target =
+      foes.find((foe) => foe.kind === "hexer" && foe.pendingHit && !foe.braced) ??
+      foes.find((foe) => foe.kind === "sentinel" && foe.pendingHit && !foe.braced) ??
+      foes.find((foe) => foe.row === "back" && foe.pendingHit && !foe.braced) ??
+      foes.find((foe) => foe.row === "back") ??
+      foes[0];
+    if (!target) return [];
+    const channel = target.pendingHit !== null && !target.braced;
+    commands.breakthroughCooldown = 6.5 * (1 - rank(state, "tempo") * 0.12);
+    commands.focus = target.id;
+    commands.focusTime = 2.4;
+    if (channel) interrupt(target, 1.2, "hero", events);
+    damageEnemy(state, target, heroStats(state).damage * (channel ? 1.25 : 0.7), "hero", events);
+    commands.feedback = channel
+      ? `${target.name} interrupted · opening!`
+      : `Breaking toward ${target.name}`;
+    commands.feedbackTime = 1.6;
+    events.push({
+      type: "command",
+      command,
+      result: channel ? "interrupt" : "ready",
+      target: target.id,
+    });
+    finishWave(state, battle, events);
+  }
+  return events;
 }
 export function useSkill(state: GameState): GameEvent[] {
   if (
@@ -1398,6 +1610,19 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
   if (state.phase.kind !== "battle") return events;
   const battle = state.phase;
   const stats = heroStats(state);
+  const commands = battle.commands;
+  if (commands) {
+    for (const key of [
+      "brace",
+      "braceCooldown",
+      "breakthroughCooldown",
+      "focusTime",
+      "exposed",
+      "feedbackTime",
+    ] as const)
+      commands[key] = Math.max(0, commands[key] - dt);
+    if (commands.focusTime <= 0) commands.focus = null;
+  }
   if (battle.mark) {
     battle.mark.remaining -= dt;
     if (
@@ -1447,11 +1672,18 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       foe.pendingHit.remaining -= dt;
       if (foe.pendingHit.remaining <= 0) {
         const hit = foe.pendingHit;
-        const raw = hit.damage * (foe.row === "back" ? 1 - stats.rangedResistance : 1);
+        const perfect = !!commands && commands.brace > 0.6;
+        const guarded = !!commands && commands.brace > 0;
+        const curse = state.run.rules === 1 && foe.kind === "hexer";
+        const raw =
+          hit.damage *
+          (foe.row === "back" ? 1 - stats.rangedResistance : 1) *
+          (commands && commands.exposed > 0 ? 1.5 : 1) *
+          (guarded ? (perfect ? 0 : 0.25) : 1);
         foe.pendingHit = null;
         foe.braced = false;
         // Only an attack already in flight at the v4 upgrade retains armor-first mitigation.
-        const incoming = Math.max(1, raw - (hit.legacy ? stats.armor : 0));
+        const incoming = perfect ? 0 : Math.max(1, raw - (hit.legacy ? stats.armor : 0));
         const absorbed = Math.min(state.run.shield, incoming);
         state.run.shield -= absorbed;
         if (state.run.shieldCast) state.run.shieldCast.absorbed += absorbed;
@@ -1461,6 +1693,33 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
           hit.legacy ? unshielded : unshielded > 0 ? Math.max(1, unshielded - stats.armor) : 0,
         );
         state.run.hp = Math.max(0, state.run.hp - damage);
+        if (commands && guarded) {
+          commands.feedback = perfect
+            ? "PERFECT BRACE · counterstrike"
+            : "BRACED · damage softened";
+          commands.feedbackTime = 1.5;
+          events.push({
+            type: "command",
+            command: "brace",
+            result: perfect ? "perfect" : "block",
+            target: foe.id,
+          });
+          if (perfect) {
+            damageEnemy(
+              state,
+              foe,
+              stats.damage * (0.8 + rank(state, "thorns") * 0.2),
+              "hero",
+              events,
+            );
+            if (finishWave(state, battle, events)) return events;
+          }
+        }
+        if (commands && curse && !guarded) {
+          commands.exposed = 4;
+          commands.feedback = "EXPOSED · brace the next hit";
+          commands.feedbackTime = 2;
+        }
         events.push({
           type: "hit",
           side: "hero",
@@ -1506,7 +1765,10 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       }
     }
   }
-  const front = frontTarget(battle);
+  const front =
+    (commands?.focus
+      ? livingEnemies(battle).find((foe) => foe.id === commands.focus)
+      : undefined) ?? frontTarget(battle);
   if (!front) return events;
   if (battle.heroCooldown <= 0 && !battle.heroHit) {
     const critical = random(state) < stats.crit;
@@ -1587,9 +1849,26 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
   for (const foe of livingEnemies(battle)) {
     if (foe.cooldown <= 0 && !foe.pendingHit) {
       const projectile = foe.row === "back";
-      foe.pendingHit = { remaining: projectile ? 0.65 : 0.29, damage: foe.damage, critical: false };
-      foe.cooldown = foe.interval;
-      events.push({ type: "swing", side: "enemy", actor: foe.id, target: "hero", projectile });
+      const intent = enemyIntent(foe);
+      const windup = commands ? intent.windup : projectile ? 0.65 : 0.29;
+      foe.pendingHit = {
+        remaining: windup,
+        damage: foe.damage,
+        critical: false,
+        ...(commands ? { windup } : {}),
+      };
+      foe.cooldown = commands
+        ? intent.windup +
+          foe.interval * (foe.kind === "warden" && foe.hp < foe.maxHp / 2 ? 0.75 : 1)
+        : foe.interval;
+      events.push({
+        type: "swing",
+        side: "enemy",
+        actor: foe.id,
+        target: "hero",
+        projectile,
+        contact: windup,
+      });
     }
   }
   return events;
@@ -1774,6 +2053,7 @@ function validPending(value: unknown, maxTime: number) {
     (record(value) &&
       number(value.remaining, -0.25, maxTime) &&
       number(value.damage, 0, 10000) &&
+      (value.windup === undefined || number(value.windup, 0.29, 2.2)) &&
       typeof value.critical === "boolean")
   );
 }
@@ -1871,6 +2151,7 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
     !number(r.seed, 1, 4294967295, true) ||
     !number(r.time, 0, 1e9) ||
     !number(r.distance, 0, 1e9) ||
+    (r.rules !== undefined && r.rules !== 1) ||
     !number(r.skillCooldown, 0, 12) ||
     !number(r.shield, 0, 3000)
   )
@@ -1992,14 +2273,32 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
       if (e[key] !== template[key]) return false;
     if (
       !number(e.hp, 0, template.maxHp) ||
-      !number(e.cooldown, -0.25, 5) ||
-      !validPending(e.pendingHit, 0.7)
+      !number(e.cooldown, -0.25, r.rules === 1 ? 6 : 5) ||
+      !validPending(e.pendingHit, r.rules === 1 ? 2.2 : 0.7)
     )
       return false;
     if (e.hp === 0 && e.pendingHit !== null) return false;
     if (
       record(e.pendingHit) &&
       (e.pendingHit.damage !== template.damage || e.pendingHit.critical !== false)
+    )
+      return false;
+  }
+  if (r.rules === 1 && !record(p.commands)) return false;
+  if (p.commands !== undefined) {
+    const c = p.commands;
+    if (
+      r.rules !== 1 ||
+      !record(c) ||
+      !number(c.brace, 0, 0.9) ||
+      !number(c.braceCooldown, 0, 3.2) ||
+      !number(c.breakthroughCooldown, 0, 6.5) ||
+      !number(c.focusTime, 0, 2.4) ||
+      !number(c.exposed, 0, 4) ||
+      !number(c.feedbackTime, 0, 5) ||
+      typeof c.feedback !== "string" ||
+      c.feedback.length > 160 ||
+      !(c.focus === null || p.enemies.some((enemy) => record(enemy) && enemy.id === c.focus))
     )
       return false;
   }

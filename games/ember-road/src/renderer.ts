@@ -2,7 +2,7 @@ export type ArtDirection = "ember" | "moon" | "tabletop";
 
 import { attackMotion } from "./attack-motion";
 import type { ActorId, CompanionId, EnemyFighter, GameEvent, GameState, PetId } from "./model";
-import { COMBO_TUNING, rank } from "./model";
+import { COMBO_TUNING, enemyIntent, rank } from "./model";
 import { systemUnlocked } from "./progression";
 import { spriteBottom, visibleSpriteHeight } from "./sprite-frames";
 
@@ -31,6 +31,8 @@ export interface Scene {
   weapon?: string;
   pet: PetId;
   shield: number;
+  brace?: number;
+  exposed?: boolean;
   enemies: EnemyFighter[];
   marked?: ActorId;
 }
@@ -44,6 +46,7 @@ export interface Spark {
   vy: number;
   color: string;
   text?: string;
+  label?: boolean;
 }
 
 const INK = "#26382f";
@@ -112,6 +115,31 @@ export class WorldRenderer {
         this.motions.clear();
         this.effects = [];
         this.seenReactions = new WeakSet();
+        for (const foe of state.phase.enemies) {
+          if (!foe.pendingHit || foe.hp <= 0) continue;
+          const contact = foe.pendingHit.windup ?? (foe.row === "back" ? 0.65 : 0.29);
+          Object.assign(this.motion(foe.id), {
+            attack: Math.max(0, contact - foe.pendingHit.remaining),
+            contact,
+            target: "hero",
+            projectile: foe.row === "back",
+          });
+        }
+        for (const actor of ["hero", "companion", "pet"] as const) {
+          const hit =
+            state.phase[
+              actor === "hero" ? "heroHit" : actor === "companion" ? "companionHit" : "petHit"
+            ];
+          if (!hit) continue;
+          const contact =
+            actor === "hero" ? 0.22 : actor === "pet" ? 0.3 : hit.projectile ? 0.5 : 0.25;
+          Object.assign(this.motion(actor), {
+            attack: Math.max(0, contact - hit.remaining),
+            contact,
+            target: hit.target,
+            projectile: hit.projectile,
+          });
+        }
       }
       this.foes = state.phase.enemies;
       // The saved queue owns flights, including those already in the air on reload.
@@ -143,7 +171,39 @@ export class WorldRenderer {
 
   handle(events: GameEvent[], state: GameState) {
     for (const event of events) {
-      if (event.type === "combo") {
+      if (event.type === "command") {
+        if (event.result === "perfect")
+          Object.assign(this.motion("hero"), {
+            attack: 0.22,
+            contact: 0.22,
+            target: event.target,
+            projectile: false,
+          });
+        const p = this.position(event.result === "perfect" ? "hero" : event.target);
+        this.effects.push({
+          actor: "hero",
+          target: event.target,
+          age: 0,
+          kind: event.command === "brace" ? "shield" : "interrupt",
+        });
+        if (event.result !== "ready")
+          this.sparks.push({
+            x: p.x - 35,
+            y: p.y - 180 * p.scale,
+            label: true,
+            age: 0,
+            life: 0.8,
+            vx: 0,
+            vy: -18,
+            color: event.result === "perfect" ? "#ffe08a" : "#9de6e0",
+            text:
+              event.result === "perfect"
+                ? "PERFECT!"
+                : event.result === "interrupt"
+                  ? "BROKEN"
+                  : "BRACED",
+          });
+      } else if (event.type === "combo") {
         if (event.effect !== "shatterguard")
           this.effects.push({
             actor: event.actor,
@@ -157,7 +217,8 @@ export class WorldRenderer {
           target: event.target,
           projectile: event.projectile,
           contact:
-            event.actor === "hero"
+            event.contact ??
+            (event.actor === "hero"
               ? 0.22
               : event.actor === "pet"
                 ? 0.3
@@ -167,9 +228,10 @@ export class WorldRenderer {
                     : 0.25
                   : event.projectile
                     ? 0.65
-                    : 0.29,
+                    : 0.29),
         });
       } else if (event.type === "hit") {
+        if (event.damage === 0) continue;
         this.motion(event.target).hurt = 0;
         if (!event.effect && (event.actor === "hero" || event.actor === "pet"))
           this.effects.push({
@@ -232,6 +294,8 @@ export class WorldRenderer {
       weapon: state.meta.loadout.weapon,
       pet: state.meta.loadout.pet,
       shield: state.run.shield,
+      brace: state.phase.kind === "battle" ? state.phase.commands?.brace : 0,
+      exposed: state.phase.kind === "battle" ? (state.phase.commands?.exposed ?? 0) > 0 : false,
       marked: state.phase.kind === "battle" ? state.phase.mark?.target : undefined,
       enemies,
     });
@@ -356,9 +420,9 @@ export class WorldRenderer {
     for (const p of this.sparks) {
       c.globalAlpha = Math.min(1, (1 - p.age / p.life) * 2);
       if (p.text) {
-        c.font = `700 ${p.text.includes("!") ? 32 : 26}px Georgia, serif`;
+        c.font = `700 ${p.label ? 15 : p.text.includes("!") ? 32 : 26}px ${p.label ? "sans-serif" : "Georgia, serif"}`;
         c.textAlign = "center";
-        c.lineWidth = 5;
+        c.lineWidth = p.label ? 3 : 5;
         c.strokeStyle = "#25362e";
         c.strokeText(p.text, p.x, p.y);
         c.fillStyle = p.color;
@@ -460,12 +524,25 @@ export class WorldRenderer {
                 0,
                 { raider: 0, sentinel: 1, hexer: 2, warden: 3 }[foe.kind],
               );
-        this.healthBar(x, y - (visibleHeight + 16) * scale, 74, foe.hp, foe.maxHp);
+        const barY = y - (visibleHeight + 16) * scale;
+        this.healthBar(x, barY, 74, foe.hp, foe.maxHp);
+        if (foe.pendingHit && s.brace !== undefined) {
+          const intent = enemyIntent(foe),
+            c = this.ctx;
+          const progress = Math.min(
+            1,
+            1 - foe.pendingHit.remaining / (foe.pendingHit.windup ?? intent.windup),
+          );
+          c.fillStyle = "#172126";
+          c.fillRect(x - 39, barY - 13, 78, 7);
+          c.fillStyle = progress > 0.8 ? "#ffce6a" : foe.kind === "hexer" ? "#cc99f2" : "#e38b6f";
+          c.fillRect(x - 37, barY - 11, 74 * progress, 3);
+        }
       }
     }
-    if (s.shield > 0) {
+    if (s.shield > 0 || (s.brace ?? 0) > 0) {
       const p = this.posedPosition("hero", s);
-      this.ctx.strokeStyle = "#9cdee8";
+      this.ctx.strokeStyle = (s.brace ?? 0) > 0.6 ? "#ffe08a" : "#9cdee8";
       this.ctx.lineWidth = 3;
       this.ctx.beginPath();
       this.ctx.ellipse(p.x, p.y - 85 * p.scale, 78 * p.scale, 112 * p.scale, 0, 0, Math.PI * 2);

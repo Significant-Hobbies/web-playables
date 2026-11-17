@@ -12,12 +12,12 @@ const worlds = [
 ];
 const summaries: Record<PerkId, string> = {
   edge: "+25% sword damage",
-  tempo: "Attack 18% faster",
+  tempo: "Faster strikes · faster Breakthrough",
   blood: "Heal from Rook’s damage",
   heart: "+35 health · heal 35",
   bastion: "Take 3 less damage",
   storm: "Lightning every third strike",
-  thorns: "Return 5 damage on hit",
+  thorns: "Retaliate · empower perfect counters",
   renewal: "Heal 8% after each wave",
   execution: "+40% damage to wounded foes",
   cleave: "Sweep across the front line",
@@ -104,8 +104,11 @@ export function OathOffering({
               className={`shrine-offer rarity-${perk.rarity} ${selected.id === id ? "selected" : ""}`}
               data-oath={id}
               aria-pressed={selected.id === id}
-              aria-label={`Inspect ${perk.title}, ${perk.rarity}, rank ${rank(state, id) + 1} of ${perk.max}`}
-              onClick={() => setSelection(id)}
+              aria-label={`Take ${perk.title}, ${perk.rarity}, rank ${rank(state, id) + 1} of ${perk.max}`}
+              data-perk={id}
+              onPointerEnter={() => setSelection(id)}
+              onFocus={() => setSelection(id)}
+              onClick={() => choose(id)}
               style={{ "--offer-delay": `${index * 100}ms` } as CSSProperties}
             >
               <span className="offering-light" />
@@ -142,15 +145,7 @@ export function OathOffering({
       </section>
       <div className={`shrine-binding rarity-${selected.rarity}`}>
         <span className="binding-label">{selected.caption}</span>
-        <Button
-          autoFocus
-          className="take-oath"
-          data-perk={selected.id}
-          onClick={() => choose(selected.id)}
-        >
-          Take {selected.title}
-          <ArrowRight />
-        </Button>
+        <span className="take-oath-hint">Choose a relic above · or press 1, 2, 3</span>
         <p className="selected-effect">{selected.description}</p>
       </div>
       <div className="offering-footer">

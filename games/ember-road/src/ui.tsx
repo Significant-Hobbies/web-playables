@@ -52,6 +52,7 @@ import {
   type Tier,
 } from "./adventures";
 import type { AudioStatus, SoundCue } from "./audio";
+import { CombatCommands, ThreatReadout } from "./combat-ui";
 import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
@@ -62,6 +63,7 @@ import {
   ARMORS,
   CHAPTERS,
   COMPANIONS,
+  type CommandId,
   ENCOUNTERS_PER_CHAPTER,
   effectiveSkillCooldown,
   type GameState,
@@ -145,6 +147,7 @@ export interface UiActions {
   upgrade(id: UpgradeId): void;
   retreat(): void;
   camp(): void;
+  command(command: CommandId): void;
   skill(): void;
   refreshMissions(): void;
   claim(scope: QuestScope, id: string, period: number | null): void;
@@ -978,7 +981,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <canvas
               id="world"
               ref={canvas}
-              aria-label="Rook, his companion and pet on the old road"
+              aria-label={`Rook${companyReady ? " and his companion" : ""}${petsReady ? " with his pet" : ""} on the old road`}
               role="img"
             />
           </div>
@@ -1264,6 +1267,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </div>
             </div>
           )}
+          {!dashboard && state.run.rules === 1 && <ThreatReadout state={state} />}
           {!dashboard && (
             <div className="battle-status">
               <div className="health-stat">
@@ -1304,7 +1308,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <Flame />
                 Powers
               </Button>
-              {skillReady ? (
+              {state.run.rules === 1 ? (
+                <CombatCommands
+                  state={state}
+                  paused={v.paused || !active}
+                  skillReady={skillReady}
+                  command={a.command}
+                  skill={a.skill}
+                />
+              ) : skillReady ? (
                 <Button
                   className="cast-skill"
                   disabled={
@@ -1378,6 +1390,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           {!showPrologue &&
             !dashboard &&
             state.phase.kind === "battle" &&
+            state.run.rules !== 1 &&
             (tip === "battle" || tip === "skill") && (
               <aside className="tutorial-card" aria-label="First battle guidance">
                 <span className={companyReady ? "guide-mira" : "guide-rook"} aria-hidden="true" />
@@ -1879,7 +1892,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
           <div className="departure-stakes">
             <span>12 encounters</span>
-            <i /> <span>3 branching trails</span>
+            <i /> <span>One consequential fork · two oath offerings</span>
             <i />
             <span>1 guardian</span>
           </div>
@@ -2183,9 +2196,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         title="The road forks."
         className="decision--route"
       >
-        <span className="eyebrow">
-          AFTER FIGHT {state.run.cleared} · CHOOSE YOUR NEXT THREE FIGHTS
-        </span>
+        <span className="eyebrow">AFTER FIGHT {state.run.cleared} · SHAPE THE ROAD AHEAD</span>
         <p>One trail, one consequence. Your choice stays with this journey.</p>
         <div className="trail-fork">
           {state.phase.kind === "route" &&
@@ -2213,7 +2224,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         title="Choose your next oath."
         className="decision--choice"
         heading={false}
-        initialFocus=".take-oath"
+        initialFocus="[data-oath]"
       >
         {state.phase.kind === "choice" && (
           <OathOffering
@@ -2245,8 +2256,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           (state.phase.kind === "defeat" || state.phase.kind === "victory")
         }
         title={state.phase.kind === "victory" ? "A light answers." : "Rest. Reforge. Return."}
-        className={state.phase.kind === "victory" ? "decision--victory" : "decision--defeat"}
+        className={`${state.phase.kind === "victory" ? "decision--victory" : "decision--defeat"} chapter-result result-chapter-${state.run.chapter}`}
       >
+        <div className="result-crest" aria-hidden="true">
+          {state.phase.kind === "victory" ? <Flame /> : <Sword />}
+        </div>
         <span className="eyebrow">
           {state.phase.kind === "victory"
             ? activity
