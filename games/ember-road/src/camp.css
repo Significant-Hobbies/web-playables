@@ -1,0 +1,1129 @@
+:root {
+  --background: #202126;
+  --foreground: #f4f5f7;
+  --card: #303239;
+  --card-foreground: #f4f5f7;
+  --popover: #27292f;
+  --popover-foreground: #f4f5f7;
+  --primary: #da4931;
+  --primary-foreground: #fff;
+  --secondary: #454951;
+  --secondary-foreground: #f3f5f7;
+  --accent: #535a63;
+  --accent-foreground: #fff;
+  --muted: #32353b;
+  --muted-foreground: #b9bec8;
+  --border: #777e88;
+  --input: #777e88;
+  --ring: #ffca61;
+}
+.toon-shell {
+  background: #171a1d;
+}
+.toon-shell .game-topbar {
+  height: 76px;
+  flex-basis: 76px;
+  padding: 7px 22px;
+  background: linear-gradient(#41444b, #26292e);
+  border-bottom: 4px solid #0c1014;
+  box-shadow:
+    inset 0 1px #91959a,
+    0 2px #81858d;
+}
+.toon-shell .game-wordmark {
+  color: #fff;
+  font-size: 21px;
+  letter-spacing: 1px;
+}
+.toon-shell .toon-portrait {
+  width: 58px;
+  height: 58px;
+  border-color: #e7aa36;
+}
+.toon-shell .hero-profile {
+  height: auto;
+}
+.toon-shell .game-topbar .gold,
+.toon-shell .game-topbar .currency {
+  background: #17191e;
+  border: 2px solid #080b10;
+  border-radius: 18px;
+  box-shadow: inset 0 2px #62656c;
+  color: #fff;
+}
+.toon-shell .header-actions > [data-slot="button"],
+.toon-shell .header-actions [data-playables-account-slot] button {
+  background: #3a3e46;
+  border-color: #8b939d;
+  color: #fff;
+}
+.toon-shell .camp-canvas {
+  visibility: hidden;
+}
+.living-camp {
+  isolation: isolate;
+  background: #405731;
+}
+.camp-world {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: -3;
+}
+.camp-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(#07100a20, transparent 25%, transparent 68%, #11180ae0);
+  pointer-events: none;
+  z-index: -2;
+}
+.toon-shell .camp-renown {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  width: 295px;
+  display: flex;
+  gap: 12px;
+  height: auto;
+  padding: 9px 12px;
+  background: linear-gradient(#454a4f, #242b2c);
+  border: 3px solid #0e1214;
+  color: #fff;
+  box-shadow:
+    0 0 0 2px #838e91,
+    0 5px #0e1214;
+  border-radius: 10px;
+  text-align: left;
+}
+.camp-renown .game-icon {
+  width: 40px;
+  height: 40px;
+  flex: none;
+}
+.camp-renown > span {
+  flex: 1;
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.camp-renown strong {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.camp-renown small {
+  color: #c4dbac;
+  font-size: 11px;
+  white-space: normal;
+  line-height: 1.3;
+}
+.camp-renown progress {
+  width: 100%;
+  height: 6px;
+}
+.camp-renown > b {
+  font-size: 11px;
+}
+.toon-shell .game-dock.camp-locations {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+  z-index: 2;
+}
+.toon-shell .camp-locations .camp-sign {
+  position: absolute;
+  width: auto;
+  height: auto;
+  min-width: 170px;
+  min-height: 62px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(175deg, #ec6543 0%, #c7422a 44%, #a82f22 45%, #8e2d20 100%);
+  border: 4px solid #251b19;
+  border-radius: 9px 13px 8px 12px;
+  box-shadow:
+    inset 0 2px #ffb771,
+    inset 0 -4px #6d271f,
+    0 3px #e8a558,
+    0 7px #231b16;
+  transform: rotate(-2deg);
+  color: #fff;
+  text-shadow: 0 2px #211819;
+  pointer-events: auto;
+}
+.camp-sign::before,
+.camp-sign::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #b9bdba;
+  border: 2px solid #393c39;
+  border-radius: 50%;
+  top: 8px;
+}
+.camp-sign::before {
+  left: 5px;
+}
+.camp-sign::after {
+  right: 5px;
+}
+.toon-shell .camp-sign > .game-icon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+}
+.toon-shell .camp-sign > span {
+  display: grid;
+  gap: 4px;
+  font-size: clamp(17px, 1.7vw, 25px);
+  line-height: 1;
+  text-align: left;
+}
+.camp-sign small {
+  font-size: 10px;
+  color: #ffdfbb;
+  font-weight: 600;
+  text-shadow: 0 1px #33201a;
+}
+.toon-shell .camp-sign:hover:not(:disabled) {
+  transform: rotate(0) translateY(-3px);
+  filter: brightness(1.13);
+}
+.toon-shell .camp-sign:active:not(:disabled) {
+  transform: rotate(0) translateY(3px);
+}
+.sign-forge {
+  left: 4%;
+  top: 26%;
+}
+.sign-company {
+  left: 28%;
+  top: 19%;
+}
+.sign-skills {
+  right: 4%;
+  top: 26%;
+}
+.sign-discoveries {
+  right: 5%;
+  top: 62%;
+}
+.sign-pets {
+  left: 4%;
+  top: 62%;
+}
+.camp-company {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.camp-company .toon-actor {
+  width: clamp(130px, 17vw, 260px);
+  height: clamp(130px, 17vw, 260px);
+  bottom: 20%;
+  filter: drop-shadow(0 7px 3px #14200b66);
+}
+.camp-rook {
+  left: 27%;
+  background: url("../assets/toon-knight.png") 0 0 / 400% 200% no-repeat;
+}
+.camp-companion {
+  left: 46%;
+  background: url("../assets/toon-party.png") 0 0 / 400% 400% no-repeat;
+  animation-delay: -0.8s;
+}
+.camp-company .camp-pet {
+  left: 45%;
+  bottom: 16%;
+  width: clamp(80px, 9vw, 145px);
+  height: clamp(80px, 9vw, 145px);
+  background: url("../assets/toon-pets.png") 0 0 / 400% 300% no-repeat;
+  animation-delay: -1.4s;
+}
+.camp-contracts {
+  position: absolute;
+  right: 22px;
+  top: 18px;
+  display: flex;
+  gap: 9px;
+  z-index: 3;
+}
+.toon-shell .camp-contracts > button {
+  position: relative;
+  width: 74px;
+  min-height: 74px;
+  height: auto;
+  flex-direction: column;
+  padding: 6px;
+  gap: 4px;
+  background: linear-gradient(#464c50, #252e2d);
+  border: 3px solid #111a15;
+  color: #fff;
+  box-shadow:
+    inset 0 1px #b1b6ad,
+    0 4px #111a15;
+}
+.camp-contracts .game-icon {
+  width: 36px;
+  height: 36px;
+}
+.camp-contracts span {
+  font-size: 10px;
+}
+.camp-contracts .notification {
+  position: absolute;
+  right: -5px;
+  top: -7px;
+}
+.camp-departure {
+  position: absolute;
+  bottom: 23px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 52%);
+  text-align: center;
+  z-index: 3;
+}
+.camp-destination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+}
+.camp-destination > span {
+  display: grid;
+  gap: 4px;
+}
+.camp-destination small {
+  color: #f6e3bd;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-shadow: 0 2px #111;
+}
+.camp-destination strong {
+  color: #fff;
+  font-size: clamp(20px, 2vw, 29px);
+  line-height: 1.1;
+  -webkit-text-stroke: 3px #172016;
+  paint-order: stroke fill;
+  text-shadow: 0 3px #172016;
+}
+.toon-shell .camp-destination .camp-arrow {
+  position: static;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  padding: 6px;
+  background: #343a3e;
+  border: 2px solid #a4a9a8;
+  color: #fff;
+  font-size: 16px;
+}
+.toon-shell .living-camp .chapter-goal {
+  position: static;
+  margin: 8px 0 13px;
+  color: #f4f5ec;
+  font-size: 12px;
+  line-height: 1.4;
+  text-shadow: 0 2px 3px #111;
+}
+.toon-shell .living-camp #start {
+  width: 100%;
+  height: 72px;
+  min-height: 60px;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  align-items: center;
+  border: 5px solid #b9c0c4;
+  outline: 3px solid #151b1f;
+  border-radius: 14px 6px 14px 6px;
+  background: linear-gradient(#e45d36, #bd3325 48%, #a32b23 49%, #8d281f);
+  box-shadow:
+    inset 0 2px #ffad6a,
+    inset 0 -5px #6b201e,
+    0 7px #101417;
+  color: #fff;
+  text-shadow: 0 2px #34201b;
+  padding: 8px 20px;
+}
+.living-camp #start > span {
+  display: grid;
+  gap: 3px;
+  font-size: 27px;
+  line-height: 1;
+}
+.living-camp #start small {
+  font-size: 10px;
+  color: #ffd5b7;
+  letter-spacing: 0.04em;
+}
+.living-camp #start .game-icon {
+  width: 40px;
+  height: 40px;
+}
+.toon-shell .living-camp .retreat-from-hub {
+  margin-top: 12px;
+  color: #fff;
+  background: #292e32;
+}
+.toon-shell.is-dashboard .save-status {
+  display: none;
+}
+.toon-shell > .powers-belt {
+  margin: 0;
+  border-radius: 0;
+  border: 0;
+  border-top: 2px solid #62676e;
+  background: #1c2025;
+  padding-inline: 18px;
+  color: #fff;
+}
+.toon-shell .powers-belt-label {
+  color: #b7c4cd;
+}
+.toon-shell .powers-empty {
+  color: #c1c7ce;
+}
+.toon-shell .game-dialog {
+  border: 3px solid #9da4af;
+  border-radius: 14px;
+  background: linear-gradient(130deg, #34383f, #24262c 65%);
+  color: #f3f5f8;
+  box-shadow:
+    0 0 0 4px #12161c,
+    inset 0 0 0 3px #171a20,
+    inset 0 0 0 4px #50565e,
+    0 20px 90px #000a;
+}
+.toon-shell .game-dialog::backdrop {
+  background: #090c10b0;
+  backdrop-filter: blur(5px);
+}
+.toon-shell .game-dialog .dialog-heading {
+  border-color: #5c636d;
+  background: transparent;
+}
+.toon-shell .game-dialog .dialog-heading h2 {
+  color: #fff;
+  text-shadow: 0 2px #080b10;
+}
+.toon-shell .game-dialog .dialog-heading > button {
+  border: 2px solid #a5abb2;
+  background: linear-gradient(#df5a45, #a42d29);
+  color: #fff;
+}
+.toon-shell .game-dialog [data-slot="button"] {
+  border: 2px solid #89929e;
+  background: linear-gradient(#505762, #353b45);
+  color: #fff;
+  box-shadow:
+    inset 0 1px #adb4bd55,
+    0 3px #11151a;
+  border-radius: 7px;
+}
+.toon-shell .game-dialog [data-slot="button"]:focus-visible {
+  outline: 3px solid #ffd166;
+  outline-offset: 3px;
+}
+.toon-shell .game-dialog [data-slot="button"]:disabled {
+  opacity: 0.6;
+}
+.toon-shell .game-dialog p,
+.toon-shell .game-dialog .section-note {
+  color: #c5cbd4;
+}
+.toon-shell .game-dialog .eyebrow,
+.toon-shell .sheet-kicker {
+  color: #e4ad72;
+}
+.toon-shell .game-dialog .dialog-actions > button:first-child,
+.toon-shell .game-dialog #depart,
+.toon-shell .game-dialog .discovery-story > button {
+  background: linear-gradient(#e65b3c, #a92e23);
+  border-color: #f89465;
+  color: #fff;
+}
+.toon-shell progress::-webkit-progress-bar {
+  background: #171c21;
+}
+.toon-shell progress::-webkit-progress-value {
+  background: #e4a542;
+}
+.toon-shell .battle-actions [data-slot="button"],
+.toon-shell .battle-status [data-slot="button"] {
+  color: #fff;
+  background: #343a43;
+  border-color: #929ca7;
+}
+.toon-shell.is-road .battle-status {
+  background: linear-gradient(#41464d, #22272d);
+  border: 3px solid #121820;
+  box-shadow: 0 0 0 2px #777f88;
+  border-radius: 12px;
+}
+.toon-shell.is-road .battle-status .cast-skill {
+  background: linear-gradient(#dc6040, #a32c25);
+  border-color: #ffad72;
+}
+.toon-shell .tutorial-card,
+.toon-shell .oath-guidance {
+  background: #2a3038;
+  border-color: #c3a777;
+}
+.toon-shell .tutorial-card button {
+  background: #465043;
+  border-color: #9caf82;
+  color: #fff;
+}
+.toon-shell .tutorial-card h3,
+.toon-shell .tutorial-card p {
+  color: #f3f6ed;
+}
+.toon-shell .power-tooltip {
+  background: #292d34;
+  border-color: #bdc5cc;
+  color: #fff;
+}
+.toon-shell .power-tooltip p {
+  color: #d1d7df;
+}
+.toon-shell .power-tooltip small {
+  color: #ffcd8c;
+}
+@media (min-aspect-ratio: 2 / 1) {
+  .camp-world {
+    object-position: center 64%;
+  }
+  .sign-forge {
+    top: 21%;
+  }
+  .sign-company {
+    top: 21%;
+  }
+  .sign-skills {
+    top: 21%;
+  }
+  .sign-discoveries {
+    top: 55%;
+  }
+}
+@media (max-width: 900px) {
+  .toon-shell .game-topbar {
+    padding-inline: 12px;
+  }
+  .toon-shell .hero-profile > span:last-child {
+    display: none;
+  }
+  .toon-shell .game-wordmark {
+    display: none;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-width: 140px;
+    min-height: 54px;
+    padding: 8px 14px;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 19px;
+  }
+  .sign-company {
+    left: 33%;
+    top: 24%;
+  }
+  .camp-contracts {
+    right: 12px;
+    top: 14px;
+    gap: 6px;
+  }
+  .toon-shell .camp-contracts > button {
+    width: 57px;
+    min-height: 64px;
+  }
+  .camp-contracts span {
+    font-size: 9px;
+  }
+  .toon-shell .camp-renown {
+    top: 14px;
+    left: 12px;
+    width: 235px;
+  }
+  .camp-renown > .game-icon {
+    width: 30px;
+    height: 30px;
+  }
+  .camp-renown > b {
+    display: none;
+  }
+  .camp-departure {
+    width: min(500px, 66%);
+  }
+}
+@media (max-width: 600px) {
+  .toon-shell .game-topbar {
+    height: 64px;
+    flex-basis: 64px;
+    gap: 7px;
+    padding: 5px 9px;
+  }
+  .toon-shell .toon-portrait {
+    width: 43px;
+    height: 43px;
+  }
+  .toon-shell .damage-score b {
+    font-size: 25px;
+  }
+  .toon-shell .damage-score > .game-icon {
+    width: 29px;
+    height: 29px;
+  }
+  .toon-shell .damage-score small {
+    display: none;
+  }
+  .toon-shell .game-topbar .header-actions {
+    gap: 5px;
+  }
+  .toon-shell .game-topbar .gold {
+    min-width: 67px;
+    height: 36px;
+    padding: 3px 7px;
+    gap: 4px;
+  }
+  .toon-shell .game-topbar .gold b {
+    font-size: 18px;
+  }
+  .toon-shell .game-topbar .gold .game-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .toon-shell .game-topbar .currency {
+    font-size: 12px;
+    padding: 5px;
+    height: 34px;
+  }
+  .toon-shell .sound-toggle {
+    display: none;
+  }
+  .toon-shell .game-topbar #settings-toggle {
+    height: 34px;
+    width: 34px;
+    padding: 5px;
+  }
+  .camp-world {
+    object-position: 44% center;
+  }
+  .toon-shell .camp-renown {
+    top: 13px;
+    width: 200px;
+    padding: 7px;
+    gap: 6px;
+  }
+  .camp-renown strong {
+    font-size: 9px;
+  }
+  .camp-renown small {
+    font-size: 10px;
+  }
+  .camp-contracts {
+    top: 92px;
+    right: 10px;
+    flex-direction: column;
+  }
+  .toon-shell .camp-contracts > button {
+    width: 54px;
+    min-height: 57px;
+  }
+  .camp-contracts .game-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .camp-contracts span {
+    font-size: 8px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-width: 116px;
+    min-height: 50px;
+    padding: 7px 12px;
+    gap: 5px;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 26px;
+    height: 26px;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 16px;
+  }
+  .camp-sign small {
+    font-size: 8px;
+  }
+  .sign-forge {
+    left: 12px;
+    top: 23%;
+  }
+  .sign-company {
+    left: 12px;
+    top: 34%;
+  }
+  .sign-skills {
+    right: auto;
+    left: 12px;
+    top: 45%;
+  }
+  .sign-pets {
+    left: 12px;
+    top: 56%;
+  }
+  .sign-discoveries {
+    right: 12px;
+    top: 60%;
+  }
+  .camp-company .camp-rook {
+    left: 29%;
+    bottom: 25%;
+    width: 135px;
+    height: 135px;
+  }
+  .camp-company .camp-companion {
+    left: 53%;
+    bottom: 26%;
+    width: 125px;
+    height: 125px;
+  }
+  .camp-company .camp-pet {
+    left: 48%;
+    bottom: 25%;
+    width: 80px;
+    height: 80px;
+  }
+  .camp-departure {
+    width: calc(100% - 36px);
+    bottom: 19px;
+  }
+  .camp-destination small {
+    font-size: 9px;
+  }
+  .camp-destination strong {
+    font-size: 22px;
+  }
+  .toon-shell .living-camp .chapter-goal {
+    font-size: 11px;
+    margin-block: 7px 12px;
+  }
+  .toon-shell .living-camp #start {
+    height: 62px;
+    min-height: 62px;
+  }
+  .living-camp #start > span {
+    font-size: 23px;
+  }
+}
+@media (max-height: 650px) and (min-width: 601px) {
+  .toon-shell .camp-renown {
+    top: 12px;
+    padding: 6px 10px;
+  }
+  .camp-contracts {
+    top: 12px;
+  }
+  .toon-shell .camp-contracts > button {
+    min-height: 60px;
+  }
+  .camp-departure {
+    bottom: 14px;
+  }
+  .toon-shell .living-camp #start {
+    height: 59px;
+    min-height: 59px;
+  }
+  .camp-destination strong {
+    font-size: 21px;
+  }
+  .toon-shell .living-camp .chapter-goal {
+    margin: 4px 0 8px;
+    font-size: 11px;
+  }
+}
+
+.toon-shell .decision--choice .choice-card {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--rarity) 20%, #30333a), #242730 70%);
+  box-shadow:
+    inset 0 0 0 4px #171b22,
+    inset 0 0 0 5px color-mix(in srgb, var(--rarity) 55%, #30333a),
+    0 7px #11161d;
+  border-width: 3px;
+  border-radius: 11px;
+}
+.toon-shell .decision--choice .choice-card [data-slot="card-title"] {
+  color: #fff;
+}
+.toon-shell .decision--choice .choice-card [data-slot="card-content"] > button {
+  background: var(--rarity);
+  color: #151e29;
+  border-color: var(--rarity);
+  box-shadow:
+    inset 0 1px #fff7,
+    0 4px #10161d;
+  text-shadow: none;
+}
+.toon-shell .decision--choice #skip-perk {
+  background: #343b44;
+  color: #e3e8ee;
+  border-color: #8e99a6;
+}
+.toon-shell .decision--route .trail-option {
+  border: 3px solid #929682;
+  border-radius: 10px 22px 8px 8px;
+  background: linear-gradient(115deg, #454637, #2e352b);
+  box-shadow:
+    inset 0 0 0 2px #1b251b,
+    0 6px #10190f;
+}
+.toon-shell .decision--route .trail-option button {
+  background: linear-gradient(#d55a38, #923224);
+  border-color: #eda66c;
+  color: #fff;
+}
+.toon-shell .decision--route .trail-elite {
+  border-color: #c87d76;
+  background: linear-gradient(#4e3b3b, #35292c);
+}
+.toon-shell .adventure-dialog .adventure-poster {
+  border-radius: 10px;
+  border-color: #a4ae90;
+  background:
+    linear-gradient(110deg, #22301de0, #273028ad),
+    url("../assets/living-camp-v1.webp") center / cover;
+}
+.toon-shell .adventure-dialog .adventure-hunt {
+  background:
+    linear-gradient(110deg, #3c2334e8, #27222cbf),
+    url("../assets/living-camp-v1.webp") center / cover;
+  border-color: #b994ae;
+}
+.toon-shell .adventure-dialog button[aria-pressed="true"] {
+  background: linear-gradient(#d55a38, #923224);
+  border-color: #eda66c;
+  color: #fff;
+}
+.toon-shell .adventure-dialog button[aria-pressed="true"] small {
+  color: #ffe0d0;
+}
+
+.toon-shell .game-dialog .discovery-tabs [aria-pressed="true"] {
+  background: linear-gradient(#c95035, #923126);
+  border-color: #e7a87d;
+  color: #fff;
+}
+.toon-shell .mission-tab-count {
+  background: #20272f;
+  color: #dce5ef;
+  border: 1px solid #727f8e;
+}
+
+.toon-shell .toon-portrait {
+  background-size: 800% 400%;
+  background-position: 7% 0;
+}
+.camp-ember {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #ffd95b;
+  box-shadow: 0 0 8px #ffb236;
+  pointer-events: none;
+  left: 41%;
+  bottom: 27%;
+  animation: camp-ember-rise 4s ease-out infinite;
+}
+.ember-two {
+  left: 42%;
+  animation-delay: -1.4s;
+}
+.ember-three {
+  left: 40%;
+  animation-delay: -2.8s;
+}
+@keyframes camp-ember-rise {
+  0% {
+    transform: translate(0, 0) scale(0.5);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(25px, -115px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.toon-shell .damage-score[data-slot="button"] {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+  height: auto;
+}
+
+@media (max-height: 500px) and (min-width: 601px) {
+  .toon-shell .camp-renown {
+    height: 58px;
+    padding: 6px 10px;
+  }
+  .camp-renown small {
+    font-size: 10px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-width: 126px;
+    min-height: 44px;
+    padding: 6px 12px;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 17px;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 27px;
+    height: 27px;
+  }
+  .camp-sign small {
+    font-size: 8px;
+  }
+  .sign-forge {
+    left: 12px;
+    top: 87px;
+  }
+  .sign-company {
+    left: 166px;
+    top: 87px;
+  }
+  .sign-skills {
+    right: 12px;
+    top: 87px;
+  }
+  .sign-pets {
+    left: 12px;
+    top: auto;
+    bottom: 14px;
+  }
+  .sign-discoveries {
+    right: 12px;
+    top: auto;
+    bottom: 14px;
+  }
+  .camp-departure {
+    width: 40%;
+    bottom: 13px;
+  }
+  .camp-departure .chapter-goal {
+    display: none;
+  }
+  .camp-destination {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .camp-destination strong {
+    font-size: 18px;
+  }
+  .camp-destination small {
+    font-size: 8px;
+  }
+  .toon-shell .camp-destination .camp-arrow {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 12px;
+    padding: 4px;
+  }
+  .toon-shell .living-camp #start {
+    min-height: 45px;
+    height: 45px;
+    padding: 5px 12px;
+    border-width: 3px;
+    gap: 8px;
+  }
+  .living-camp #start > span {
+    font-size: 21px;
+  }
+  .living-camp #start small {
+    font-size: 8px;
+  }
+  .living-camp #start > .game-icon {
+    width: 27px;
+    height: 27px;
+  }
+  .toon-shell .living-camp .retreat-from-hub {
+    height: auto;
+    min-height: 30px;
+    white-space: normal;
+    font-size: 10px;
+    padding: 4px 8px;
+    margin-top: 8px;
+  }
+  .camp-company .toon-actor {
+    bottom: 29%;
+  }
+  .living-camp:has(.retreat-from-hub) .camp-destination {
+    display: none;
+  }
+}
+.toon-shell.is-road .tutorial-card {
+  background: #2a3038f2;
+  border-color: #b9ac89;
+}
+.toon-shell.is-road > .powers-belt,
+.toon-shell .decision--choice .powers-belt {
+  background: #1c2228;
+  border-color: #626d79;
+}
+
+@media (max-height: 500px) and (max-width: 600px) {
+  .toon-shell .camp-renown {
+    left: 10px;
+    top: 12px;
+    width: 155px;
+    height: 48px;
+    padding: 5px 7px;
+  }
+  .camp-renown > .game-icon {
+    width: 23px;
+    height: 23px;
+  }
+  .camp-renown strong {
+    font-size: 8px;
+  }
+  .camp-renown small {
+    font-size: 8px;
+  }
+  .camp-contracts {
+    top: 12px;
+    right: 10px;
+    flex-direction: row;
+    gap: 4px;
+  }
+  .toon-shell .camp-contracts > button {
+    width: 40px;
+    min-height: 48px;
+    padding: 4px 2px;
+    gap: 2px;
+  }
+  .camp-contracts .game-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .camp-contracts span {
+    font-size: 6px;
+  }
+  .toon-shell .game-dock.camp-locations {
+    inset: 68px 10px auto;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    height: 44px;
+    gap: 6px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: 44px;
+    padding: 5px;
+    transform: none;
+    justify-content: center;
+  }
+  .toon-shell .camp-sign > .game-icon,
+  .camp-sign small {
+    display: none;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 12px;
+  }
+  .camp-sign::before,
+  .camp-sign::after {
+    width: 4px;
+    height: 4px;
+    top: 5px;
+  }
+  .camp-departure {
+    width: 50%;
+    bottom: 10px;
+  }
+  .camp-departure .chapter-goal {
+    display: none;
+  }
+  .camp-destination {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .camp-destination strong {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  .camp-destination small {
+    font-size: 7px;
+  }
+  .toon-shell .camp-destination .camp-arrow {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 4px;
+    font-size: 12px;
+  }
+  .toon-shell .living-camp #start {
+    height: 45px;
+    min-height: 45px;
+    padding: 5px 9px;
+    border-width: 3px;
+    gap: 6px;
+  }
+  .living-camp #start > span {
+    font-size: 18px;
+  }
+  .living-camp #start small {
+    font-size: 7px;
+  }
+  .living-camp #start > .game-icon {
+    display: none;
+  }
+  .living-camp:has(.retreat-from-hub) .camp-destination {
+    display: none;
+  }
+  .toon-shell .living-camp .retreat-from-hub {
+    margin-top: 6px;
+    height: 26px;
+    min-height: 26px;
+    padding: 4px;
+    font-size: 9px;
+  }
+  .camp-company .camp-rook {
+    width: 100px;
+    height: 100px;
+    bottom: 23%;
+  }
+  .camp-company .camp-companion {
+    width: 95px;
+    height: 95px;
+    bottom: 25%;
+  }
+  .camp-company .camp-pet {
+    width: 60px;
+    height: 60px;
+    bottom: 22%;
+  }
+}

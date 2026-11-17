@@ -41,11 +41,12 @@ import { WorldRenderer } from "./renderer";
 import { mountUi, type UiActions, type UiSnapshot } from "./ui";
 import "./style.css";
 import "./toon.css";
-import "./collection.css";
 import "./experience.css";
 import "./progression.css";
 import "./journey.css";
 import "./discovery.css";
+import "./collection.css";
+import "./camp.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
