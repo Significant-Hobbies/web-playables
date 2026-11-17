@@ -1410,6 +1410,16 @@ export function effectiveSkillCooldown(state: GameState, id: SkillId = state.met
     (1 - progressionOf(state).training.skill * 0.08)
   );
 }
+export function breakthroughTarget(battle: BattlePhase) {
+  const foes = livingEnemies(battle);
+  return (
+    foes.find((foe) => foe.kind === "hexer" && foe.pendingHit && !foe.braced) ??
+    foes.find((foe) => foe.kind === "sentinel" && foe.pendingHit && !foe.braced) ??
+    foes.find((foe) => foe.row === "back" && foe.pendingHit && !foe.braced) ??
+    foes.find((foe) => foe.row === "back") ??
+    foes[0]
+  );
+}
 export function issueCommand(state: GameState, command: CommandId): GameEvent[] {
   if (state.phase.kind !== "battle" || !state.phase.commands) return [];
   const battle = state.phase,
@@ -1424,13 +1434,7 @@ export function issueCommand(state: GameState, command: CommandId): GameEvent[] 
     events.push({ type: "command", command, result: "ready", target: "hero" });
   } else {
     if (commands.breakthroughCooldown > 0) return [];
-    const foes = livingEnemies(battle);
-    const target =
-      foes.find((foe) => foe.kind === "hexer" && foe.pendingHit && !foe.braced) ??
-      foes.find((foe) => foe.kind === "sentinel" && foe.pendingHit && !foe.braced) ??
-      foes.find((foe) => foe.row === "back" && foe.pendingHit && !foe.braced) ??
-      foes.find((foe) => foe.row === "back") ??
-      foes[0];
+    const target = breakthroughTarget(battle);
     if (!target) return [];
     const channel = target.pendingHit !== null && !target.braced;
     commands.breakthroughCooldown = 6.5 * (1 - rank(state, "tempo") * 0.12);

@@ -172,7 +172,7 @@ export class WorldRenderer {
   handle(events: GameEvent[], state: GameState) {
     for (const event of events) {
       if (event.type === "command") {
-        if (event.result === "perfect")
+        if (event.command === "breakthrough" || event.result === "perfect")
           Object.assign(this.motion("hero"), {
             attack: 0.22,
             contact: 0.22,

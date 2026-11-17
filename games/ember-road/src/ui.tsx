@@ -1429,7 +1429,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   <h3>The road rewards preparation.</h3>
                   <p>
                     Your gold stays with you. Forge permanent upgrades and choose equipment before
-                    your next march. New company systems open as your Renown grows.
+                    your next march. Follow Mira’s signal and Cinder’s tracks to grow your company.
                   </p>
                   <div>
                     <Button

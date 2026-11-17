@@ -1,7 +1,7 @@
 import { Button } from "@saas-maker/ui/components/button";
 import { Shield, Swords, Zap } from "lucide-react";
 import type { CSSProperties } from "react";
-import { type CommandId, enemyIntent, type GameState, SKILLS } from "./model";
+import { breakthroughTarget, type CommandId, enemyIntent, type GameState, SKILLS } from "./model";
 
 export function CombatCommands({
   state,
@@ -37,7 +37,7 @@ export function CombatCommands({
       cooldown: commands?.breakthroughCooldown ?? 0,
       duration: 6.5,
       icon: Swords,
-      hint: "Lunge at a rear threat. Interrupt a channel for bonus damage and focus that enemy.",
+      hint: "Interrupt a channel: hexers first, then raised shields, then rear attacks. Focus that foe. Enemies resist repeated interruptions until they attack.",
       fire: () => command("breakthrough"),
     },
     ...(skillReady
@@ -99,6 +99,19 @@ export function ThreatReadout({ state }: { state: GameState }) {
     .filter((e) => e.hp > 0 && e.pendingHit)
     .sort((a, b) => a.pendingHit!.remaining - b.pendingHit!.remaining)[0];
   const intent = threat && enemyIntent(threat);
+  const canBreak =
+    threat &&
+    (threat.kind === "hexer" || threat.kind === "sentinel") &&
+    !threat.braced &&
+    commands.breakthroughCooldown <= 0 &&
+    breakthroughTarget(battle)?.id === threat.id;
+  const response = canBreak
+    ? "E · Interrupt"
+    : commands.brace > 0
+      ? "Guard raised"
+      : commands.braceCooldown > 0
+        ? `Brace ready in ${commands.braceCooldown.toFixed(1)}s`
+        : "W · Brace at contact";
   return (
     <div className={`combat-readout ${commands.exposed > 0 ? "is-exposed" : ""}`}>
       <div className="combat-feedback" role="status">
@@ -113,11 +126,7 @@ export function ThreatReadout({ state }: { state: GameState }) {
           <span>
             {threat.name} <strong>{intent.label}</strong>
           </span>
-          <span>
-            {threat.kind === "hexer" || threat.kind === "sentinel"
-              ? "E · Interrupt"
-              : "W · Brace at contact"}
-          </span>
+          <span>{response}</span>
           <progress
             aria-label={`${threat.name} ${intent.label} windup`}
             max={threat.pendingHit!.windup ?? intent.windup}

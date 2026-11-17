@@ -203,10 +203,11 @@ export function currentRoute(state: GameState): RouteId | undefined {
   const context = state.run.context;
   return context?.kind === "campaign" ? context.routes.at(-1)?.path : undefined;
 }
+export function chapterJunctions(chapter: number, rules: 1 | undefined): number[] {
+  return rules === 1 ? [chapter === 2 ? 3 : chapter === 3 ? 9 : 6] : [3, 6, 9];
+}
 export function junctions(state: GameState): number[] {
-  return state.run.rules === 1
-    ? [state.run.chapter === 2 ? 3 : state.run.chapter === 3 ? 9 : 6]
-    : [3, 6, 9];
+  return chapterJunctions(state.run.chapter, state.run.rules);
 }
 export function nextJunction(state: GameState): number | undefined {
   const context = state.run.context;

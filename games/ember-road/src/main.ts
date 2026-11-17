@@ -386,6 +386,7 @@ const actions: UiActions = {
   },
   command(command) {
     if (!loaded || userPaused || platformPaused || inspecting) return;
+    advanceAdventures(state, Date.now());
     events(issueCommand(state, command));
     draw();
     publish();
