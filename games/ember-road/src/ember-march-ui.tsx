@@ -190,6 +190,7 @@ export function EmberMarchUi(p: MarchProps) {
       aria-label="Ember March"
       data-run-time={state.run.time}
       data-march-phase={state.phase.kind}
+      data-combat-paused={state.phase.kind === "choice" || state.phase.kind === "march-gift"}
     >
       <header className="march-header">
         <Button

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import * as M from "../games/ember-road/src/model.ts";
 import { createSiteServer } from "./serve-site.mjs";
 
-test("March reviewed save, retreat and equipment boundaries", { timeout: 30000 }, async () => {
+test("March reviewed save, retreat and equipment boundaries", { timeout: 45000 }, async () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
   const require = createRequire(join(root, "networked-games/open-historia/package.json"));
   const { chromium } = require("@playwright/test");
@@ -18,7 +18,7 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 30000 }
   });
   const key = "save:ember-road:v1";
   const errors = [];
-  async function open(state, freeze = false) {
+  async function open(state, freeze = false, route = "") {
     assert(M.validV7State(state));
     const context = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     await context.addInitScript(
@@ -36,7 +36,12 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 30000 }
     const page = await context.newPage();
     page.setDefaultTimeout(5000);
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.goto(`http://127.0.0.1:${server.address().port}/${route}`);
+    if (route) {
+      await page.locator(route === "?campaign=1" ? ".living-camp" : ".first-light-ui").waitFor();
+      assert.equal(await page.locator(".is-ember-march").count(), 0);
+      return { context, page };
+    }
     await page.waitForFunction(
       () => document.querySelector(".march-profile")?.disabled === false,
       null,
@@ -91,6 +96,23 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 30000 }
       (key) => JSON.parse(localStorage.getItem(key)).state.run.context.kills > 0,
       key,
     );
+    await r.page.getByRole("button", { name: "Inspect Rook’s equipment", exact: true }).click();
+    const forge = r.page.getByRole("dialog", { name: "Equipment & forge", exact: true });
+    await forge.waitFor();
+    const clock = await r.page.locator(".ember-march-ui").getAttribute("data-run-time");
+    for (const cancel of ["button", "escape"]) {
+      await forge.locator("[data-march-retreat]").click();
+      const dialog = r.page.getByRole("dialog", { name: "Return to camp?", exact: true });
+      await dialog.waitFor();
+      if (cancel === "button")
+        await dialog.getByRole("button", { name: "Keep this journey", exact: true }).click();
+      else await r.page.keyboard.press("Escape");
+      await forge.waitFor();
+      await r.page.waitForTimeout(200);
+      assert.equal(await r.page.locator("dialog[open]").count(), 1);
+      assert.equal(await r.page.locator(".ember-march-ui").getAttribute("data-run-time"), clock);
+    }
+    await r.page.keyboard.press("Escape");
     await r.page.getByRole("button", { name: "Pause Ember March", exact: true }).click();
     const before = await read(r.page);
     await r.page.locator(".march-paused-sign [data-march-retreat]").click();
@@ -130,6 +152,48 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 30000 }
     );
     assert.equal((await read(g.page)).meta.gear.equipped, "sunfang");
     await g.context.close();
+    for (const route of ["?campaign=1", "?first-light=1"]) {
+      const explicit = await open(gear, false, route);
+      await explicit.context.close();
+    }
+
+    const result = M.initialState(42);
+    result.meta.experience.introSeen = true;
+    M.startEmberMarch(result);
+    for (let i = 0; i < 40000 && !["victory", "defeat"].includes(result.phase.kind); i++) {
+      const phase = result.phase;
+      if (phase.kind === "choice")
+        M.choosePerk(
+          result,
+          ["blood", "heart", "bastion", "edge", "tempo"].find((id) => phase.options.includes(id)) ??
+            phase.options[0],
+          phase.offerId,
+        );
+      else if (phase.kind === "march-gift")
+        M.chooseMarchGift(result, phase.options[0], phase.offerId);
+      else M.stepGame(result, 1 / 60);
+    }
+    assert.equal(result.phase.kind, "victory");
+    const won = await open(result, true);
+    const resultProfile = won.page.getByRole("button", {
+      name: "Inspect Rook’s equipment",
+      exact: true,
+    });
+    await resultProfile.focus();
+    await resultProfile.press("Enter");
+    const resultForge = won.page.getByRole("dialog", { name: "Equipment & forge", exact: true });
+    await resultForge.locator("[data-march-retreat]").click();
+    await won.page.waitForFunction(
+      (key) => JSON.parse(localStorage.getItem(key)).state.phase.kind === "camp",
+      key,
+    );
+    assert.equal(await resultForge.count(), 1);
+    assert.equal(
+      await won.page.getByRole("dialog", { name: "Return to camp?", exact: true }).count(),
+      0,
+    );
+    assert.equal((await read(won.page)).meta.gold, 90);
+    await won.context.close();
     assert.deepEqual(errors, []);
   } finally {
     await browser.close();

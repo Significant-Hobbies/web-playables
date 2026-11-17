@@ -36,6 +36,7 @@ describe("March presentation continuity", () => {
     if (state.phase.kind !== "choice" || !state.phase.resume) throw new Error("No live choice");
     const choice = state.phase;
     const battle = state.phase.resume.battle;
+    battle.enemies[0]!.pendingHit = { remaining: 0.2, damage: 5, critical: false };
     const { renderer, scenes } = harness();
     state.phase = battle;
     renderer.frame(state, 7, false, false);
@@ -47,6 +48,7 @@ describe("March presentation continuity", () => {
     renderer.frame(state, 7, false, false);
     expect(scenes.map((scene) => scene.walking)).toEqual([true, true, true]);
     expect(scenes.map((scene) => scene.time)).toEqual([7, 7, 7]);
+    expect(scenes.map((scene) => scene.brace)).toEqual([undefined, undefined, undefined]);
     expect(scenes[1]!.enemies.map((foe) => foe.id)).toEqual(
       scenes[0]!.enemies.map((foe) => foe.id),
     );

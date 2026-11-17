@@ -157,6 +157,14 @@ test("Ember March real browser: build choices, saved live battle, result and per
         JSON.stringify({ level: offer.state.run.level, kills: offer.state.run.context.kills }),
       );
       const frozen = structuredClone(offer.state);
+      assert.equal(
+        await page
+          .locator(".march-stats dd")
+          .first()
+          .evaluate((el) => getComputedStyle(el).animationPlayState),
+        "paused",
+        "Combat HUD motion is suspended with the live battle",
+      );
       const liveClock = await page.locator(".ember-march-ui").getAttribute("data-run-time");
       const frame = await page.locator("#world").evaluate((canvas) => canvas.toDataURL());
       await page.waitForTimeout(250);

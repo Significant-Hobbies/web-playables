@@ -316,18 +316,28 @@ describe("Ember March", () => {
         expect(M.visibleBattle(loaded)!.enemies).toEqual([]);
         if (loaded.phase.kind !== "choice") throw new Error("Expected final choice.");
         const { offerId, options } = loaded.phase;
+        const malformed = clone(loaded);
+        malformed.run.level = 10;
+        malformed.run.xp = 8;
+        context(malformed).offerSerial = 21;
+        if (malformed.phase.kind === "choice")
+          malformed.phase.offerId = `${context(malformed).runId}:21`;
+        expect(M.validV7State(malformed)).toBe(false);
+        const settled: M.GameEvent[] = [];
         expect(
           action === "pick"
-            ? M.choosePerk(loaded, options[0]!, offerId)
-            : M.skipPerk(loaded, offerId),
+            ? M.choosePerk(loaded, options[0]!, offerId, settled)
+            : M.skipPerk(loaded, offerId, settled),
         ).toBe(true);
+        expect(settled.filter((event) => event.type === "victory")).toHaveLength(1);
         expect(loaded.phase.kind).toBe("victory");
         expect(loaded.meta.gold).toBe(replay ? 66 : 90);
         expect(context(loaded).earnedGold).toBe(replay ? 66 : 90);
         expect(M.validV7State(clone(loaded))).toBe(true);
         const paid = clone(loaded);
-        expect(M.choosePerk(loaded, options[0]!, offerId)).toBe(false);
-        expect(M.skipPerk(loaded, offerId)).toBe(false);
+        expect(M.choosePerk(loaded, options[0]!, offerId, settled)).toBe(false);
+        expect(M.skipPerk(loaded, offerId, settled)).toBe(false);
+        expect(settled.filter((event) => event.type === "victory")).toHaveLength(1);
         expect(M.stepGame(loaded, 0.02)).toEqual([]);
         expect(loaded).toEqual(paid);
       }

@@ -405,10 +405,16 @@ const actions: UiActions = {
     changed();
   },
   choose(id, offerId) {
-    if (loaded && (isEmberMarch(state) || !renderer?.settling) && choosePerk(state, id, offerId)) {
+    const settled: GameEvent[] = [];
+    if (
+      loaded &&
+      (isEmberMarch(state) || !renderer?.settling) &&
+      choosePerk(state, id, offerId, settled)
+    ) {
       recordQuestProgress(state.quests, { type: "oath" }, Date.now());
       prepareExperience(state).lessons.oath = true;
       audio.play("oath");
+      events(settled);
       note = `${PERKS.find((p) => p.id === id)!.title} joins your build.`;
       changed(!isEmberMarch(state));
     }
@@ -428,8 +434,14 @@ const actions: UiActions = {
     }
   },
   skip(offerId) {
-    if (loaded && (isEmberMarch(state) || !renderer?.settling) && skipPerk(state, offerId)) {
+    const settled: GameEvent[] = [];
+    if (
+      loaded &&
+      (isEmberMarch(state) || !renderer?.settling) &&
+      skipPerk(state, offerId, settled)
+    ) {
       prepareExperience(state).lessons.oath = true;
+      events(settled);
       note = "Choice skipped. The company marches on.";
       changed(!isEmberMarch(state));
     }

@@ -364,9 +364,11 @@ export class WorldRenderer {
       shield: state.run.shield,
       brace: isFirstLight(state)
         ? undefined
-        : state.phase.kind === "battle"
-          ? state.phase.commands?.brace
-          : 0,
+        : isEmberMarch(state)
+          ? visibleBattle(state)?.commands?.brace
+          : state.phase.kind === "battle"
+            ? state.phase.commands?.brace
+            : 0,
       exposed: state.phase.kind === "battle" ? (state.phase.commands?.exposed ?? 0) > 0 : false,
       marked: visibleBattle(state)?.mark?.target,
       enemies,

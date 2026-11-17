@@ -258,6 +258,10 @@
   pointer-events: auto;
   white-space: nowrap;
 }
+.ember-march-ui[data-combat-paused="true"] .march-ledger * {
+  animation-play-state: paused !important;
+  transition-duration: 0s !important;
+}
 .march-paused-sign > svg {
   width: 18px;
   color: #ffda82;

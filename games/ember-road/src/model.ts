@@ -1500,7 +1500,12 @@ export function chooseMarchGift(state: GameState, id: PerkId, expectedOfferId: s
   return true;
 }
 
-export function choosePerk(state: GameState, id: PerkId, expectedOfferId?: string) {
+export function choosePerk(
+  state: GameState,
+  id: PerkId,
+  expectedOfferId?: string,
+  events: GameEvent[] = [],
+) {
   if (
     state.phase.kind !== "choice" ||
     !state.phase.options.includes(id) ||
@@ -1511,16 +1516,16 @@ export function choosePerk(state: GameState, id: PerkId, expectedOfferId?: strin
   if (!grantPerk(state, id)) return false;
   if (resume) {
     state.phase = resume.battle;
-    settleMarch(state, resume.battle, []);
+    settleMarch(state, resume.battle, events);
   } else resumeTrail(state);
   return true;
 }
-export function skipPerk(state: GameState, expectedOfferId?: string) {
+export function skipPerk(state: GameState, expectedOfferId?: string, events: GameEvent[] = []) {
   if (state.phase.kind !== "choice" || !matchesMarchOffer(state, expectedOfferId)) return false;
   const resume = isEmberMarch(state) ? state.phase.resume : undefined;
   if (resume) {
     state.phase = resume.battle;
-    settleMarch(state, resume.battle, []);
+    settleMarch(state, resume.battle, events);
   } else resumeTrail(state);
   return true;
 }
@@ -2869,7 +2874,7 @@ function validMarchCore(state: GameState): boolean {
   if (
     c.earnedGold !== c.kills ||
     r.cleared !== 0 ||
-    (c.kills === EMBER_MARCH.total && p.kind !== "choice")
+    (c.kills === EMBER_MARCH.total && (p.kind !== "choice" || r.level !== 11))
   )
     return false;
   if (p.kind === "defeat")

@@ -586,10 +586,13 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   );
   const [marchDismissed, setMarchDismissed] = useState(false);
   const [marchForgeOpen, setMarchForgeOpen] = useState(false);
+  const explicitOtherRoad =
+    new URLSearchParams(location.search).has("campaign") ||
+    new URLSearchParams(location.search).has("first-light");
   const marchFocused =
     isEmberMarch(state) ||
     (state.phase.kind === "camp" &&
-      (marchPreview || state.meta.emberMarch?.selected === true) &&
+      (marchPreview || (!explicitOtherRoad && state.meta.emberMarch?.selected === true)) &&
       !marchDismissed);
   const marchContext = state.run.context?.kind === "ember-march" ? state.run.context : null;
   const firstLightFocused =
@@ -660,6 +663,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [settings, setSettings] = useState(false);
   const [detail, setDetail] = useState<"stats" | "powers" | null>(null);
   const [retreat, setRetreat] = useState(false);
+  const [retreatFromForge, setRetreatFromForge] = useState(false);
+  function cancelRetreat() {
+    setRetreat(false);
+    if (retreatFromForge) setMarchForgeOpen(true);
+    setRetreatFromForge(false);
+  }
   const [introChapter, setIntroChapter] = useState<number | null>(null);
   const [chapter, setChapter] = useState(state.run.chapter);
   const inCamp = state.phase.kind === "camp";
@@ -1769,7 +1778,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           upgrade={a.upgrade}
           equip={() => a.equipGear("sunfang")}
           retreat={() => {
+            if (state.phase.kind === "victory" || state.phase.kind === "defeat") {
+              a.camp();
+              return;
+            }
             setMarchForgeOpen(false);
+            setRetreatFromForge(true);
             setRetreat(true);
           }}
         />
@@ -2481,18 +2495,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           <Powers state={state} />
         )}
       </Modal>
-      <Modal open={retreat} title="Return to camp?" close={() => setRetreat(false)}>
+      <Modal open={retreat} title="Return to camp?" close={cancelRetreat}>
         <p>
           This ends the unfinished journey and clears its oaths. Gold, forged gear, and chapter
           unlocks stay with you.
         </p>
         <div className="dialog-actions">
-          <Button variant="outline" onClick={() => setRetreat(false)}>
+          <Button variant="outline" onClick={cancelRetreat}>
             Keep this journey
           </Button>
           <Button
             onClick={() => {
               a.retreat();
+              setRetreatFromForge(false);
               setRetreat(false);
               setCampOpen(false);
             }}
