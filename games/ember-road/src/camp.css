@@ -944,9 +944,9 @@
     font-size: 8px;
   }
   .toon-shell .camp-destination .camp-arrow {
-    width: 27px;
-    height: 27px;
-    min-width: 27px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     font-size: 12px;
     padding: 4px;
   }
@@ -978,6 +978,9 @@
   .camp-company .toon-actor {
     bottom: 29%;
   }
+  .living-camp:has(.retreat-from-hub) .camp-destination {
+    display: none;
+  }
 }
 .toon-shell.is-road .tutorial-card {
   background: #2a3038f2;
@@ -987,4 +990,140 @@
 .toon-shell .decision--choice .powers-belt {
   background: #1c2228;
   border-color: #626d79;
+}
+
+@media (max-height: 500px) and (max-width: 600px) {
+  .toon-shell .camp-renown {
+    left: 10px;
+    top: 12px;
+    width: 155px;
+    height: 48px;
+    padding: 5px 7px;
+  }
+  .camp-renown > .game-icon {
+    width: 23px;
+    height: 23px;
+  }
+  .camp-renown strong {
+    font-size: 8px;
+  }
+  .camp-renown small {
+    font-size: 8px;
+  }
+  .camp-contracts {
+    top: 12px;
+    right: 10px;
+    flex-direction: row;
+    gap: 4px;
+  }
+  .toon-shell .camp-contracts > button {
+    width: 40px;
+    min-height: 48px;
+    padding: 4px 2px;
+    gap: 2px;
+  }
+  .camp-contracts .game-icon {
+    width: 24px;
+    height: 24px;
+  }
+  .camp-contracts span {
+    font-size: 6px;
+  }
+  .toon-shell .game-dock.camp-locations {
+    inset: 68px 10px auto;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    height: 44px;
+    gap: 6px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    position: static;
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    height: 44px;
+    padding: 5px;
+    transform: none;
+    justify-content: center;
+  }
+  .toon-shell .camp-sign > .game-icon,
+  .camp-sign small {
+    display: none;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 12px;
+  }
+  .camp-sign::before,
+  .camp-sign::after {
+    width: 4px;
+    height: 4px;
+    top: 5px;
+  }
+  .camp-departure {
+    width: 50%;
+    bottom: 10px;
+  }
+  .camp-departure .chapter-goal {
+    display: none;
+  }
+  .camp-destination {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .camp-destination strong {
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  .camp-destination small {
+    font-size: 7px;
+  }
+  .toon-shell .camp-destination .camp-arrow {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    padding: 4px;
+    font-size: 12px;
+  }
+  .toon-shell .living-camp #start {
+    height: 45px;
+    min-height: 45px;
+    padding: 5px 9px;
+    border-width: 3px;
+    gap: 6px;
+  }
+  .living-camp #start > span {
+    font-size: 18px;
+  }
+  .living-camp #start small {
+    font-size: 7px;
+  }
+  .living-camp #start > .game-icon {
+    display: none;
+  }
+  .living-camp:has(.retreat-from-hub) .camp-destination {
+    display: none;
+  }
+  .toon-shell .living-camp .retreat-from-hub {
+    margin-top: 6px;
+    height: 26px;
+    min-height: 26px;
+    padding: 4px;
+    font-size: 9px;
+  }
+  .camp-company .camp-rook {
+    width: 100px;
+    height: 100px;
+    bottom: 23%;
+  }
+  .camp-company .camp-companion {
+    width: 95px;
+    height: 95px;
+    bottom: 25%;
+  }
+  .camp-company .camp-pet {
+    width: 60px;
+    height: 60px;
+    bottom: 22%;
+  }
 }

@@ -245,7 +245,7 @@
   text-transform: none;
 }
 .import-prompt > button:first-child {
-  border: 2px solid #fba478;
+  border: 2px solid #ffe6a0;
   box-shadow:
     inset 0 1px #ffc6a0,
     0 4px 0 #602b20;
@@ -464,4 +464,11 @@
     max-width: 54px;
     font-size: 9px;
   }
+}
+
+.ember-cloud .import-prompt > button:first-child {
+  border: 2px solid #fba478;
+  box-shadow:
+    inset 0 1px #ffc6a0,
+    0 4px 0 #602b20;
 }

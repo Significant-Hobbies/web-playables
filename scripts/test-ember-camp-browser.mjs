@@ -62,11 +62,23 @@ test("Living Camp locations remain reachable before departure and during a journ
         [768, 1024],
         [390, 844],
         [844, 390],
+        [667, 375],
+        [640, 360],
+        [600, 360],
+        [568, 320],
+        [500, 375],
       ]) {
         await page.setViewportSize({ width, height });
-        await page.evaluate(() => document.fonts.ready);
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          );
+        });
         const covered = await page
-          .locator(".camp-sign, .camp-contracts button, .camp-renown, #start, .retreat-from-hub")
+          .locator(
+            ".camp-sign, .camp-contracts button, .camp-renown, #start, .retreat-from-hub, .camp-arrow:not(:disabled)",
+          )
           .evaluateAll((buttons) =>
             buttons.flatMap((button) => {
               const r = button.getBoundingClientRect();
