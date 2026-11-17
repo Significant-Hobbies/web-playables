@@ -204,6 +204,10 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 45000 }
     );
     await reloaded.context.close();
     const won = await open(result, true);
+    if (process.env.EMBER_MARCH_EVIDENCE_DIR)
+      await won.page.screenshot({
+        path: join(process.env.EMBER_MARCH_EVIDENCE_DIR, "march-result-equipment.png"),
+      });
     await won.page.getByRole("button", { name: "Inspect equipment", exact: true }).click();
     const resultForge = won.page.getByRole("dialog", { name: "Equipment & forge", exact: true });
     await resultForge.locator("[data-march-retreat]").click();

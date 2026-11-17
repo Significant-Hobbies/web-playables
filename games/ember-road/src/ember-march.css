@@ -743,6 +743,9 @@
   margin-bottom: 15px;
   filter: drop-shadow(0 0 28px #ffd15d4d);
 }
+.march-result .march-primary + button {
+  margin-top: 12px;
+}
 .march-result-crest svg {
   width: 100%;
   height: 100%;
