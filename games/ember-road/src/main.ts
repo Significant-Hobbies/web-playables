@@ -8,12 +8,15 @@ import {
 import { activityPreview, advanceAdventures } from "./adventures";
 import { type AudioStatus, GameAudio, type SoundCue } from "./audio";
 import { type AudioPreferences, experienceOf, type Lesson, prepareExperience } from "./experience";
+import { isFirstLight } from "./first-light.ts";
 import {
   buyUpgrade,
   useSkill as castSkill,
   choosePerk,
   chooseRoute,
+  continueAfterLoot,
   equip,
+  equipGear,
   type GameEvent,
   type GameState,
   initialState,
@@ -22,12 +25,14 @@ import {
   migrateV2State,
   migrateV3State,
   migrateV4State,
+  migrateV5State,
   PERKS,
   rerollPerks,
   retreatToCamp,
   returnToCamp,
   skipPerk,
   startActivity,
+  startFirstLight,
   startRun,
   stepGame,
   validLegacyState,
@@ -35,6 +40,8 @@ import {
   validV2State,
   validV3State,
   validV4State,
+  validV5State,
+  validV6State,
 } from "./model";
 import { prepareProgression, train } from "./progression";
 import { advanceQuests, claimQuest, recordQuestProgress } from "./quests";
@@ -110,7 +117,8 @@ const savePlatform: Platform = {
           (envelope.version === 2 && validV2State(envelope.state)) ||
           (envelope.version === 3 && validV3State(envelope.state)) ||
           (envelope.version === 4 && validV4State(envelope.state)) ||
-          (envelope.version === 5 && validState(envelope.state))
+          (envelope.version === 5 && validV5State(envelope.state)) ||
+          (envelope.version === 6 && validV6State(envelope.state))
         )
       )
         throw new Error("Unsupported save");
@@ -138,8 +146,14 @@ const saves = createSaveManager<GameState>({
     return state;
   },
   platform: savePlatform,
-  version: 5,
-  migrations: { 1: migrateV1State, 2: migrateV2State, 3: migrateV3State, 4: migrateV4State },
+  version: 6,
+  migrations: {
+    1: migrateV1State,
+    2: migrateV2State,
+    3: migrateV3State,
+    4: migrateV4State,
+    5: migrateV5State,
+  },
   initial: initialState,
 });
 function snapshot(): UiSnapshot {
@@ -208,7 +222,7 @@ function events(events: GameEvent[]) {
   renderer?.handle(events, state);
   audio.handle(events, state);
   for (const event of events) {
-    if (event.type === "kill" || event.type === "skill")
+    if (!isFirstLight(state) && (event.type === "kill" || event.type === "skill"))
       recordQuestProgress(state.quests, event, Date.now());
     if (event.type === "victory" && state.run.context?.kind === "campaign")
       recordQuestProgress(
@@ -216,11 +230,16 @@ function events(events: GameEvent[]) {
         { type: "victory", chapter: state.run.chapter },
         Date.now(),
       );
-    if (event.type === "kill") note = `Enemy defeated · +${event.gold} gold kept.`;
+    if (event.type === "loot") {
+      audio.play("claim");
+      note = "Sunfang is yours. Equip it now or keep it for camp.";
+    }
+    if (event.type === "kill" && !isFirstLight(state))
+      note = `Enemy defeated · +${event.gold} gold kept.`;
     if (event.type === "level") note = `Level ${event.level}. Choose an oath.`;
     if (event.type === "skill") note = "Your skill changes the fight.";
   }
-  if (events.some((e) => ["kill", "level", "defeat", "victory", "skill"].includes(e.type)))
+  if (events.some((e) => ["kill", "loot", "level", "defeat", "victory", "skill"].includes(e.type)))
     void persist();
 }
 function launch(chapter: number) {
@@ -258,6 +277,31 @@ const actions: UiActions = {
     syncPause();
   },
   start: launch,
+  startFirstLight(returnChapter) {
+    if (!loaded || !startFirstLight(state, returnChapter)) return false;
+    userPaused = false;
+    note = "First Light. Rook attacks automatically. A blade waits on the trail.";
+    changed(true);
+    syncPause();
+    return true;
+  },
+  equipGear(id) {
+    if (loaded && equipGear(state, id)) {
+      audio.play("equip");
+      note =
+        id === "sunfang"
+          ? "Sunfang equipped. Its edge reaches a second foe."
+          : "Ordinary blade equipped.";
+      changed(true);
+    }
+  },
+  continueLoot() {
+    if (loaded && continueAfterLoot(state)) {
+      userPaused = false;
+      changed(true);
+      syncPause();
+    }
+  },
   route(path) {
     if (loaded && !renderer?.settling && chooseRoute(state, path)) {
       audio.play("oath");

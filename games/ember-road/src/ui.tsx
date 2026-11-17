@@ -57,6 +57,7 @@ import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
+import type { GearId } from "./first-light.ts";
 import { GameIcon } from "./game-icon";
 import { LoadoutArt } from "./loadout-art";
 import {
@@ -150,6 +151,9 @@ export interface UiActions {
   inspect(open: boolean): void;
   pause(): void;
   start(chapter: number): void;
+  startFirstLight(returnChapter?: number): boolean;
+  equipGear(id: GearId | null): void;
+  continueLoot(): void;
   route(path: RouteId): void;
   adventure(
     kind: ActivityKind,

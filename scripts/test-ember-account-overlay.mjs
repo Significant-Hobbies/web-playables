@@ -165,7 +165,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
         expireWrites = false;
       },
       futureCloud: () => {
-        const data = JSON.stringify({ version: 6, savedAt: Date.now(), state });
+        const data = JSON.stringify({ version: 7, savedAt: Date.now(), state });
         head = {
           gameId: "ember-road",
           slotId: "main",

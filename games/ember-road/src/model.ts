@@ -19,6 +19,14 @@ import {
 } from "./adventures.ts";
 import { type Experience, initialExperience, validExperience } from "./experience.ts";
 import {
+  equippedBlade,
+  firstLightEnemies,
+  type GearId,
+  type GearLedger,
+  isFirstLight,
+  SUNFANG,
+} from "./first-light.ts";
+import {
   awardRenown,
   awardWave,
   initialProgression,
@@ -480,6 +488,7 @@ export interface BattlePhase {
 }
 export type Phase =
   | { kind: "camp" }
+  | { kind: "loot"; item: GearId }
   | { kind: "travel"; remaining: number }
   | BattlePhase
   | { kind: "route"; at: number }
@@ -495,6 +504,8 @@ export interface GameState {
   adventures?: AdventureLedger;
   quests: QuestLedger;
   meta: {
+    gear?: GearLedger;
+    firstLight?: { cleared: boolean };
     experience?: Experience;
     progression?: Progression;
     gold: number;
@@ -567,6 +578,7 @@ export type GameEvent =
   | { type: "combo"; effect: SynergyId | "mark" | "brace"; actor: ActorId; target: ActorId }
   | { type: "heal"; amount: number }
   | { type: "kill"; gold: number; target: ActorId }
+  | { type: "loot"; item: GearId }
   | { type: "level"; level: number }
   | { type: "defeat" }
   | { type: "victory"; gold: number }
@@ -585,6 +597,8 @@ export function initialState(seed = 927113): GameState {
     adventures: initialAdventures(),
     quests: initialQuests(),
     meta: {
+      gear: { owned: [], equipped: null },
+      firstLight: { cleared: false },
       experience: initialExperience(),
       progression: initialProgression(),
       gold: 0,
@@ -626,8 +640,9 @@ export function heroStats(state: GameState): HeroStats {
   const l = state.meta.loadout;
   const companion = COMPANIONS.find((c) => c.id === l.companion)!;
   const pet = PETS.find((p) => p.id === l.pet)!;
-  const companyReady = systemUnlocked(state, "company");
-  const petReady = systemUnlocked(state, "pets");
+  const companyReady = !isFirstLight(state) && systemUnlocked(state, "company");
+  const petReady = !isFirstLight(state) && systemUnlocked(state, "pets");
+  const sunfang = l.weapon === "sword" && equippedBlade(state) === "sunfang";
   const training = progressionOf(state).training;
   return {
     hp:
@@ -638,7 +653,10 @@ export function heroStats(state: GameState): HeroStats {
       (petReady && l.pet === "hound" ? 20 : 0) +
       (l.armor === "plate" ? 20 : 0),
     damage:
-      (23 + state.meta.upgrades.blade * 4 + companyLevelBonus(state) * 2) *
+      (23 +
+        state.meta.upgrades.blade * 4 +
+        companyLevelBonus(state) * 2 +
+        (sunfang ? SUNFANG.damage : 0)) *
       (state.run.context?.kind === "campaign" &&
       state.run.context.routes.some((r) => r.path === "shrine")
         ? 1.2
@@ -663,7 +681,10 @@ export function heroStats(state: GameState): HeroStats {
     companionInterval: companion.interval,
     petDamage: petReady ? (pet.damage + state.meta.upgrades.charm) * (1 + training.pet * 0.18) : 0,
     petInterval: pet.interval,
-    cleave: rank(state, "cleave") * 0.45 + (l.weapon === "greatsword" ? 0.25 : 0),
+    cleave:
+      rank(state, "cleave") * 0.45 +
+      (l.weapon === "greatsword" ? 0.25 : 0) +
+      (sunfang ? SUNFANG.cleave : 0),
     pierce: rank(state, "pierce") * 0.4 + (l.weapon === "spear" ? 0.2 : 0),
   };
 }
@@ -843,6 +864,44 @@ export function startRun(state: GameState, chapter = state.meta.unlockedChapter)
   state.phase = { kind: "travel", remaining: 1.25 };
   return true;
 }
+export function startFirstLight(state: GameState, returnChapter = state.run.chapter): boolean {
+  if (
+    state.phase.kind !== "camp" ||
+    !state.meta.gear ||
+    !state.meta.firstLight ||
+    !Number.isInteger(returnChapter) ||
+    returnChapter < 1 ||
+    returnChapter > state.meta.unlockedChapter
+  )
+    return false;
+  if (!startRun(state, 1)) return false;
+  state.run.context = { kind: "first-light", returnChapter };
+  state.run.hp = heroStats(state).hp;
+  return true;
+}
+export function equipGear(state: GameState, id: GearId | null): boolean {
+  const gear = state.meta.gear;
+  if (
+    !gear ||
+    !["camp", "loot"].includes(state.phase.kind) ||
+    (id !== null && (id !== "sunfang" || !gear.owned.includes(id)))
+  )
+    return false;
+  gear.equipped = id;
+  if (id === "sunfang") state.meta.loadout.weapon = "sword";
+  return true;
+}
+export function continueAfterLoot(state: GameState): boolean {
+  if (
+    state.phase.kind !== "loot" ||
+    !isFirstLight(state) ||
+    state.run.cleared !== 1 ||
+    !state.meta.gear?.owned.includes(state.phase.item)
+  )
+    return false;
+  state.phase = { kind: "travel", remaining: 1.05 };
+  return true;
+}
 export function returnToCamp(state: GameState) {
   if (!["victory", "defeat"].includes(state.phase.kind)) return false;
   if (
@@ -863,7 +922,7 @@ export function returnToCamp(state: GameState) {
 }
 
 export function retreatToCamp(state: GameState): boolean {
-  if (!["travel", "battle", "choice", "route"].includes(state.phase.kind)) return false;
+  if (!["travel", "battle", "choice", "route", "loot"].includes(state.phase.kind)) return false;
   const context = state.run.context;
   const chapter =
     context && context.kind !== "campaign" ? context.returnChapter : state.run.chapter;
@@ -1135,6 +1194,7 @@ export function adventureEnemies(state: GameState): EnemyFighter[] {
     }
     return enemies;
   }
+  if (context.kind === "first-light") return firstLightEnemies(state.run.cleared);
   const tier = TIERS[context.tier - 1]!,
     round = state.run.cleared;
   let enemies: EnemyFighter[];
@@ -1214,13 +1274,15 @@ export function beginBattle(state: GameState): BattlePhase {
             focus: null,
             focusTime: 0,
             exposed: 0,
-            feedback: "Read the windup. W braces; E breaks a channel.",
+            feedback: isFirstLight(state)
+              ? "Rook attacks automatically."
+              : "Read the windup. W braces; E breaks a channel.",
             feedbackTime: 5,
           },
         }
       : {}),
     enemies: adventureEnemies(state),
-    heroCooldown: 0.22,
+    heroCooldown: isFirstLight(state) ? 1.65 : 0.22,
     companionCooldown: 0.45,
     petCooldown: 0.8,
     heroHit: null,
@@ -1333,9 +1395,9 @@ function damageEnemy(
   if (enemy.hp === 0) {
     if (state.phase.kind === "battle" && state.phase.mark?.target === enemy.id)
       state.phase.mark = null;
-    awardRenown(state, 1);
+    if (!isFirstLight(state)) awardRenown(state, 1);
     enemy.pendingHit = null;
-    awardGold(state, enemy.gold);
+    if (!isFirstLight(state)) awardGold(state, enemy.gold);
     events.push({ type: "kill", gold: enemy.gold, target: enemy.id });
   }
 }
@@ -1344,6 +1406,19 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
   state.run.cleared++;
   const campaign = !state.run.context || state.run.context.kind === "campaign";
   const finished = state.run.cleared >= runLength(state);
+  if (isFirstLight(state)) {
+    if (finished) {
+      state.meta.firstLight!.cleared = true;
+      state.run.shieldCast = null;
+      state.phase = { kind: "victory", reward: 0 };
+      events.push({ type: "victory", gold: 0 });
+    } else if (state.run.cleared === 1 && !state.meta.gear!.owned.includes("sunfang")) {
+      state.meta.gear!.owned.push("sunfang");
+      state.phase = { kind: "loot", item: "sunfang" };
+      events.push({ type: "loot", item: "sunfang" });
+    } else resumeTrail(state, 1.05);
+    return true;
+  }
   awardWave(state, finished && campaign);
   if (currentRoute(state) === "elite")
     prepareProgression(state).trailmarks = Math.min(1e9, prepareProgression(state).trailmarks + 2);
@@ -1362,7 +1437,7 @@ function finishWave(state: GameState, battle: BattlePhase, events: GameEvent[]):
       );
     } else {
       const context = state.run.context!;
-      if (context.kind !== "campaign" && state.adventures) {
+      if ((context.kind === "daily" || context.kind === "hunt") && state.adventures) {
         const preview = activityPreview(state, context.kind, context.tier),
           ledger = state.adventures[context.kind];
         reward = context.kind === "daily" ? 20 : 35;
@@ -1654,8 +1729,8 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
     if (finishWave(state, battle, events)) return events;
   }
   battle.heroCooldown -= dt;
-  if (systemUnlocked(state, "company")) battle.companionCooldown -= dt;
-  if (systemUnlocked(state, "pets")) battle.petCooldown -= dt;
+  if (!isFirstLight(state) && systemUnlocked(state, "company")) battle.companionCooldown -= dt;
+  if (!isFirstLight(state) && systemUnlocked(state, "pets")) battle.petCooldown -= dt;
   for (const actor of ["hero", "companion", "pet"] as const) {
     const field = actor === "hero" ? "heroHit" : actor === "companion" ? "companionHit" : "petHit";
     const hit = battle[field];
@@ -1794,7 +1869,12 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       projectile: false,
     });
   }
-  if (systemUnlocked(state, "company") && battle.companionCooldown <= 0 && !battle.companionHit) {
+  if (
+    !isFirstLight(state) &&
+    systemUnlocked(state, "company") &&
+    battle.companionCooldown <= 0 &&
+    !battle.companionHit
+  ) {
     const mark = battle.mark;
     const marked = mark && livingEnemies(battle).find((foe) => foe.id === mark.target);
     const target = state.meta.loadout.companion === "mira" ? (marked ?? rearTarget(battle)) : front;
@@ -1824,7 +1904,12 @@ export function stepGame(state: GameState, dt: number): GameEvent[] {
       });
     }
   }
-  if (systemUnlocked(state, "pets") && battle.petCooldown <= 0 && !battle.petHit) {
+  if (
+    !isFirstLight(state) &&
+    systemUnlocked(state, "pets") &&
+    battle.petCooldown <= 0 &&
+    !battle.petHit
+  ) {
     const target =
       state.meta.loadout.pet === "fox"
         ? weakestTarget(battle)
@@ -2170,7 +2255,12 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
   const maxHp = heroStats(
     adventure
       ? state
-      : { ...state, adventures: undefined, run: { ...state.run, context: undefined } },
+      : {
+          ...state,
+          meta: { ...state.meta, gear: undefined, firstLight: undefined },
+          adventures: undefined,
+          run: { ...state.run, context: undefined },
+        },
   ).hp;
   const length = adventure ? runLength(state) : ENCOUNTERS_PER_CHAPTER;
   const templates = adventure ? adventureEnemies(state) : encounterGroup(r.chapter, r.cleared);
@@ -2180,6 +2270,15 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
       state.run.context.routes.length === 0 &&
       state.run.context.junctionFloor === r.cleared);
   if (r.hp > maxHp || r.shield > maxHp * 0.3) return false;
+  if (p.kind === "loot")
+    return (
+      adventure &&
+      isFirstLight(state) &&
+      r.hp > 0 &&
+      r.cleared === 1 &&
+      p.item === "sunfang" &&
+      state.meta.gear?.owned.includes("sunfang") === true
+    );
   if (p.kind === "camp") return r.hp > 0;
   if (p.kind === "travel") return r.hp > 0 && r.cleared < length && number(p.remaining, -0.25, 2);
   if (p.kind === "choice")
@@ -2212,12 +2311,20 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
   if (p.kind === "victory") {
     if (r.cleared !== length || r.hp <= 0) return false;
     const context = state.run.context;
+    if (adventure && context?.kind === "first-light")
+      return (
+        p.reward === 0 &&
+        p.bonus === undefined &&
+        p.bonusStatus === undefined &&
+        state.meta.firstLight?.cleared === true
+      );
     if (!adventure || context?.kind === "campaign")
       return (
         p.reward === 35 + r.chapter * 15 && p.bonus === undefined && p.bonusStatus === undefined
       );
     if (
       !context ||
+      context.kind === "first-light" ||
       !state.adventures ||
       !["earned", "claimed", "expired"].includes(p.bonusStatus as string)
     )
@@ -2318,6 +2425,13 @@ function validCoreState(value: unknown, adventure: boolean): value is GameState 
 }
 
 export function validV4State(value: unknown): value is GameState {
+  if (!record(value) || !record(value.meta)) return false;
+  return validAdventureState(
+    { ...value, meta: { ...value.meta, gear: undefined, firstLight: undefined } },
+    false,
+  );
+}
+function validAdventureState(value: unknown, firstLight: boolean): value is GameState {
   if (
     !record(value) ||
     !validAdventureLedger(value.adventures) ||
@@ -2334,7 +2448,7 @@ export function validV4State(value: unknown): value is GameState {
     return false;
   const state = value as unknown as GameState;
   return (
-    validRunContext(state) &&
+    validRunContext(state, firstLight) &&
     validCoreState(state, true) &&
     (["companion", "pet", "skill"] as const).every(
       (id) =>
@@ -2394,27 +2508,100 @@ export function migrateV4State(value: unknown): GameState {
       }
     }
   }
-  if (!validState(state))
+  if (!validV5State(state))
     throw new Error("The journey's combat checkpoint could not be upgraded safely.");
   return state;
 }
+export function validV5State(value: unknown): value is GameState {
+  if (!record(value) || !record(value.meta)) return false;
+  const historical = { ...value, meta: { ...value.meta, gear: undefined, firstLight: undefined } };
+  return validV4State(historical) && validCombatState(historical);
+}
+export function migrateV5State(value: unknown): GameState {
+  if (!validV5State(value)) throw new Error("The existing version-five journey is invalid.");
+  const state = structuredClone(value);
+  state.meta.gear = { owned: [], equipped: null };
+  state.meta.firstLight = { cleared: false };
+  if (!validV6State(state))
+    throw new Error("The journey's equipment could not be upgraded safely.");
+  return state;
+}
 export function validState(value: unknown): value is GameState {
-  if (!validV4State(value)) return false;
-  const state = value;
+  if (
+    record(value) &&
+    record(value.meta) &&
+    value.meta.gear === undefined &&
+    value.meta.firstLight === undefined
+  )
+    return validV5State(value);
+  return validV6State(value);
+}
+export function validV6State(value: unknown): value is GameState {
+  if (
+    !record(value) ||
+    !record(value.meta) ||
+    !record(value.meta.gear) ||
+    !record(value.meta.firstLight)
+  )
+    return false;
+  const gear = value.meta.gear;
+  if (
+    !Array.isArray(gear.owned) ||
+    gear.owned.length > 1 ||
+    !gear.owned.every((id) => id === "sunfang") ||
+    !(gear.equipped === null || (gear.equipped === "sunfang" && gear.owned.includes("sunfang"))) ||
+    typeof value.meta.firstLight.cleared !== "boolean" ||
+    (value.meta.firstLight.cleared && !gear.owned.includes("sunfang"))
+  )
+    return false;
+  if (!validAdventureState(value, true)) return false;
+  if (isFirstLight(value)) {
+    if (Object.keys(value.run.perks).length !== 0) return false;
+    if (value.run.cleared >= 1 && !gear.owned.includes("sunfang")) return false;
+    if (
+      value.phase.kind === "battle" &&
+      (value.phase.companionHit !== null || value.phase.petHit !== null)
+    )
+      return false;
+  } else if (value.phase.kind === "loot") return false;
+  return validCombatState(value, true);
+}
+function validCombatState(state: GameState, equipmentSwaps = false): boolean {
   const cast = state.run.shieldCast;
+  const swappable =
+    equipmentSwaps && isFirstLight(state) && state.meta.gear?.owned.includes("sunfang");
+  const attackCap = swappable
+    ? Math.max(
+        ...(["sword", "greatsword"] as const).map(
+          (weapon) =>
+            heroStats({
+              ...state,
+              meta: {
+                ...state.meta,
+                gear: { owned: ["sunfang"], equipped: "sunfang" },
+                loadout: { ...state.meta.loadout, weapon },
+              },
+            }).damage,
+        ),
+      )
+    : heroStats(state).damage;
   if (
     !(
       cast === null ||
       (record(cast) &&
         state.run.shield > 0 &&
         number(cast.absorbed, 0, 3000) &&
-        number(cast.attack, 0, heroStats(state).damage) &&
+        number(cast.attack, 0, attackCap) &&
         cast.absorbed + state.run.shield <= heroStats(state).hp * 0.3 + 1e-8)
     )
   )
     return false;
   if (state.phase.kind !== "battle")
-    return cast === null || ["travel", "choice", "route"].includes(state.phase.kind);
+    return (
+      cast === null ||
+      ["travel", "choice", "route"].includes(state.phase.kind) ||
+      (equipmentSwaps && isFirstLight(state) && state.phase.kind === "loot")
+    );
   const battle = state.phase;
   if (
     !battle.enemies.every(
@@ -2451,7 +2638,7 @@ export function validState(value: unknown): value is GameState {
         (record(reaction) && typeof reaction.damage === "number" ? reaction.damage : Infinity),
       0,
     ) >
-    heroStats(state).damage * COMBO_TUNING.shatterAttackCap + 1e-8
+    attackCap * COMBO_TUNING.shatterAttackCap + 1e-8
   )
     return false;
   if (
