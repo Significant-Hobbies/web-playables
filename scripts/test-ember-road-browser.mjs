@@ -477,16 +477,16 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     const beforeSkip = await stored(page);
     const originalOptions = await page
-      .locator("[data-perk]")
-      .evaluateAll((nodes) => nodes.map((n) => n.dataset.perk));
+      .locator("[data-oath]")
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.oath));
     await page.locator("[data-reroll]").click();
     await page.waitForFunction(
       (key) => JSON.parse(localStorage.getItem(key)).state.phase.rerolls === 0,
       storageKey,
     );
     const options = await page
-      .locator("[data-perk]")
-      .evaluateAll((nodes) => nodes.map((n) => n.dataset.perk));
+      .locator("[data-oath]")
+      .evaluateAll((nodes) => nodes.map((n) => n.dataset.oath));
     assert(
       options.every((id) => !originalOptions.includes(id)),
       "Refresh offers different eligible powers",
@@ -508,7 +508,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       "A used refresh stays used after reload",
     );
     assert.deepEqual(
-      await page.locator("[data-perk]").evaluateAll((nodes) => nodes.map((n) => n.dataset.perk)),
+      await page.locator("[data-oath]").evaluateAll((nodes) => nodes.map((n) => n.dataset.oath)),
       options,
     );
     const chip = page.locator(".decision--choice[open] .power-chip").first();
@@ -548,7 +548,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
     );
     await page.getByRole("button", { name: "Close Current powers", exact: true }).click();
     assert.deepEqual(
-      await page.locator("[data-perk]").evaluateAll((nodes) => nodes.map((n) => n.dataset.perk)),
+      await page.locator("[data-oath]").evaluateAll((nodes) => nodes.map((n) => n.dataset.oath)),
       options,
       "Inspection preserves the exact offer",
     );
@@ -557,7 +557,7 @@ test("Ember Road Fleet camp, grouped combat, powers and durable saves", {
       return (
         dialog &&
         Number(getComputedStyle(dialog).opacity) === 1 &&
-        [...dialog.querySelectorAll(".choice-card")].every(
+        [...dialog.querySelectorAll(".shrine-offer")].every(
           (card) => Number(getComputedStyle(card).opacity) === 1,
         )
       );

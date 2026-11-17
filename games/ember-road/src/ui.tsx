@@ -17,7 +17,6 @@ import {
   LockKeyhole,
   Pause,
   Play,
-  RefreshCw,
   Settings,
   Sparkles,
   Sword,
@@ -82,8 +81,8 @@ import {
   xpNeeded,
 } from "./model";
 import { synergyStatus } from "./model.ts";
+import { OathOffering } from "./oath-offering";
 import { OverlaySuspended } from "./overlay";
-import { PerkArt } from "./perk-art";
 import { companyPower } from "./power";
 import {
   companyLevel,
@@ -178,21 +177,29 @@ function Modal({
   children,
   close,
   className = "",
+  heading = true,
+  initialFocus,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   close?: () => void;
   className?: string;
+  heading?: boolean;
+  initialFocus?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const suspended = useContext(OverlaySuspended);
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (open && !suspended && !node.open) node.showModal();
+    if (open && !suspended && !node.open) {
+      node.showModal();
+      if (initialFocus)
+        node.querySelector<HTMLElement>(initialFocus)?.focus({ preventScroll: true });
+    }
     if ((!open || suspended) && node.open) node.close();
-  }, [open, suspended]);
+  }, [open, suspended, initialFocus]);
   return (
     <NativeDialog
       ref={ref}
@@ -203,14 +210,16 @@ function Modal({
         close?.();
       }}
     >
-      <div className="dialog-heading">
-        <h2>{title}</h2>
-        {close && (
-          <Button variant="ghost" size="icon" aria-label={`Close ${title}`} onClick={close}>
-            <X />
-          </Button>
-        )}
-      </div>
+      {heading && (
+        <div className="dialog-heading">
+          <h2>{title}</h2>
+          {close && (
+            <Button variant="ghost" size="icon" aria-label={`Close ${title}`} onClick={close}>
+              <X />
+            </Button>
+          )}
+        </div>
+      )}
       {children}
     </NativeDialog>
   );
@@ -2203,94 +2212,31 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         }
         title="Choose your next oath."
         className="decision--choice"
+        heading={false}
+        initialFocus=".take-oath"
       >
-        <div className="oath-intro">
-          <span className="eyebrow">JOURNEY LEVEL {state.run.level} · A GIFT FROM THE ROAD</span>
-          <p>Bind one power. Carry its strength to the end of this journey.</p>
-        </div>
-        {tip === "oath" && (
-          <div className="oath-guidance">
-            <p>
-              These oaths shape this journey. Blue is rare, violet is epic, and gold is legendary.
-              Pick a power that helps your build, inspect your stats, or skip the choice.
-            </p>
-            <Button variant="ghost" onClick={dismissTip}>
-              Got it
-            </Button>
-          </div>
-        )}
-        <div className="choice-grid">
-          {state.phase.kind === "choice" &&
-            state.phase.options.map((id, i) => {
-              const p = PERKS.find((p) => p.id === id)!;
-              return (
-                <Card key={id} className={`choice-card rarity-${p.rarity}`}>
-                  <CardHeader>
-                    <div className="oath-relic">
-                      <span className="relic-halo" />
-                      <PerkArt id={id} />
-                      <span className="relic-spark spark-a" />
-                      <span className="relic-spark spark-b" />
-                    </div>
-                    <RarityBadge rarity={p.rarity} />
-                    <CardTitle>{p.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <small>{p.caption}</small>
-                    <p>{p.description}</p>
-                    <span className="oath-ranks">
-                      Rank {rank(state, id) + 1} / {p.max}
-                      <span aria-hidden="true">
-                        {Array.from({ length: p.max }, (_, index) => index + 1).map((n) => (
-                          <i key={n} className={n <= rank(state, id) + 1 ? "filled" : ""} />
-                        ))}
-                      </span>
-                    </span>
-                    <Button
-                      data-perk={id}
-                      autoFocus={i === 0}
-                      onClick={() => {
-                        setTip(null);
-                        a.choose(id);
-                      }}
-                    >
-                      Bind oath <kbd>{i + 1}</kbd>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-        </div>
-        <div className="choice-tools">
-          <Button
-            variant="outline"
-            data-reroll=""
-            disabled={state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0}
-            onClick={a.reroll}
-          >
-            <RefreshCw />
-            {state.phase.kind === "choice" && (state.phase.rerolls ?? 1) > 0
-              ? "Refresh choices · 1 free"
-              : "Refresh used"}
-          </Button>
-          <Button variant="ghost" onClick={() => setDetail("stats")}>
-            <Sword /> Current stats
-          </Button>
-          <Button variant="ghost" onClick={() => setDetail("powers")}>
-            <Flame /> Current powers
-          </Button>
-          <Button
-            variant="ghost"
-            id="skip-perk"
-            onClick={() => {
+        {state.phase.kind === "choice" && (
+          <OathOffering
+            key={`${state.run.chapter}-${state.run.level}-${state.phase.options.join("-")}`}
+            state={state}
+            options={state.phase.options}
+            rerolls={state.phase.rerolls ?? 1}
+            choose={(id) => {
+              setTip(null);
+              a.choose(id);
+            }}
+            reroll={a.reroll}
+            stats={() => setDetail("stats")}
+            powers={() => setDetail("powers")}
+            skip={() => {
               setTip(null);
               a.skip();
             }}
           >
-            Skip this choice <ArrowRight />
-          </Button>
-        </div>
-        <PowerBelt state={state} />
+            {(PERKS.some((perk) => rank(state, perk.id) > 0) ||
+              systemUnlocked(state, "skills")) && <PowerBelt state={state} />}
+          </OathOffering>
+        )}
       </Modal>
       <Modal
         open={

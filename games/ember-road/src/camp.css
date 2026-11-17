@@ -759,32 +759,6 @@
   }
 }
 
-.toon-shell .decision--choice .choice-card {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--rarity) 20%, #30333a), #242730 70%);
-  box-shadow:
-    inset 0 0 0 4px #171b22,
-    inset 0 0 0 5px color-mix(in srgb, var(--rarity) 55%, #30333a),
-    0 7px #11161d;
-  border-width: 3px;
-  border-radius: 11px;
-}
-.toon-shell .decision--choice .choice-card [data-slot="card-title"] {
-  color: #fff;
-}
-.toon-shell .decision--choice .choice-card [data-slot="card-content"] > button {
-  background: var(--rarity);
-  color: #151e29;
-  border-color: var(--rarity);
-  box-shadow:
-    inset 0 1px #fff7,
-    0 4px #10161d;
-  text-shadow: none;
-}
-.toon-shell .decision--choice #skip-perk {
-  background: #343b44;
-  color: #e3e8ee;
-  border-color: #8e99a6;
-}
 .toon-shell .decision--route .trail-option {
   border: 3px solid #929682;
   border-radius: 10px 22px 8px 8px;

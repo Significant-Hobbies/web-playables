@@ -47,6 +47,7 @@ import "./journey.css";
 import "./discovery.css";
 import "./collection.css";
 import "./camp.css";
+import "./oath-offering.css";
 
 const app = document.querySelector<HTMLElement>("#app");
 if (!app) throw new Error("Game root is missing.");
