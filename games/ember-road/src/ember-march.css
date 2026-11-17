@@ -262,6 +262,16 @@
   animation-play-state: paused !important;
   transition-duration: 0s !important;
 }
+.ember-march-ui[data-combat-paused="true"] .march-power,
+.ember-march-ui[data-combat-paused="true"] .march-auto-skill {
+  animation: none !important;
+}
+.ember-march-ui[data-combat-paused="true"] progress::-webkit-progress-value {
+  transition-duration: 0s !important;
+}
+.ember-march-ui[data-combat-paused="true"] progress::-moz-progress-bar {
+  transition-duration: 0s !important;
+}
 .march-paused-sign > svg {
   width: 18px;
   color: #ffda82;

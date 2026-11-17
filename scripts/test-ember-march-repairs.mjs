@@ -158,10 +158,13 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 45000 }
     }
 
     const result = M.initialState(42);
+    let laterOffer;
     result.meta.experience.introSeen = true;
     M.startEmberMarch(result);
     for (let i = 0; i < 40000 && !["victory", "defeat"].includes(result.phase.kind); i++) {
       const phase = result.phase;
+      if (!laterOffer && phase.kind === "choice" && result.run.level === 4)
+        laterOffer = structuredClone(result);
       if (phase.kind === "choice")
         M.choosePerk(
           result,
@@ -174,13 +177,34 @@ test("March reviewed save, retreat and equipment boundaries", { timeout: 45000 }
       else M.stepGame(result, 1 / 60);
     }
     assert.equal(result.phase.kind, "victory");
+    assert(laterOffer);
+    const reloaded = await open(laterOffer, true);
+    await reloaded.page.reload();
+    await reloaded.page.locator(".march-choice-row").first().waitFor();
+    const powers = reloaded.page.locator(".march-power, .march-auto-skill");
+    assert((await powers.count()) >= 2);
+    for (const power of await powers.all())
+      assert.equal(
+        await power.evaluate((el) => getComputedStyle(el).opacity),
+        "1",
+        "Earned powers stay visible on a suspended checkpoint reload",
+      );
+    assert.equal(
+      await reloaded.page
+        .locator(".march-xp progress")
+        .evaluate((el) => getComputedStyle(el, "::-webkit-progress-value").transitionDuration),
+      "0s",
+    );
+    assert.equal(
+      await reloaded.page
+        .locator(".march-choice-row")
+        .first()
+        .evaluate((el) => getComputedStyle(el).animationPlayState),
+      "running",
+    );
+    await reloaded.context.close();
     const won = await open(result, true);
-    const resultProfile = won.page.getByRole("button", {
-      name: "Inspect Rook’s equipment",
-      exact: true,
-    });
-    await resultProfile.focus();
-    await resultProfile.press("Enter");
+    await won.page.getByRole("button", { name: "Inspect equipment", exact: true }).click();
     const resultForge = won.page.getByRole("dialog", { name: "Equipment & forge", exact: true });
     await resultForge.locator("[data-march-retreat]").click();
     await won.page.waitForFunction(

@@ -463,6 +463,9 @@ export function EmberMarchUi(p: MarchProps) {
           <Button className="march-primary" onClick={p.finish} data-march-finish="">
             <GameIcon kind="equipment" /> Prepare the next journey <ArrowRight />
           </Button>
+          <Button variant="ghost" onClick={p.equipment}>
+            <Shield /> Inspect equipment
+          </Button>
         </div>
       )}
       {p.saveWarning && (

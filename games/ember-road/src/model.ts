@@ -2851,11 +2851,12 @@ function validMarchCore(state: GameState): boolean {
     !integer(c.kills, c.nextSpawn) ||
     !integer(c.earnedGold, 90) ||
     !["pending", "taken"].includes(c.gift) ||
-    !integer(c.offerSerial, 21) ||
+    !integer(c.offerSerial, EMBER_MARCH.levels.length + 1) ||
     rank(state, "renewal") !== 0 ||
     r.hp > heroStats(state).hp ||
     r.shield > heroStats(state).hp * 0.3 ||
     !number(r.level, 1, 11, true) ||
+    c.offerSerial !== r.level - 1 + (c.gift === "taken" || p.kind === "march-gift" ? 1 : 0) ||
     r.xp !== c.kills - (r.level === 1 ? 0 : 6 + (r.level - 2) * 5) ||
     (c.gift === "taken" && c.kills < EMBER_MARCH.giftAt)
   )

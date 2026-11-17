@@ -192,6 +192,7 @@ describe("Ember March", () => {
     finish.kills = 52;
     finish.earnedGold = 52;
     finish.gift = "taken";
+    finish.offerSerial = 11;
     final.meta.gold = 52;
     final.meta.earnedGold = 52;
     final.run.level = 11;
@@ -290,6 +291,7 @@ describe("Ember March", () => {
         c.nextSpawn = 54;
         c.kills = c.earnedGold = 50;
         c.gift = "taken";
+        c.offerSerial = 10;
         state.meta.gold = state.meta.earnedGold = 50;
         state.run.level = 10;
         state.run.xp = 4;
@@ -306,6 +308,9 @@ describe("Ember March", () => {
           projectile: false,
         };
         expect(M.validV7State(clone(state))).toBe(true);
+        const badBattle = clone(state);
+        context(badBattle).offerSerial = 21;
+        expect(M.validV7State(badBattle)).toBe(false);
         const events = M.stepGame(state, 0.02);
         expect(events.filter((e) => e.type === "kill")).toHaveLength(4);
         expect(events.filter((e) => e.type === "level")).toEqual([{ type: "level", level: 11 }]);
@@ -322,6 +327,11 @@ describe("Ember March", () => {
         context(malformed).offerSerial = 21;
         if (malformed.phase.kind === "choice")
           malformed.phase.offerId = `${context(malformed).runId}:21`;
+        expect(M.validV7State(malformed)).toBe(false);
+        context(malformed).kills = context(malformed).earnedGold = 53;
+        malformed.meta.gold = malformed.meta.earnedGold = 53;
+        malformed.run.xp = 7;
+        M.visibleBattle(malformed)!.enemies = [marchEnemy(53, 3)];
         expect(M.validV7State(malformed)).toBe(false);
         const settled: M.GameEvent[] = [];
         expect(
@@ -352,6 +362,7 @@ describe("Ember March", () => {
       c.spawnRemaining = 0;
       state.meta.gold = state.meta.earnedGold = 6;
       state.run.level = 2;
+      c.offerSerial = 1;
       state.run.xp = 0;
       state.meta.upgrades.blade = 5;
       state.adventures!.discoveries.whirlwind = lethal;
