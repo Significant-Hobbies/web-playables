@@ -35,6 +35,24 @@
   font-size: 21px;
   letter-spacing: 1px;
 }
+.wide-journey-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.compact-journey-shortcuts {
+  display: none;
+}
+@media (max-width: 1179px) {
+  .wide-journey-shortcuts {
+    display: none;
+  }
+  .compact-journey-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
 .toon-shell .toon-portrait {
   width: 58px;
   height: 58px;

@@ -130,6 +130,17 @@ test("Living Camp locations remain reachable before departure and during a journ
           `All camp actions are reachable at ${width}x${height}, mid-run=${midRun}`,
         );
       }
+      if (!midRun) {
+        await page.getByRole("button", { name: "Open game settings", exact: true }).click();
+        const settings = page.getByRole("dialog", { name: "The campfire.", exact: true });
+        assert(
+          await settings.getByRole("button", { name: "Ember March", exact: true }).isVisible(),
+        );
+        assert(
+          await settings.getByRole("button", { name: "First Light", exact: true }).isVisible(),
+        );
+        await page.keyboard.press("Escape");
+      }
       await page
         .locator(".camp-locations")
         .getByRole("button", { name: "Skills", exact: true })

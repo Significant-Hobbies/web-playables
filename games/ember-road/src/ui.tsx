@@ -1050,6 +1050,44 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       {v.saveMessage}
     </p>
   );
+  const journeyShortcuts = (
+    <>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setSettings(false);
+          setMarchPreview(true);
+          setMarchDismissed(false);
+          a.selectMarchCamp(true);
+          a.finishIntro();
+        }}
+      >
+        Ember March
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setSettings(false);
+          setFirstLightDismissed(false);
+          a.finishIntro();
+          a.startFirstLight(hubChapter);
+        }}
+      >
+        First Light
+      </Button>
+      {state.meta.gear?.owned.includes("sunfang") && (
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSettings(false);
+            setFirstLightWardrobe(true);
+          }}
+        >
+          Your blade
+        </Button>
+      )}
+    </>
+  );
   return (
     <div
       data-company-level={level.level}
@@ -1081,34 +1119,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </Button>
         <span className="game-wordmark">EMBER ROAD</span>
         {inCamp && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setMarchPreview(true);
-              setMarchDismissed(false);
-              a.selectMarchCamp(true);
-              a.finishIntro();
-            }}
-          >
-            Ember March
-          </Button>
-        )}
-        {inCamp && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setFirstLightDismissed(false);
-              a.finishIntro();
-              a.startFirstLight(hubChapter);
-            }}
-          >
-            First Light
-          </Button>
-        )}
-        {inCamp && state.meta.gear?.owned.includes("sunfang") && (
-          <Button variant="ghost" onClick={() => setFirstLightWardrobe(true)}>
-            Your blade
-          </Button>
+          <nav className="wide-journey-shortcuts" aria-label="Other journeys">
+            {journeyShortcuts}
+          </nav>
         )}
         <div className="header-actions">
           <span className="gold">
@@ -2438,6 +2451,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             </p>
             {v.audioStatus === "locked" && <Button onClick={a.unlockAudio}>Enable sound</Button>}
           </div>
+        )}
+        {inCamp && !firstLightFocused && !marchFocused && (
+          <nav className="compact-journey-shortcuts" aria-label="Other journeys">
+            {journeyShortcuts}
+          </nav>
         )}
         <label className="motion-control" htmlFor="reduce-motion">
           <Switch
