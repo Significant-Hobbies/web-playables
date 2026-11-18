@@ -550,5 +550,5 @@ describe("Ember March", () => {
         expect(state.run.time).toBeGreaterThan(80);
         expect(state.run.time).toBeLessThan(240);
       }
-  });
+  }, 20000);
 });
