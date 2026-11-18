@@ -52,7 +52,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
   async function session(
     state,
     viewport,
-    { storageBlocked = false, initiallySignedIn = false } = {},
+    { storageBlocked = false, initiallySignedIn = false, firstLight = false, march = false } = {},
   ) {
     const context = await browser.newContext({ viewport });
     let signedIn = initiallySignedIn,
@@ -78,7 +78,10 @@ test("Ember account prompt suspends and restores decisions without changing the 
           };
         }
       },
-      { raw: JSON.stringify({ version: 5, savedAt: Date.now(), state }), storageBlocked },
+      {
+        raw: JSON.stringify({ version: march ? 7 : 5, savedAt: Date.now(), state }),
+        storageBlocked,
+      },
     );
     await context.route("https://historia.aliveville.com/**", async (route) => {
       const request = route.request(),
@@ -139,7 +142,12 @@ test("Ember account prompt suspends and restores decisions without changing the 
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     page.on("pageerror", (error) => errors.push(error.message));
-    await page.goto(`${origin}/play/ember-road/`, { waitUntil: "domcontentloaded" });
+    await page.goto(
+      `${origin}/play/ember-road/${march ? "?march=1" : firstLight ? "" : "?campaign=1"}`,
+      {
+        waitUntil: "domcontentloaded",
+      },
+    );
     if (initiallySignedIn)
       await page.waitForFunction(
         () =>
@@ -165,12 +173,12 @@ test("Ember account prompt suspends and restores decisions without changing the 
         expireWrites = false;
       },
       futureCloud: () => {
-        const data = JSON.stringify({ version: 6, savedAt: Date.now(), state });
+        const data = JSON.stringify({ version: 8, savedAt: Date.now(), state });
         head = {
           gameId: "ember-road",
           slotId: "main",
           revision: 1,
-          schemaVersion: "6",
+          schemaVersion: "8",
           checksum: createHash("sha256").update(data).digest("hex"),
           bytes: Buffer.byteLength(data),
           data,
@@ -183,6 +191,68 @@ test("Ember account prompt suspends and restores decisions without changing the 
     };
   }
   try {
+    {
+      const march = fresh();
+      M.startEmberMarch(march);
+      for (let frame = 0; frame < 10000 && march.phase.kind !== "choice"; frame++)
+        M.stepGame(march, 1 / 60);
+      assert.equal(march.phase.kind, "choice");
+      const s = await session(march, { width: 1440, height: 900 }, { march: true });
+      await s.page.getByRole("dialog", { name: "Choose a new power", exact: true }).waitFor();
+      const before = await checkpoint(s.page);
+      await s.page
+        .getByRole("button", { name: "Account and saves", exact: true })
+        .evaluate((button) => button.click());
+      await s.page.getByRole("dialog", { name: "Keep your journey safe.", exact: true }).waitFor();
+      assert.equal(await s.page.locator("dialog[open]").count(), 1);
+      assert.equal(await s.page.locator(".march-decision[open]").count(), 0);
+      assert.deepEqual(await checkpoint(s.page), before);
+      await s.page.keyboard.press("Escape");
+      await s.page.getByRole("dialog", { name: "Choose a new power", exact: true }).waitFor();
+      assert.deepEqual(await checkpoint(s.page), before);
+      await s.page.screenshot({ path: join(evidence, "march-choice-restored.png") });
+      await s.context.close();
+      results.push(
+        "March account prompt suspends one saved battle choice and restores its exact checkpoint",
+      );
+    }
+    for (const [width, height] of [
+      [1440, 900],
+      [1000, 600],
+      [390, 844],
+    ]) {
+      const s = await session(fresh(), { width, height }, { firstLight: true });
+      const trigger = s.page.getByRole("button", { name: "Account and saves", exact: true });
+      assert(await trigger.isVisible(), "First Light keeps account and recovery reachable");
+      assert(
+        await trigger.evaluate((b) => {
+          const r = b.getBoundingClientRect();
+          const host = b.getRootNode().host;
+          return (
+            r.left >= 0 &&
+            r.top >= 0 &&
+            r.right <= innerWidth &&
+            r.bottom <= innerHeight &&
+            document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2) === host
+          );
+        }),
+      );
+      await s.page.getByRole("button", { name: "Inspect Rook’s equipment", exact: true }).click();
+      await s.page.locator(".fl-wardrobe[open]").waitFor();
+      await s.login();
+      const prompt = s.page.getByRole("dialog", { name: "Keep your journey safe.", exact: true });
+      await prompt.waitFor();
+      assert.equal(
+        await s.page.locator(".game-dialog[open]").count(),
+        0,
+        "Account entry suspends the wardrobe",
+      );
+      await prompt.getByRole("button", { name: "Not now · keep playing", exact: true }).click();
+      await s.page.locator(".fl-wardrobe[open]").waitFor();
+      assert.equal(await s.page.locator("dialog[open]").count(), 1);
+      await s.page.screenshot({ path: join(evidence, `first-light-account-${width}.png`) });
+      await s.context.close();
+    }
     for (const [width, height] of [
       [1280, 800],
       [768, 1024],
@@ -306,7 +376,7 @@ test("Ember account prompt suspends and restores decisions without changing the 
       );
       assert.equal(
         JSON.parse((await s.page.evaluate(() => window.playablesCloud.exportLocal())).data).version,
-        5,
+        7,
       );
       await s.page.screenshot({ path: join(evidence, "update-required.png") });
       await s.context.close();

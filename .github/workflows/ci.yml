@@ -8,7 +8,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -57,7 +57,7 @@ jobs:
   # Open Historia: networked AI game, deliberately outside the YouTube
   # Playables-certified lane above. Mirrors its former standalone CI.
   historia:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: networked-games/open-historia

@@ -1,0 +1,562 @@
+.toon-shell .game-dialog.decision--choice {
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: #0c181e;
+  box-shadow: none;
+  overflow: auto;
+  animation: none;
+}
+.toon-shell .decision--choice::backdrop {
+  background: #0b161c;
+  backdrop-filter: none;
+}
+.oath-stage {
+  font-family: var(--game-font);
+  font-synthesis: weight;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+  position: relative;
+  color: #f0f2ea;
+  background:
+    linear-gradient(#0b1823b3, #0e1f23d9 73%, #0a181ff2),
+    var(--offering-world) center / cover;
+}
+.offering-hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 40px;
+  color: #b5c8c8;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+.offering-hud > span:last-child {
+  color: #efd69b;
+}
+.shrine-heading {
+  text-align: center;
+  padding: 5px 20px 0;
+}
+.toon-shell .shrine-heading .eyebrow {
+  font-family: var(--game-font);
+  color: #ebc780;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+}
+.toon-shell .shrine-heading h2 {
+  font-family: var(--game-font);
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 1.1;
+  margin: 11px 0 12px;
+  color: #f4f4ef;
+  text-shadow: 0 3px 2px #0c151c;
+}
+.toon-shell .shrine-heading p {
+  font-size: 13px;
+  color: #b3c4c4;
+  margin: 0;
+}
+.shrine-offerings {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: min(1040px, 92%);
+  margin: 16px auto 0;
+  flex: 1;
+  min-height: 355px;
+  align-items: center;
+  gap: 20px;
+}
+.toon-shell .oath-stage .shrine-offer {
+  position: relative;
+  text-align: center;
+  background: none;
+  border: 0;
+  border-radius: 10px;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  height: auto;
+  min-height: 365px;
+  padding: 0 10px 20px;
+  color: #f0f2ea;
+  white-space: normal;
+  isolation: isolate;
+  text-shadow: none;
+  animation: offering-arrive 0.5s ease-out both;
+  animation-delay: var(--offer-delay);
+}
+.toon-shell .oath-stage .shrine-offer:hover,
+.toon-shell .oath-stage .shrine-offer:active {
+  background: none;
+  box-shadow: none;
+  transform: none;
+}
+.toon-shell .oath-stage .shrine-offer:focus-visible {
+  outline: 1px solid #e5d4a785;
+  outline-offset: 4px;
+}
+.offering-object {
+  display: block;
+  width: clamp(170px, 19vw, 260px);
+  z-index: 1;
+  transform: translateY(9px);
+  transition: transform 0.25s ease;
+}
+.shrine-offer.selected .offering-object,
+.shrine-offer:hover .offering-object {
+  transform: translateY(-5px);
+}
+.toon-shell .oath-stage .painted-relic {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  position: relative;
+  background-repeat: no-repeat;
+  transform: none;
+  filter: drop-shadow(0 14px 9px #03080988);
+}
+.relic-atlas {
+  background-image: url("../assets/oath-relics-v1.webp");
+  background-size: 300% 100%;
+}
+.power-atlas {
+  background-image: url("../assets/oath-powers-v1.webp");
+  background-size: 400% 300%;
+}
+.offering-light {
+  position: absolute;
+  top: 20px;
+  width: min(280px, 100%);
+  height: 280px;
+  pointer-events: none;
+  background: radial-gradient(ellipse, var(--rarity), transparent 65%);
+  opacity: 0.06;
+  transition: opacity 0.25s ease;
+  z-index: -1;
+}
+.shrine-offer.selected .offering-light {
+  opacity: 0.2;
+}
+.stone-plinth {
+  display: block;
+  position: absolute;
+  width: 190px;
+  height: 33px;
+  top: 230px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    #51727990 0%,
+    #3b555b60 35%,
+    #243e43 37%,
+    #577477 38%,
+    #23343d 45%,
+    #162d33 65%
+  );
+  opacity: 0.5;
+  transition: opacity 0.25s ease;
+}
+.shrine-offer.selected .stone-plinth {
+  box-shadow:
+    0 0 25px -4px var(--rarity),
+    0 7px #06111777;
+  opacity: 1;
+}
+.offering-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 18px;
+  gap: 9px;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+.offering-rarity {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--rarity);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 900;
+}
+.offering-rarity i {
+  width: 5px;
+  height: 5px;
+  background: var(--rarity);
+  transform: rotate(45deg);
+}
+.offering-copy strong {
+  font-family: var(--game-font);
+  font-size: 25px;
+  font-weight: 900;
+  text-shadow: 0 2px #06131b;
+  line-height: 1.2;
+}
+.short-effect {
+  font-size: 12px;
+  color: #bacbc9;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.offering-rank {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 5px;
+}
+.offering-rank > span {
+  display: flex;
+  gap: 5px;
+}
+.offering-rank i {
+  width: 6px;
+  height: 6px;
+  border: 1px solid #718b93;
+  transform: rotate(45deg);
+}
+.offering-rank .filled {
+  background: var(--rarity);
+  border-color: var(--rarity);
+}
+.offering-rank small {
+  font-size: 8px;
+  color: #a5b7bb;
+  letter-spacing: 0.1em;
+}
+.shrine-offer > kbd {
+  position: absolute;
+  bottom: 0;
+  opacity: 0.45;
+  font-size: 9px;
+  border: 1px solid #b1c6c544;
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.4;
+}
+.shrine-binding {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 11px;
+  padding: 20px 20px 25px;
+}
+.binding-label {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+  color: var(--rarity);
+  font-weight: 800;
+}
+.toon-shell .oath-stage .take-oath {
+  min-width: 290px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  font-size: 17px;
+  background: linear-gradient(#e2b45b, #ba7b32);
+  color: #251e17;
+  border: 1px solid #ffe2a1;
+  border-radius: 7px;
+  box-shadow:
+    inset 0 2px #fff1c552,
+    0 5px #563d22,
+    0 6px 20px #0008;
+  text-shadow: none;
+}
+.toon-shell .oath-stage .take-oath:hover {
+  background: linear-gradient(#f9cd75, #d39448);
+  transform: translateY(-2px);
+}
+.toon-shell .oath-stage .take-oath svg {
+  color: inherit;
+  width: 17px;
+  height: 17px;
+  opacity: 0.6;
+  margin-left: 25px;
+}
+.toon-shell .oath-stage .selected-effect {
+  max-width: 610px;
+  min-height: 34px;
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #9fb5b5;
+  line-height: 1.55;
+}
+.offering-footer {
+  width: min(1040px, calc(100% - 80px));
+  margin: auto auto 0;
+  padding-bottom: 17px;
+}
+.toon-shell .oath-stage .choice-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  margin: 0;
+  border-top: 1px solid #ffffff20;
+  padding: 12px 0;
+}
+.toon-shell .oath-stage .choice-tools button {
+  background: none;
+  border: 0;
+  border-radius: 4px;
+  box-shadow: none;
+  color: #c5d0ca;
+  padding: 10px 3px;
+  min-height: 36px;
+  height: auto;
+  font-size: 11px;
+  gap: 8px;
+}
+.toon-shell .oath-stage .choice-tools button:hover {
+  color: #fff1b7;
+  background: #ffffff08;
+}
+.toon-shell .oath-stage .choice-tools button:disabled {
+  opacity: 0.4;
+}
+.toon-shell .oath-stage .choice-tools svg {
+  width: 13px;
+  height: 13px;
+}
+.toon-shell .oath-stage .choice-tools small {
+  font-size: 9px;
+  color: #e8c87e;
+}
+.toon-shell .oath-stage #skip-perk {
+  background: none;
+  margin-left: auto;
+  color: #93a9aa;
+}
+.toon-shell .oath-stage .powers-belt {
+  border: 0;
+  border-top: 1px solid #ffffff15;
+  border-radius: 0;
+  background: none;
+  margin: 0;
+  padding: 9px 0 0;
+}
+.toon-shell .oath-stage .powers-empty {
+  display: none;
+}
+.toon-shell.motion-paused:not(.presentation-paused):not(.reduced-motion) .shrine-offer {
+  animation-play-state: running !important;
+}
+@keyframes offering-arrive {
+  from {
+    opacity: 0;
+    translate: 0 22px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (min-width: 1000px) and (max-height: 820px) {
+  .offering-hud {
+    padding: 16px 30px;
+  }
+  .shrine-heading {
+    padding-top: 0;
+  }
+  .toon-shell .shrine-heading h2 {
+    font-size: 38px;
+    margin: 9px 0;
+  }
+  .toon-shell .shrine-heading p {
+    font-size: 12px;
+  }
+  .shrine-offerings {
+    min-height: 290px;
+    margin-top: 4px;
+  }
+  .toon-shell .oath-stage .shrine-offer {
+    min-height: 290px;
+  }
+  .offering-object {
+    width: 195px;
+  }
+  .stone-plinth {
+    top: 175px;
+    width: 160px;
+    height: 28px;
+  }
+  .offering-copy {
+    margin-top: 6px;
+    gap: 6px;
+  }
+  .offering-copy strong {
+    font-size: 23px;
+  }
+  .shrine-binding {
+    padding: 12px 20px 14px;
+    gap: 8px;
+  }
+  .toon-shell .oath-stage .take-oath {
+    min-height: 43px;
+    padding: 10px 18px;
+  }
+  .toon-shell .oath-stage .selected-effect {
+    min-height: 28px;
+    font-size: 10px;
+  }
+  .toon-shell .oath-stage .choice-tools {
+    padding-block: 7px;
+  }
+  .offering-footer {
+    padding-bottom: 10px;
+  }
+}
+@media (max-width: 999px) {
+  .offering-hud {
+    padding: 20px;
+  }
+  .shrine-heading {
+    margin-top: 15px;
+  }
+  .shrine-offerings {
+    width: 96%;
+    gap: 0;
+    min-height: 330px;
+    margin-top: 20px;
+  }
+  .toon-shell .oath-stage .shrine-offer {
+    padding: 0 4px 20px;
+    min-height: 300px;
+  }
+  .offering-object {
+    width: min(25vw, 220px);
+  }
+  .stone-plinth {
+    width: 80%;
+    top: calc(min(25vw, 220px) - 12px);
+    height: 25px;
+  }
+  .offering-copy {
+    margin-top: 15px;
+    gap: 10px;
+  }
+  .offering-copy strong {
+    font-size: 23px;
+  }
+  .short-effect {
+    font-size: 11px;
+    max-width: 180px;
+  }
+  .offering-rank {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .offering-footer {
+    width: 90%;
+  }
+  .toon-shell .oath-stage .choice-tools {
+    gap: 15px;
+  }
+}
+@media (max-width: 599px) {
+  .offering-hud {
+    font-size: 7px;
+    padding: 17px;
+  }
+  .shrine-heading {
+    margin-top: 10px;
+  }
+  .toon-shell .shrine-heading h2 {
+    font-size: 31px;
+  }
+  .toon-shell .shrine-heading .eyebrow {
+    font-size: 8px;
+  }
+  .toon-shell .shrine-heading p {
+    font-size: 11px;
+  }
+  .shrine-offerings {
+    display: flex;
+    align-items: center;
+    flex: none;
+    min-height: 0;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    width: 100%;
+    padding: 0 15px 8px;
+    margin-top: 20px;
+    gap: 12px;
+    scrollbar-width: none;
+  }
+  .toon-shell .oath-stage .shrine-offer {
+    flex: 0 0 64vw;
+    min-height: 330px;
+    scroll-snap-align: center;
+  }
+  .offering-object {
+    width: 200px;
+  }
+  .stone-plinth {
+    top: 185px;
+    width: 160px;
+  }
+  .offering-copy strong {
+    font-size: 24px;
+  }
+  .short-effect {
+    max-width: 220px;
+    font-size: 12px;
+  }
+  .offering-rank {
+    flex-direction: row;
+  }
+  .shrine-binding {
+    padding: 20px 22px;
+    gap: 9px;
+  }
+  .toon-shell .oath-stage .take-oath {
+    min-width: 265px;
+    font-size: 16px;
+  }
+  .binding-label {
+    font-size: 8px;
+  }
+  .toon-shell .oath-stage .selected-effect {
+    font-size: 10px;
+  }
+  .toon-shell .oath-stage .choice-tools {
+    gap: 6px 18px;
+    padding-top: 8px;
+  }
+  .toon-shell .oath-stage .choice-tools button {
+    font-size: 10px;
+  }
+  .toon-shell .oath-stage #skip-perk {
+    margin: 0;
+    width: 100%;
+    justify-content: center;
+  }
+  .oath-stage .power-chip {
+    font-size: 9px;
+  }
+}

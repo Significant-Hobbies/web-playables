@@ -31,6 +31,7 @@ import {
 } from "./model";
 import { systemUnlocked } from "./progression";
 import { recordQuestProgress } from "./quests";
+import { answerThreats } from "./tactics-test-helper";
 
 function finish(state: GameState) {
   for (let frame = 0; frame < 40_000; frame++) {
@@ -45,6 +46,7 @@ function finish(state: GameState) {
         state,
         state.phase.at === 3 ? "rescue" : state.phase.at === 6 ? "shrine" : "tracks",
       );
+    answerThreats(state);
     for (const event of [...castSkill(state), ...stepGame(state, 1 / 30)]) {
       if (event.type === "victory" && state.run.context?.kind === "campaign")
         recordQuestProgress(state.quests, { type: "victory", chapter: state.run.chapter }, 0);
@@ -78,11 +80,7 @@ describe("adventure routes and discoveries", () => {
     expect(state.run.cleared).toBe(12);
     expect(state.run.context).toMatchObject({
       kind: "campaign",
-      routes: [
-        { at: 3, path: "rescue" },
-        { at: 6, path: "shrine" },
-        { at: 9, path: "tracks" },
-      ],
+      routes: [{ at: 6, path: "shrine" }],
     });
     expect(state.adventures!.discoveries).toMatchObject({
       mira: false,
@@ -97,9 +95,34 @@ describe("adventure routes and discoveries", () => {
     expect(state.run.chapter).toBe(2);
     expect(state.run.context).toMatchObject({ kind: "campaign", routes: [] });
   });
+  it("reloads the chapter-two oath before continuing to the rescue fork", () => {
+    const state = initialState(927113);
+    state.meta.unlockedChapter = 2;
+    state.quests.story.completed = [1];
+    expect(startRun(state, 2)).toBe(true);
+    for (let frame = 0; frame < 1200 && state.phase.kind !== "choice"; frame++) {
+      answerThreats(state);
+      stepGame(state, 1 / 30);
+    }
+    expect(state.run.cleared).toBe(3);
+    expect(state.phase.kind).toBe("choice");
+    const restored: GameState = JSON.parse(JSON.stringify(state));
+    expect(validState(restored)).toBe(true);
+    expect(restored.adventures!.discoveries.mira).toBe(false);
+    expect(chooseRoute(restored, "rescue")).toBe(false);
+    if (restored.phase.kind !== "choice") throw new Error("Expected the saved oath");
+    expect(choosePerk(restored, restored.phase.options[0]!)).toBe(true);
+    expect(restored.phase).toEqual({ kind: "route", at: 3 });
+    expect(validState(restored)).toBe(true);
+    expect(chooseRoute(restored, "rescue")).toBe(true);
+    expect(restored.adventures!.discoveries.mira).toBe(true);
+    expect(validState(restored)).toBe(true);
+  });
   it("gives spring, elite and discovery trails distinct outcomes without repeating a saved choice", () => {
     const initial = initialState();
+    delete initial.run.rules;
     startRun(initial);
+    delete initial.run.rules;
     initial.run.cleared = 3;
     initial.phase = { kind: "route", at: 3 };
     initial.run.hp = 60;
@@ -128,6 +151,7 @@ describe("adventure routes and discoveries", () => {
     restored.run.hp = 0;
     expect(returnToCamp(restored)).toBe(true);
     startRun(restored);
+    delete restored.run.rules;
     restored.run.cleared = 3;
     restored.phase = { kind: "route", at: 3 };
     expect(routeOptions(3)).toContain("rescue");
@@ -155,19 +179,19 @@ describe("adventure routes and discoveries", () => {
     expect(systemUnlocked(state, "company")).toBe(true);
     state.run.cleared = 6;
     state.phase = { kind: "route", at: 6 };
-    expect(chooseRoute(state, "shrine")).toBe(true);
+    expect(chooseRoute(state, "shrine")).toBe(false);
     state.run.cleared = 9;
     state.phase = { kind: "route", at: 9 };
-    expect(chooseRoute(state, "tracks")).toBe(true);
+    expect(chooseRoute(state, "tracks")).toBe(false);
     expect(systemUnlocked(state, "pets")).toBe(false);
     state.phase = { kind: "camp" };
     startRun(state, 3);
     state.run.cleared = 3;
     state.phase = { kind: "route", at: 3 };
-    expect(chooseRoute(state, "rescue")).toBe(true);
+    expect(chooseRoute(state, "rescue")).toBe(false);
     state.run.cleared = 6;
     state.phase = { kind: "route", at: 6 };
-    expect(chooseRoute(state, "shrine")).toBe(true);
+    expect(chooseRoute(state, "shrine")).toBe(false);
     state.run.cleared = 9;
     state.phase = { kind: "route", at: 9 };
     expect(chooseRoute(state, "tracks")).toBe(true);

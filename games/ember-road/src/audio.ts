@@ -27,7 +27,10 @@ const musicUrls = [
   new URL("../assets/ember-road.ogg", import.meta.url).href,
 ];
 export function eventCue(event: GameEvent, state: GameState): SoundCue | null {
+  if (event.type === "command")
+    return event.result === "perfect" ? "critical" : event.command === "brace" ? "aegis" : "pierce";
   if (event.type === "hit") {
+    if (event.damage === 0) return null;
     if (event.effect === "shatterguard") return "pierce";
     if (event.effect === "storm-relay") return "critical";
     if (event.target === "hero") return "hurt";

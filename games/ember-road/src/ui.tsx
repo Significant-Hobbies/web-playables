@@ -17,7 +17,6 @@ import {
   LockKeyhole,
   Pause,
   Play,
-  RefreshCw,
   Settings,
   Sparkles,
   Sword,
@@ -53,16 +52,23 @@ import {
   type Tier,
 } from "./adventures";
 import type { AudioStatus, SoundCue } from "./audio";
+import { CombatCommands, ThreatReadout } from "./combat-ui";
 import { discoveriesOnRoad } from "./discoveries";
 import { DiscoveryJournal } from "./discovery-ui";
+import { EMBER_MARCH, isEmberMarch } from "./ember-march";
+import { EmberMarchUi, MarchBuild, MarchChoices, MarchForge, MarchGift } from "./ember-march-ui";
 import { type AudioPreferences, experienceOf, isFirstJourney, type Lesson } from "./experience";
 import { StoryOpening } from "./experience-ui";
+import { type GearId, isFirstLight } from "./first-light";
+import { FirstLightUi, FirstLightWardrobe } from "./first-light-ui";
 import { GameIcon } from "./game-icon";
+import { heroAtlas } from "./hero-art";
 import { LoadoutArt } from "./loadout-art";
 import {
   ARMORS,
   CHAPTERS,
   COMPANIONS,
+  type CommandId,
   ENCOUNTERS_PER_CHAPTER,
   effectiveSkillCooldown,
   type GameState,
@@ -82,8 +88,8 @@ import {
   xpNeeded,
 } from "./model";
 import { synergyStatus } from "./model.ts";
+import { OathOffering } from "./oath-offering";
 import { OverlaySuspended } from "./overlay";
-import { PerkArt } from "./perk-art";
 import { companyPower } from "./power";
 import {
   companyLevel,
@@ -102,7 +108,25 @@ const campWorld = new URL("../assets/living-camp-v1.webp", import.meta.url).href
 const partyAtlas = new URL("../assets/toon-party.png", import.meta.url).href;
 const petAtlas = new URL("../assets/toon-pets.png", import.meta.url).href;
 const roadAtlas = new URL("../assets/toon-roads.png", import.meta.url).href;
-const knightAtlas = new URL("../assets/toon-knight.png", import.meta.url).href;
+const loadoutDescriptions: Readonly<Record<string, string>> = {
+  mira: "Her arrows follow Cinder’s mark. A marked foe takes 50% more arrow damage.",
+  bram: "A steadfast front-line fighter. Grants Rook 2 armor while he travels with you.",
+  sable: "Calls ember bolts down on every living enemy. A whole formation feels her fury.",
+  fox: "Hunts the weakest foe. Surviving targets are marked for Mira’s next arrow for 4 seconds.",
+  hound: "Bites the front line and grants Rook 20 maximum health. Loyal through every battle.",
+  owl: "Dives at enemy archers, interrupting unbraced attacks. Enemies resist repeated interrupts until they strike.",
+};
+const loadoutSummaries: Readonly<Record<string, string>> = {
+  mira: "Follows Cinder’s mark for a stronger arrow.",
+  bram: "Front-line strikes. More armor for Rook.",
+  sable: "Ember bolts strike the whole formation.",
+  fox: "Hunts the weakest foe. Marks it for Mira.",
+  hound: "Front-line bites. More health for Rook.",
+  owl: "Dives at archers and interrupts their attacks.",
+  whirlwind: "Sweep the front line with your blade.",
+  volley: "Pierce the rear line. Interrupt a cast.",
+  aegis: "Absorb damage. A broken shield strikes back.",
+};
 function PerkSymbol({ family }: { family: Perk["family"] }) {
   return family === "steel" ? <Sword /> : family === "vitality" ? <Heart /> : <Flame />;
 }
@@ -130,6 +154,12 @@ export interface UiActions {
   inspect(open: boolean): void;
   pause(): void;
   start(chapter: number): void;
+  startFirstLight(returnChapter?: number): boolean;
+  startMarch(returnChapter?: number): boolean;
+  selectMarchCamp(selected: boolean): void;
+  marchGift(id: PerkId, offerId: string): void;
+  equipGear(id: GearId | null): void;
+  continueLoot(): void;
   route(path: RouteId): void;
   adventure(
     kind: ActivityKind,
@@ -138,14 +168,15 @@ export interface UiActions {
     id: number,
     returnChapter: number,
   ): boolean;
-  choose(id: PerkId): void;
-  skip(): void;
-  reroll(): void;
+  choose(id: PerkId, offerId?: string): void;
+  skip(offerId?: string): void;
+  reroll(offerId?: string): void;
   train(id: TrainingId): void;
   equip<K extends keyof Loadout>(slot: K, id: Loadout[K]): void;
   upgrade(id: UpgradeId): void;
   retreat(): void;
   camp(): void;
+  command(command: CommandId): void;
   skill(): void;
   refreshMissions(): void;
   claim(scope: QuestScope, id: string, period: number | null): void;
@@ -178,21 +209,29 @@ function Modal({
   children,
   close,
   className = "",
+  heading = true,
+  initialFocus,
 }: {
   open: boolean;
   title: string;
   children: ReactNode;
   close?: () => void;
   className?: string;
+  heading?: boolean;
+  initialFocus?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const suspended = useContext(OverlaySuspended);
   useLayoutEffect(() => {
     const node = ref.current;
     if (!node) return;
-    if (open && !suspended && !node.open) node.showModal();
+    if (open && !suspended && !node.open) {
+      node.showModal();
+      if (initialFocus)
+        node.querySelector<HTMLElement>(initialFocus)?.focus({ preventScroll: true });
+    }
     if ((!open || suspended) && node.open) node.close();
-  }, [open, suspended]);
+  }, [open, suspended, initialFocus]);
   return (
     <NativeDialog
       ref={ref}
@@ -203,14 +242,16 @@ function Modal({
         close?.();
       }}
     >
-      <div className="dialog-heading">
-        <h2>{title}</h2>
-        {close && (
-          <Button variant="ghost" size="icon" aria-label={`Close ${title}`} onClick={close}>
-            <X />
-          </Button>
-        )}
-      </div>
+      {heading && (
+        <div className="dialog-heading">
+          <h2>{title}</h2>
+          {close && (
+            <Button variant="ghost" size="icon" aria-label={`Close ${title}`} onClick={close}>
+              <X />
+            </Button>
+          )}
+        </div>
+      )}
       {children}
     </NativeDialog>
   );
@@ -538,6 +579,30 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     if (canvas.current) a.canvas(canvas.current);
   }, [a]);
   const [replayIntro, setReplayIntro] = useState(false);
+  const [firstLightDismissed, setFirstLightDismissed] = useState(false);
+  const [firstLightWardrobe, setFirstLightWardrobe] = useState(false);
+  const [marchPreview, setMarchPreview] = useState(() =>
+    new URLSearchParams(location.search).has("march"),
+  );
+  const [marchDismissed, setMarchDismissed] = useState(false);
+  const [marchForgeOpen, setMarchForgeOpen] = useState(false);
+  const explicitOtherRoad =
+    new URLSearchParams(location.search).has("campaign") ||
+    new URLSearchParams(location.search).has("first-light");
+  const marchFocused =
+    isEmberMarch(state) ||
+    (state.phase.kind === "camp" &&
+      (marchPreview || (!explicitOtherRoad && state.meta.emberMarch?.selected === true)) &&
+      !marchDismissed);
+  const marchContext = state.run.context?.kind === "ember-march" ? state.run.context : null;
+  const firstLightFocused =
+    !marchFocused &&
+    (isFirstLight(state) ||
+      (state.phase.kind === "camp" &&
+        !firstLightDismissed &&
+        !new URLSearchParams(location.search).has("campaign") &&
+        ((state.meta.unlockedChapter === 1 && !state.meta.firstLight?.cleared) ||
+          new URLSearchParams(location.search).has("first-light"))));
   const experience = experienceOf(state);
   const level = levelProgress(state);
   const progression = progressionOf(state);
@@ -581,8 +646,10 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     }
   }, [v.loaded, level.level, state.run.time, state.phase.kind]);
   const [tip, setTip] = useState<Lesson | null>(null);
-  const showPrologue = v.loaded && (!experience.introSeen || replayIntro);
+  const showPrologue =
+    v.loaded && ((!experience.introSeen && !firstLightFocused && !marchFocused) || replayIntro);
   const [section, setSection] = useState<Section>("Camp");
+  const [inspectedLoadout, setInspectedLoadout] = useState<Partial<Loadout>>({});
   const [equipmentTab, setEquipmentTab] = useState<"weapon" | "armor" | "forge">("weapon");
   const [missionTab, setMissionTab] = useState<QuestScope | "discoveries">("story");
   const [campOpen, setCampOpen] = useState(false);
@@ -596,6 +663,12 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   const [settings, setSettings] = useState(false);
   const [detail, setDetail] = useState<"stats" | "powers" | null>(null);
   const [retreat, setRetreat] = useState(false);
+  const [retreatFromForge, setRetreatFromForge] = useState(false);
+  function cancelRetreat() {
+    setRetreat(false);
+    if (retreatFromForge) setMarchForgeOpen(true);
+    setRetreatFromForge(false);
+  }
   const [introChapter, setIntroChapter] = useState<number | null>(null);
   const [chapter, setChapter] = useState(state.run.chapter);
   const inCamp = state.phase.kind === "camp";
@@ -617,19 +690,25 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   useEffect(
     () =>
       a.inspect(
-        showPrologue ||
-          settings ||
-          adventureOpen ||
-          detail !== null ||
-          campOpen ||
-          retreat ||
-          introChapter !== null ||
-          newDiscovery !== null ||
-          section !== "Camp",
+        v.loaded &&
+          (showPrologue ||
+            settings ||
+            firstLightWardrobe ||
+            marchForgeOpen ||
+            adventureOpen ||
+            detail !== null ||
+            campOpen ||
+            retreat ||
+            introChapter !== null ||
+            newDiscovery !== null ||
+            section !== "Camp"),
       ),
     [
       a,
+      v.loaded,
       settings,
+      firstLightWardrobe,
+      marchForgeOpen,
       detail,
       campOpen,
       retreat,
@@ -647,7 +726,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     }
   }, [inCamp, state.run.chapter]);
   useEffect(() => {
-    if (!v.loaded || showPrologue || tip || settings || detail || section !== "Camp") return;
+    if (
+      !v.loaded ||
+      firstLightFocused ||
+      marchFocused ||
+      showPrologue ||
+      tip ||
+      settings ||
+      detail ||
+      section !== "Camp"
+    )
+      return;
     const lesson: Lesson | null =
       !dashboard && state.phase.kind === "battle"
         ? !experience.lessons.battle
@@ -668,6 +757,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     a,
     v.loaded,
     showPrologue,
+    firstLightFocused,
+    marchFocused,
     tip,
     settings,
     detail,
@@ -689,6 +780,8 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
   }, [tip, state.phase.kind, dashboard, state.run.skillCooldown]);
   const go = (next: Section) => {
     if (next === "Journey") a.refreshMissions();
+    setTip(null);
+    setInspectedLoadout({});
     setSection(next);
     if (!inCamp) setCampOpen(true);
   };
@@ -706,15 +799,57 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
     slot: K,
     items: readonly { id: Loadout[K]; name: string; description: string; chapter: number }[],
   ) {
-    const equipped = items.find((item) => item.id === state.meta.loadout[slot])!;
+    const location = slot === "companion" || slot === "pet" || slot === "skill";
+    const equipped = items.find(
+      (item) =>
+        item.id === ((location ? inspectedLoadout[slot] : undefined) ?? state.meta.loadout[slot]),
+    )!;
     const equippedIndex = items.indexOf(equipped);
+    const previewEquipped = equipped.id === state.meta.loadout[slot];
+    const previewLocked = equipped.chapter > state.meta.unlockedChapter;
+    const role = (index: number) =>
+      slot === "companion"
+        ? COMPANIONS[index]!.role
+        : slot === "pet"
+          ? PETS[index]!.kind
+          : slot === "weapon"
+            ? ["Balanced blade", "Heavy blade", "Piercing reach"][index]
+            : slot === "armor"
+              ? ["Balanced protection", "Heavy protection", "Evasive protection"][index]
+              : ["Front-line sweep", "Rear-line strike", "Company defense"][index];
     return (
       <div className={`loadout-workbench workbench-${slot}`}>
-        <aside className="loadout-showcase" aria-label={`Equipped ${slot}`}>
+        <aside
+          className="loadout-showcase"
+          aria-label={`${location ? "Inspect" : "Equipped"} ${slot}`}
+        >
+          {location && (
+            <span className="location-kicker">
+              {slot === "companion"
+                ? "THE COMPANY PAVILION"
+                : slot === "pet"
+                  ? "THE WILDWOOD REFUGE"
+                  : "THE OLD TRAINING GROUND"}
+            </span>
+          )}
           <span className="showcase-label">
-            <Check size={15} /> EQUIPPED
+            {previewLocked ? (
+              <LockKeyhole size={15} />
+            ) : previewEquipped ? (
+              <Check size={15} />
+            ) : (
+              <Sparkles size={15} />
+            )}
+            {previewLocked
+              ? `CHAPTER ${equipped.chapter}`
+              : previewEquipped
+                ? "EQUIPPED"
+                : "PREVIEW"}
           </span>
-          <div className="showcase-art">
+          <div
+            className={`showcase-art ${previewLocked ? "showcase-locked" : ""}`}
+            key={equipped.id}
+          >
             {slot === "companion" || slot === "pet" ? (
               <span
                 className="showcase-character"
@@ -730,22 +865,56 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               <LoadoutArt slot={slot} id={equipped.id} />
             )}
           </div>
+          {location && <span className="showcase-role">{role(equippedIndex)}</span>}
           <h3>{equipped.name}</h3>
-          <p>{equipped.description}</p>
+          <p>
+            {location
+              ? (loadoutDescriptions[equipped.id] ?? equipped.description)
+              : equipped.description}
+          </p>
+          {location && (
+            <p className="showcase-flavor">
+              {slot === "companion"
+                ? [
+                    "“You carry the lantern. I’ll watch the treeline.”",
+                    "“Stay behind my shield. We get home together.”",
+                    "“Even the storm remembers how to be a spark.”",
+                  ][equippedIndex]
+                : slot === "pet"
+                  ? [
+                      "A small spark, a fierce heart. The road feels less lonely.",
+                      "A steady shadow at your heel, wherever the trail leads.",
+                      "Two bright eyes keep watch while the company sleeps.",
+                    ][equippedIndex]
+                  : "One practiced move can turn the whole battle."}
+            </p>
+          )}
           <span className="showcase-power">
             <GameIcon kind="battle" />
             <b>{power.total.toLocaleString()}</b>
             <small>COMPANY POWER</small>
           </span>
         </aside>
-        <div className="selection-grid">
+        <section
+          className="selection-grid"
+          aria-label={location ? `Choose a ${slot} to inspect` : undefined}
+        >
+          {location && (
+            <div className="roster-heading">
+              <span>{slot === "skill" ? "PREPARE YOUR ART" : "TRAVEL TOGETHER"}</span>
+              <b>
+                {items.filter((item) => item.chapter <= state.meta.unlockedChapter).length} /{" "}
+                {items.length} available
+              </b>
+            </div>
+          )}
           {items.map((item, index) => {
             const locked = item.chapter > state.meta.unlockedChapter,
               selected = state.meta.loadout[slot] === item.id;
             return (
               <Card
                 key={item.id}
-                className={`selection-card slot-${slot} item-${index} ${selected ? "selected" : ""} ${locked ? "is-locked" : ""}`}
+                className={`selection-card slot-${slot} item-${index} ${selected ? "selected" : ""} ${locked ? "is-locked" : ""} ${equipped.id === item.id ? "is-inspected" : ""}`}
               >
                 <CardHeader>
                   <div className="selection-top">
@@ -785,19 +954,18 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                       </span>
                     )}
                   </div>
-                  <span className="item-role">
-                    {slot === "companion"
-                      ? COMPANIONS[index]!.role
-                      : slot === "pet"
-                        ? PETS[index]!.kind
-                        : slot === "weapon"
-                          ? ["Balanced blade", "Heavy blade", "Piercing reach"][index]
-                          : slot === "armor"
-                            ? ["Balanced protection", "Heavy protection", "Evasive protection"][
-                                index
-                              ]
-                            : ["Front-line sweep", "Rear-line strike", "Company defense"][index]}
-                  </span>
+                  {location && (
+                    <Button
+                      className="inspect-loadout"
+                      variant="ghost"
+                      aria-label={`Inspect ${item.name}`}
+                      aria-pressed={equipped.id === item.id}
+                      onClick={() =>
+                        setInspectedLoadout((before) => ({ ...before, [slot]: item.id }))
+                      }
+                    />
+                  )}
+                  <span className="item-role">{role(index)}</span>
                   <CardTitle>{item.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -836,7 +1004,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                       return facts.map((fact) => <span key={fact}>{fact}</span>);
                     })()}
                   </div>
-                  <p>{item.description}</p>
+                  <p>
+                    {location ? (loadoutSummaries[item.id] ?? item.description) : item.description}
+                  </p>
                   <span className="item-power">
                     Build power{" "}
                     <b>
@@ -853,7 +1023,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     variant={selected ? "secondary" : "outline"}
                     data-equip={`${slot}:${item.id}`}
                     disabled={locked || selected || !inCamp}
-                    onClick={() => a.equip(slot, item.id)}
+                    onClick={() => {
+                      if (location)
+                        setInspectedLoadout((before) => ({ ...before, [slot]: item.id }));
+                      a.equip(slot, item.id);
+                    }}
                   >
                     {selected
                       ? "Equipped"
@@ -867,7 +1041,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </Card>
             );
           })}
-        </div>
+        </section>
       </div>
     );
   }
@@ -876,10 +1050,49 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       {v.saveMessage}
     </p>
   );
+  const journeyShortcuts = (
+    <>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setSettings(false);
+          setMarchPreview(true);
+          setMarchDismissed(false);
+          a.selectMarchCamp(true);
+          a.finishIntro();
+        }}
+      >
+        Ember March
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          setSettings(false);
+          setFirstLightDismissed(false);
+          a.finishIntro();
+          a.startFirstLight(hubChapter);
+        }}
+      >
+        First Light
+      </Button>
+      {state.meta.gear?.owned.includes("sunfang") && (
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setSettings(false);
+            setFirstLightWardrobe(true);
+          }}
+        >
+          Your blade
+        </Button>
+      )}
+    </>
+  );
   return (
     <div
       data-company-level={level.level}
-      className={`app-shell toon-shell ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
+      style={{ "--hero-atlas": `url("${heroAtlas(state)}")` } as CSSProperties}
+      className={`app-shell toon-shell ${firstLightFocused ? "is-first-light" : ""} ${marchFocused ? "is-ember-march" : ""} ${dashboard ? "is-dashboard" : "is-road"} ${v.motionPaused ? "motion-paused" : ""} ${v.presentationPaused ? "presentation-paused" : ""} ${v.reducedMotion ? "reduced-motion" : ""}`}
     >
       <header className="game-topbar">
         <Button
@@ -905,6 +1118,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           <small>POWER</small>
         </Button>
         <span className="game-wordmark">EMBER ROAD</span>
+        {inCamp && (
+          <nav className="wide-journey-shortcuts" aria-label="Other journeys">
+            {journeyShortcuts}
+          </nav>
+        )}
         <div className="header-actions">
           <span className="gold">
             <GameIcon kind="gold" />
@@ -931,7 +1149,9 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           {v.web && (
             <span
               data-playables-account-slot=""
-              style={{ "--playables-account-avatar": `url("${knightAtlas}")` } as CSSProperties}
+              style={
+                { "--playables-account-avatar": `url("${heroAtlas(state)}")` } as CSSProperties
+              }
             />
           )}
           {v.audioControls && (
@@ -969,10 +1189,85 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             <canvas
               id="world"
               ref={canvas}
-              aria-label="Rook, his companion and pet on the old road"
+              aria-label={`Rook${companyReady && !firstLightFocused ? " and his companion" : ""}${petsReady && !firstLightFocused ? " with his pet" : ""} on the old road`}
               role="img"
             />
           </div>
+          {firstLightFocused && (
+            <FirstLightUi
+              state={state}
+              loaded={v.loaded}
+              settled={v.decisionReady}
+              paused={v.paused}
+              sound={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+              audioControls={v.audioControls}
+              reducedMotion={v.reducedMotion}
+              saveWarning={v.saveWarning ? v.saveMessage : null}
+              start={() => {
+                a.finishIntro();
+                setTip(null);
+                a.startFirstLight(hubChapter);
+              }}
+              equip={() => {
+                a.equipGear("sunfang");
+                a.continueLoot();
+              }}
+              continueLoot={() => a.continueLoot()}
+              camp={() => {
+                a.camp();
+                setFirstLightDismissed(false);
+              }}
+              campaign={() => {
+                a.finishIntro();
+                setFirstLightDismissed(true);
+                setFirstLightWardrobe(false);
+              }}
+              pause={() => a.pause()}
+              settings={() => setSettings(true)}
+              toggleSound={() => a.toggleSound()}
+              wardrobe={() => setFirstLightWardrobe(true)}
+              reveal={() => a.uiSound("claim")}
+            />
+          )}
+          {marchFocused && (
+            <EmberMarchUi
+              state={state}
+              loaded={v.loaded}
+              paused={v.paused}
+              audioControls={v.audioControls}
+              sound={experience.audio.musicEnabled || experience.audio.effectsEnabled}
+              atCamp={inCamp}
+              kills={marchContext?.kills ?? 0}
+              total={EMBER_MARCH.total}
+              earnedGold={marchContext?.earnedGold ?? 0}
+              firstClear={state.phase.kind === "victory" && state.phase.bonusStatus === "earned"}
+              saveWarning={v.saveWarning ? v.saveMessage : null}
+              start={() => {
+                a.finishIntro();
+                setTip(null);
+                a.startMarch(hubChapter);
+              }}
+              pause={a.pause}
+              settings={() => setSettings(true)}
+              soundToggle={a.toggleSound}
+              equipment={() => setMarchForgeOpen(true)}
+              inspectBuild={() => setDetail("stats")}
+              retreat={() => setRetreat(true)}
+              otherRoads={() => {
+                setMarchDismissed(true);
+                setMarchPreview(false);
+                a.selectMarchCamp(false);
+                setFirstLightDismissed(true);
+                a.finishIntro();
+              }}
+              finish={() => {
+                setMarchPreview(true);
+                setMarchDismissed(false);
+                a.camp();
+                setMarchForgeOpen(true);
+              }}
+            />
+          )}
           {dashboard && (
             <section className="chapter-hub living-camp" aria-label="Chapter selection">
               <img
@@ -981,6 +1276,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 alt="A woodland camp with a glowing forge, company tent, training ground and a path through the old gate"
               />
               <div className="camp-shade" aria-hidden="true" />
+              <div className="camp-identity" aria-hidden="true">
+                <span>THE LAST LIGHT</span>
+                <strong>Wayfarer’s camp</strong>
+                <small>A place to rest. A reason to return.</small>
+              </div>
               <Button
                 className="camp-renown"
                 variant="ghost"
@@ -1097,6 +1397,17 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     }}
                   />
                 )}
+                <div className="camp-company-caption">
+                  <span>{companyReady ? "YOUR COMPANY" : "THE LANTERN BEARER"}</span>
+                  <strong>{companyReady ? `Rook & ${company.name}` : "Rook"}</strong>
+                  <small>
+                    {petsReady
+                      ? `${pet.name} is ready to follow.`
+                      : companyReady
+                        ? "No one walks the road alone."
+                        : "Every great journey begins with one small light."}
+                  </small>
+                </div>
               </div>
               <aside className="camp-contracts" aria-label="Missions and rewards">
                 <Button
@@ -1152,6 +1463,28 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 </Button>
               </aside>
               <div className="camp-departure">
+                <div className="camp-route-preview" aria-hidden="true">
+                  <img
+                    src={roadAtlas}
+                    alt=""
+                    style={{
+                      transform: `translate(-${((hubChapter - 1) % 2) * 50}%, -${(Math.floor((hubChapter - 1) / 2) * 100) / 3}%)`,
+                    }}
+                  />
+                </div>
+                <div
+                  className="camp-story-track"
+                  role="img"
+                  aria-label={`Chapter ${hubChapter} of ${CHAPTERS.length}`}
+                >
+                  {CHAPTERS.map((entry, index) => (
+                    <span
+                      key={entry.name}
+                      className={`${index + 1 === hubChapter ? "is-current" : ""} ${index + 1 <= state.meta.unlockedChapter ? "is-open" : ""}`}
+                      title={`Chapter ${index + 1}: ${entry.name}`}
+                    />
+                  ))}
+                </div>
                 <div className="camp-destination">
                   <Button
                     className="camp-arrow"
@@ -1255,6 +1588,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
               </div>
             </div>
           )}
+          {!dashboard && state.run.rules === 1 && <ThreatReadout state={state} />}
           {!dashboard && (
             <div className="battle-status">
               <div className="health-stat">
@@ -1295,7 +1629,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                 <Flame />
                 Powers
               </Button>
-              {skillReady ? (
+              {state.run.rules === 1 ? (
+                <CombatCommands
+                  state={state}
+                  paused={v.paused || !active}
+                  skillReady={skillReady}
+                  command={a.command}
+                  skill={a.skill}
+                />
+              ) : skillReady ? (
                 <Button
                   className="cast-skill"
                   disabled={
@@ -1369,6 +1711,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           {!showPrologue &&
             !dashboard &&
             state.phase.kind === "battle" &&
+            state.run.rules !== 1 &&
             (tip === "battle" || tip === "skill") && (
               <aside className="tutorial-card" aria-label="First battle guidance">
                 <span className={companyReady ? "guide-mira" : "guide-rook"} aria-hidden="true" />
@@ -1407,7 +1750,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   <h3>The road rewards preparation.</h3>
                   <p>
                     Your gold stays with you. Forge permanent upgrades and choose equipment before
-                    your next march. New company systems open as your Renown grows.
+                    your next march. Follow Mira’s signal and Cinder’s tracks to grow your company.
                   </p>
                   <div>
                     <Button
@@ -1436,7 +1779,98 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
         </main>
       </div>
-      {!showPrologue && <PowerBelt state={state} />}
+      {!showPrologue && !firstLightFocused && !marchFocused && <PowerBelt state={state} />}
+      <Modal
+        open={v.loaded && marchForgeOpen && (marchFocused || inCamp)}
+        title="Equipment & forge"
+        className="march-forge-dialog"
+        close={() => setMarchForgeOpen(false)}
+      >
+        <MarchForge
+          state={state}
+          upgrade={a.upgrade}
+          equip={() => a.equipGear("sunfang")}
+          retreat={() => {
+            if (state.phase.kind === "victory" || state.phase.kind === "defeat") {
+              a.camp();
+              return;
+            }
+            setMarchForgeOpen(false);
+            setRetreatFromForge(true);
+            setRetreat(true);
+          }}
+        />
+      </Modal>
+      <Modal
+        open={
+          marchFocused &&
+          !dashboard &&
+          !settings &&
+          !marchForgeOpen &&
+          !detail &&
+          !retreat &&
+          !v.paused &&
+          v.decisionReady &&
+          state.phase.kind === "choice"
+        }
+        title="Choose a new power"
+        className="march-decision"
+        heading={false}
+        initialFocus="[data-march-perk]"
+      >
+        {state.phase.kind === "choice" && (
+          <MarchChoices
+            state={state}
+            options={state.phase.options}
+            rerolls={state.phase.rerolls ?? 1}
+            choose={(id) =>
+              a.choose(id, state.phase.kind === "choice" ? state.phase.offerId : undefined)
+            }
+            reroll={() => a.reroll(state.phase.kind === "choice" ? state.phase.offerId : undefined)}
+            skip={() => a.skip(state.phase.kind === "choice" ? state.phase.offerId : undefined)}
+            inspect={() => setDetail("stats")}
+          />
+        )}
+      </Modal>
+      <Modal
+        open={
+          marchFocused &&
+          !dashboard &&
+          !settings &&
+          !marchForgeOpen &&
+          !detail &&
+          !retreat &&
+          !v.paused &&
+          state.phase.kind === "march-gift"
+        }
+        title="A light along the road"
+        className="march-decision"
+        heading={false}
+        initialFocus="[data-march-gift]"
+      >
+        {state.phase.kind === "march-gift" && (
+          <MarchGift
+            state={state}
+            options={state.phase.options}
+            choose={(id) => {
+              if (state.phase.kind === "march-gift") a.marchGift(id, state.phase.offerId);
+            }}
+          />
+        )}
+      </Modal>
+      <Modal
+        open={v.loaded && firstLightWardrobe && (firstLightFocused || inCamp)}
+        title="Rook’s equipment"
+        className="fl-wardrobe"
+        close={() => setFirstLightWardrobe(false)}
+      >
+        <FirstLightWardrobe
+          state={state}
+          canChange={state.phase.kind === "camp" || state.phase.kind === "loot"}
+          equip={() => a.equipGear("sunfang")}
+          ordinary={() => a.equipGear(null)}
+        />
+      </Modal>
       <Modal
         open={dashboard && section !== "Camp"}
         title={
@@ -1452,7 +1886,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                   ? "Skills & powers"
                   : "Your pets"
         }
-        className={`collection-dialog collection-${section.toLowerCase()}`}
+        className={`collection-dialog collection-${section.toLowerCase()} ${["Companions", "Pets", "Skills"].includes(section) ? "collection-location" : ""}`}
         close={() => {
           setSection("Camp");
         }}
@@ -1477,24 +1911,25 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         )}
         {dashboard && section === "Skills" && (
           <>
-            <p className="section-note">
-              Equip one active skill. Press Q or tap its button during combat. Your oaths add
-              passive powers on each journey.
-            </p>
+            <p className="section-note">Equip an art for Q. Earn new oaths on every journey.</p>
             {selection("skill", SKILLS)}
             <Training state={state} id="skill" actions={a} />
-            <Card className="oath-card">
-              <CardHeader>
-                <CardTitle>Current powers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Powers state={state} />
-              </CardContent>
-            </Card>
+            <details className="oath-card location-oaths">
+              <summary>Journey powers · inspect your current oaths</summary>
+              <Powers state={state} />
+            </details>
           </>
         )}
         {dashboard && section === "Equipment" && (
           <>
+            <output
+              className="workshop-wallet"
+              aria-label={`${state.meta.gold} gold available at the forge`}
+            >
+              <GameIcon kind="gold" />
+              <b>{state.meta.gold.toLocaleString()}</b>
+              <span>GOLD</span>
+            </output>
             <nav className="equipment-tabs" aria-label="Equipment categories">
               {(
                 [
@@ -1520,22 +1955,57 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             {equipmentTab === "weapon" && selection("weapon", WEAPONS)}
             {equipmentTab === "armor" && selection("armor", ARMORS)}
             {equipmentTab === "forge" && (
-              <>
-                <h2 className="section-title">Make the whole company stronger.</h2>
-                <p className="section-note">
-                  {state.meta.gold.toLocaleString()} gold available. Permanent upgrades improve
-                  every weapon, companion, and pet where stated.
-                </p>
+              <div className="loadout-workbench forge-workbench">
+                <aside className="loadout-showcase forge-showcase" aria-label="Permanent upgrades">
+                  <span className="showcase-label">THE CAMP FORGE</span>
+                  <div className="showcase-art">
+                    <LoadoutArt slot="weapon" id={weapon.id} />
+                  </div>
+                  <h3>Tempered for the road.</h3>
+                  <p>Every upgrade stays with your company, through every journey.</p>
+                  <span className="showcase-power">
+                    <GameIcon kind="battle" />
+                    <b>{power.total.toLocaleString()}</b>
+                    <small>COMPANY POWER</small>
+                  </span>
+                </aside>
                 <div className="selection-grid forge">
                   {(["blade", "mail", "charm"] as const).map((id) => (
                     <Card key={id} className={`forge-card forge-${id}`}>
                       <CardHeader>
                         <div className="forge-emblem">
-                          <GameIcon
-                            kind={
-                              id === "blade" ? "battle" : id === "mail" ? "equipment" : "skills"
-                            }
-                          />
+                          {id === "charm" ? (
+                            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true">
+                              <path
+                                d="M27 15q-5 39 23 45 28-6 23-45"
+                                stroke="#202735"
+                                strokeWidth="10"
+                              />
+                              <path
+                                d="M27 15q-5 39 23 45 28-6 23-45"
+                                stroke="#d5a859"
+                                strokeWidth="5"
+                              />
+                              <path
+                                d="m50 46 23 17-8 24H35l-8-24Z"
+                                fill="#f5bf50"
+                                stroke="#263041"
+                                strokeWidth="4"
+                              />
+                              <path
+                                d="m50 55 13 11-5 13H42l-5-13Z"
+                                fill="#e86532"
+                                stroke="#9d392d"
+                                strokeWidth="3"
+                              />
+                              <path d="m49 58-5 12h7l-2 8 9-15h-8l3-5Z" fill="#ffe7a1" />
+                            </svg>
+                          ) : (
+                            <LoadoutArt
+                              slot={id === "blade" ? "weapon" : "armor"}
+                              id={id === "blade" ? weapon.id : armor.id}
+                            />
+                          )}
                         </div>
                         <CardTitle>
                           {
@@ -1560,6 +2030,16 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                             }[id]
                           }
                         </p>
+                        <div className="forge-ranks" aria-hidden="true">
+                          {Array.from({ length: UPGRADE_CAP }, (_, index) => index + 1).map(
+                            (rank) => (
+                              <span
+                                key={rank}
+                                className={rank <= state.meta.upgrades[id] ? "is-forged" : ""}
+                              />
+                            ),
+                          )}
+                        </div>
                         <Button
                           variant="outline"
                           data-upgrade={id}
@@ -1578,7 +2058,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                     </Card>
                   ))}
                 </div>
-              </>
+              </div>
             )}
           </>
         )}
@@ -1672,8 +2152,19 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
                       <Card
                         key={quest.id}
                         data-quest={quest.id}
-                        className={`mission-row ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
+                        className={`mission-row ${chapter !== null ? "is-story" : ""} ${quest.ready ? "is-ready" : ""} ${locked ? "is-locked" : ""}`}
                       >
+                        {chapter !== null && (
+                          <div className="mission-chapter-art" aria-hidden="true">
+                            <img
+                              src={roadAtlas}
+                              alt=""
+                              style={{
+                                transform: `translate(-${((chapter - 1) % 2) * 50}%, -${(Math.floor((chapter - 1) / 2) * 100) / 3}%)`,
+                              }}
+                            />
+                          </div>
+                        )}
                         <div className="mission-marker">
                           {quest.claimed ? (
                             <Check />
@@ -1817,7 +2308,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
           </p>
           <div className="departure-stakes">
             <span>12 encounters</span>
-            <i /> <span>3 branching trails</span>
+            <i /> <span>One consequential fork · two oath offerings</span>
             <i />
             <span>1 guardian</span>
           </div>
@@ -1961,6 +2452,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             {v.audioStatus === "locked" && <Button onClick={a.unlockAudio}>Enable sound</Button>}
           </div>
         )}
+        {inCamp && !firstLightFocused && !marchFocused && (
+          <nav className="compact-journey-shortcuts" aria-label="Other journeys">
+            {journeyShortcuts}
+          </nav>
+        )}
         <label className="motion-control" htmlFor="reduce-motion">
           <Switch
             id="reduce-motion"
@@ -1991,7 +2487,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
             Skip combat tips
           </Button>
         </div>
-        <p>Space to pause · Q to cast · 1–3 to choose an oath.</p>
+        <p>
+          {marchFocused
+            ? "Fighting and skills are automatic. Space to pause · 1–3 to choose a power."
+            : "Space to pause · Q to cast · 1–3 to choose an oath."}
+        </p>
         <p>
           Gold, equipment, and unlocked chapters stay with you. Oaths belong to the current journey.
         </p>
@@ -1999,23 +2499,33 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <Modal
         open={detail !== null}
-        title={detail === "stats" ? "Current stats" : "Current powers"}
+        title={
+          marchFocused ? "Current build" : detail === "stats" ? "Current stats" : "Current powers"
+        }
+        className={marchFocused ? "march-forge-dialog march-build-dialog" : ""}
         close={() => setDetail(null)}
       >
-        {detail === "stats" ? <StatList state={state} /> : <Powers state={state} />}
+        {marchFocused ? (
+          <MarchBuild state={state} />
+        ) : detail === "stats" ? (
+          <StatList state={state} />
+        ) : (
+          <Powers state={state} />
+        )}
       </Modal>
-      <Modal open={retreat} title="Return to camp?" close={() => setRetreat(false)}>
+      <Modal open={retreat} title="Return to camp?" close={cancelRetreat}>
         <p>
           This ends the unfinished journey and clears its oaths. Gold, forged gear, and chapter
           unlocks stay with you.
         </p>
         <div className="dialog-actions">
-          <Button variant="outline" onClick={() => setRetreat(false)}>
+          <Button variant="outline" onClick={cancelRetreat}>
             Keep this journey
           </Button>
           <Button
             onClick={() => {
               a.retreat();
+              setRetreatFromForge(false);
               setRetreat(false);
               setCampOpen(false);
             }}
@@ -2025,7 +2535,15 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         </div>
       </Modal>
       <Modal
-        open={!dashboard && v.paused && !settings && !detail && !retreat}
+        open={
+          !firstLightFocused &&
+          !marchFocused &&
+          !dashboard &&
+          v.paused &&
+          !settings &&
+          !detail &&
+          !retreat
+        }
         title="The road can wait."
         close={a.pause}
       >
@@ -2121,9 +2639,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         title="The road forks."
         className="decision--route"
       >
-        <span className="eyebrow">
-          AFTER FIGHT {state.run.cleared} · CHOOSE YOUR NEXT THREE FIGHTS
-        </span>
+        <span className="eyebrow">AFTER FIGHT {state.run.cleared} · SHAPE THE ROAD AHEAD</span>
         <p>One trail, one consequence. Your choice stays with this journey.</p>
         <div className="trail-fork">
           {state.phase.kind === "route" &&
@@ -2146,108 +2662,55 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <Modal
         open={
-          !dashboard && !detail && !settings && v.decisionReady && state.phase.kind === "choice"
+          !marchFocused &&
+          !dashboard &&
+          !detail &&
+          !settings &&
+          v.decisionReady &&
+          state.phase.kind === "choice"
         }
         title="Choose your next oath."
         className="decision--choice"
+        heading={false}
+        initialFocus="[data-oath]"
       >
-        <div className="oath-intro">
-          <span className="eyebrow">JOURNEY LEVEL {state.run.level} · A GIFT FROM THE ROAD</span>
-          <p>Bind one power. Carry its strength to the end of this journey.</p>
-        </div>
-        {tip === "oath" && (
-          <div className="oath-guidance">
-            <p>
-              These oaths shape this journey. Blue is rare, violet is epic, and gold is legendary.
-              Pick a power that helps your build, inspect your stats, or skip the choice.
-            </p>
-            <Button variant="ghost" onClick={dismissTip}>
-              Got it
-            </Button>
-          </div>
-        )}
-        <div className="choice-grid">
-          {state.phase.kind === "choice" &&
-            state.phase.options.map((id, i) => {
-              const p = PERKS.find((p) => p.id === id)!;
-              return (
-                <Card key={id} className={`choice-card rarity-${p.rarity}`}>
-                  <CardHeader>
-                    <div className="oath-relic">
-                      <span className="relic-halo" />
-                      <PerkArt id={id} />
-                      <span className="relic-spark spark-a" />
-                      <span className="relic-spark spark-b" />
-                    </div>
-                    <RarityBadge rarity={p.rarity} />
-                    <CardTitle>{p.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <small>{p.caption}</small>
-                    <p>{p.description}</p>
-                    <span className="oath-ranks">
-                      Rank {rank(state, id) + 1} / {p.max}
-                      <span aria-hidden="true">
-                        {Array.from({ length: p.max }, (_, index) => index + 1).map((n) => (
-                          <i key={n} className={n <= rank(state, id) + 1 ? "filled" : ""} />
-                        ))}
-                      </span>
-                    </span>
-                    <Button
-                      data-perk={id}
-                      autoFocus={i === 0}
-                      onClick={() => {
-                        setTip(null);
-                        a.choose(id);
-                      }}
-                    >
-                      Bind oath <kbd>{i + 1}</kbd>
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-        </div>
-        <div className="choice-tools">
-          <Button
-            variant="outline"
-            data-reroll=""
-            disabled={state.phase.kind !== "choice" || (state.phase.rerolls ?? 1) <= 0}
-            onClick={a.reroll}
-          >
-            <RefreshCw />
-            {state.phase.kind === "choice" && (state.phase.rerolls ?? 1) > 0
-              ? "Refresh choices · 1 free"
-              : "Refresh used"}
-          </Button>
-          <Button variant="ghost" onClick={() => setDetail("stats")}>
-            <Sword /> Current stats
-          </Button>
-          <Button variant="ghost" onClick={() => setDetail("powers")}>
-            <Flame /> Current powers
-          </Button>
-          <Button
-            variant="ghost"
-            id="skip-perk"
-            onClick={() => {
+        {state.phase.kind === "choice" && (
+          <OathOffering
+            key={`${state.run.chapter}-${state.run.level}-${state.phase.options.join("-")}`}
+            state={state}
+            options={state.phase.options}
+            rerolls={state.phase.rerolls ?? 1}
+            choose={(id) => {
+              setTip(null);
+              a.choose(id);
+            }}
+            reroll={a.reroll}
+            stats={() => setDetail("stats")}
+            powers={() => setDetail("powers")}
+            skip={() => {
               setTip(null);
               a.skip();
             }}
           >
-            Skip this choice <ArrowRight />
-          </Button>
-        </div>
-        <PowerBelt state={state} />
+            {(PERKS.some((perk) => rank(state, perk.id) > 0) ||
+              systemUnlocked(state, "skills")) && <PowerBelt state={state} />}
+          </OathOffering>
+        )}
       </Modal>
       <Modal
         open={
+          !firstLightFocused &&
+          !marchFocused &&
           !dashboard &&
           v.decisionReady &&
           (state.phase.kind === "defeat" || state.phase.kind === "victory")
         }
         title={state.phase.kind === "victory" ? "A light answers." : "Rest. Reforge. Return."}
-        className={state.phase.kind === "victory" ? "decision--victory" : "decision--defeat"}
+        className={`${state.phase.kind === "victory" ? "decision--victory" : "decision--defeat"} chapter-result result-chapter-${state.run.chapter}`}
       >
+        <div className="result-crest" aria-hidden="true">
+          {state.phase.kind === "victory" ? <Flame /> : <Sword />}
+        </div>
         <span className="eyebrow">
           {state.phase.kind === "victory"
             ? activity
@@ -2329,7 +2792,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       </Modal>
       <StoryOpening
         open={showPrologue}
-        fresh={isFirstJourney(state)}
+        fresh={!firstLightFocused && !marchFocused && isFirstJourney(state)}
         companyReady={companyReady}
         petsReady={petsReady}
         paused={v.presentationPaused}
@@ -2341,6 +2804,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         skip={() => {
           a.finishIntro();
           setReplayIntro(false);
+          if (firstLightFocused || marchFocused) {
+            setSection("Camp");
+            setCampOpen(false);
+            return;
+          }
           if (!inCamp) {
             setSection("Camp");
             setCampOpen(true);
@@ -2349,6 +2817,11 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
         finish={(start) => {
           a.finishIntro();
           setReplayIntro(false);
+          if (firstLightFocused || marchFocused) {
+            setSection("Camp");
+            setCampOpen(false);
+            return;
+          }
           if (start) a.start(1);
           else if (!inCamp) {
             setSection("Camp");

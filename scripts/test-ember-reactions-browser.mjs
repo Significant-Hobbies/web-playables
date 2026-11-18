@@ -152,7 +152,7 @@ test("Ember Road restores visible queued shards and freezes them on pause", {
       const saved = await page.evaluate(() =>
         JSON.parse(localStorage.getItem("save:ember-road:v1")),
       );
-      assert.equal(saved.version, 5);
+      assert.equal(saved.version, 7);
       assert.equal(saved.state.phase.reactions.length, 0, "The saved queue resolves exactly once");
       assert.equal(
         await page.evaluate(() => document.documentElement.scrollHeight > innerHeight),

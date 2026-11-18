@@ -1,3 +1,5 @@
+import type { EmberMarchContext } from "./ember-march.ts";
+import { FIRST_LIGHT } from "./first-light.ts";
 import type { GameState } from "./model";
 
 export const DAY_MS = 86_400_000;
@@ -5,7 +7,9 @@ export type ActivityKind = "daily" | "hunt";
 export type Tier = 1 | 2 | 3;
 export type RouteId = "spring" | "elite" | "rescue" | "shrine" | "tracks";
 export type RunContext =
+  | EmberMarchContext
   | { kind: "campaign"; routes: { at: number; path: RouteId }[]; junctionFloor: number }
+  | { kind: "first-light"; returnChapter: number }
   | { kind: ActivityKind; id: number; period: number; tier: Tier; returnChapter: number };
 export interface AdventureLedger {
   day: number;
@@ -92,6 +96,13 @@ export const DISCOVERY_CHAPTERS = { mira: 2, cinder: 3 } as const;
 
 export function routeDetails(state: GameState, path: RouteId) {
   const discoveries = state.adventures?.discoveries;
+  if (path === "spring" && state.run.rules === 1)
+    return { ...ROUTES.spring, risk: "Gentler road · weaker foes ahead" };
+  if (path === "shrine" && discoveries?.whirlwind)
+    return {
+      ...ROUTES.shrine,
+      reward: "+20% Rook damage for this run · Whirlwind already learned",
+    };
   if (path === "rescue" && !discoveries?.mira && state.run.chapter < DISCOVERY_CHAPTERS.mira)
     return {
       ...ROUTES[path],
@@ -190,16 +201,28 @@ export function routeOptions(at: number): RouteId[] {
   return ["spring", "elite", at === 3 ? "rescue" : at === 6 ? "shrine" : "tracks"];
 }
 export function runLength(state: GameState): number {
-  return state.run.context?.kind === "daily" ? 6 : state.run.context?.kind === "hunt" ? 3 : 12;
+  return state.run.context?.kind === "first-light"
+    ? FIRST_LIGHT.length
+    : state.run.context?.kind === "daily"
+      ? 6
+      : state.run.context?.kind === "hunt"
+        ? 3
+        : 12;
 }
 export function currentRoute(state: GameState): RouteId | undefined {
   const context = state.run.context;
   return context?.kind === "campaign" ? context.routes.at(-1)?.path : undefined;
 }
+export function chapterJunctions(chapter: number, rules: 1 | undefined): number[] {
+  return rules === 1 ? [chapter === 2 ? 3 : chapter === 3 ? 9 : 6] : [3, 6, 9];
+}
+export function junctions(state: GameState): number[] {
+  return chapterJunctions(state.run.chapter, state.run.rules);
+}
 export function nextJunction(state: GameState): number | undefined {
   const context = state.run.context;
   if (context?.kind !== "campaign") return undefined;
-  return [3, 6, 9].find(
+  return junctions(state).find(
     (at) =>
       at > context.junctionFloor &&
       at === state.run.cleared &&
@@ -231,7 +254,7 @@ export function validAdventureLedger(value: unknown): value is AdventureLedger {
     integer(l.discoveries.oaths, 2)
   );
 }
-export function validRunContext(state: GameState): boolean {
+export function validRunContext(state: GameState, firstLight = false, march = false): boolean {
   const c = state.run.context;
   if (!c || typeof c !== "object") return false;
   if (c.kind === "campaign")
@@ -250,14 +273,30 @@ export function validRunContext(state: GameState): boolean {
           routeOptions(r.at).includes(r.path) &&
           (i === 0 || r.at > c.routes[i - 1]!.at),
       ) &&
-      [3, 6, 9]
+      junctions(state)
         .filter((at) => at > c.junctionFloor && at < state.run.cleared)
         .every((at) => c.routes.some((r) => r.at === at)) &&
       (state.phase.kind === "camp" ||
         state.phase.kind === "defeat" ||
+        state.phase.kind === "choice" ||
         state.phase.kind === "route" ||
         nextJunction(state) === undefined)
     );
+  if (c.kind === "first-light")
+    return (
+      firstLight &&
+      state.phase.kind !== "camp" &&
+      !["choice", "route"].includes(state.phase.kind) &&
+      state.run.chapter === 1 &&
+      state.run.rules === 1 &&
+      state.run.cleared <= FIRST_LIGHT.length &&
+      state.run.xp === 0 &&
+      state.run.level === 1 &&
+      Number.isInteger(c.returnChapter) &&
+      c.returnChapter >= 1 &&
+      c.returnChapter <= state.meta.unlockedChapter
+    );
+  if (c.kind === "ember-march") return march;
   const ledger = state.adventures;
   if (!ledger || !["daily", "hunt"].includes(c.kind)) return false;
   const period = c.kind === "daily" ? ledger.day : ledger.week;

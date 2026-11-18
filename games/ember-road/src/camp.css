@@ -35,6 +35,24 @@
   font-size: 21px;
   letter-spacing: 1px;
 }
+.wide-journey-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.compact-journey-shortcuts {
+  display: none;
+}
+@media (max-width: 1179px) {
+  .wide-journey-shortcuts {
+    display: none;
+  }
+  .compact-journey-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
 .toon-shell .toon-portrait {
   width: 58px;
   height: 58px;
@@ -71,6 +89,12 @@
   object-fit: cover;
   object-position: center;
   z-index: -3;
+}
+.camp-identity,
+.camp-company-caption,
+.camp-story-track,
+.camp-route-preview {
+  display: none;
 }
 .camp-shade {
   position: absolute;
@@ -759,32 +783,6 @@
   }
 }
 
-.toon-shell .decision--choice .choice-card {
-  background: linear-gradient(145deg, color-mix(in srgb, var(--rarity) 20%, #30333a), #242730 70%);
-  box-shadow:
-    inset 0 0 0 4px #171b22,
-    inset 0 0 0 5px color-mix(in srgb, var(--rarity) 55%, #30333a),
-    0 7px #11161d;
-  border-width: 3px;
-  border-radius: 11px;
-}
-.toon-shell .decision--choice .choice-card [data-slot="card-title"] {
-  color: #fff;
-}
-.toon-shell .decision--choice .choice-card [data-slot="card-content"] > button {
-  background: var(--rarity);
-  color: #151e29;
-  border-color: var(--rarity);
-  box-shadow:
-    inset 0 1px #fff7,
-    0 4px #10161d;
-  text-shadow: none;
-}
-.toon-shell .decision--choice #skip-perk {
-  background: #343b44;
-  color: #e3e8ee;
-  border-color: #8e99a6;
-}
 .toon-shell .decision--route .trail-option {
   border: 3px solid #929682;
   border-radius: 10px 22px 8px 8px;
@@ -1134,5 +1132,358 @@
     transform: none;
     max-width: none;
     flex: none;
+  }
+}
+
+/* Desktop camp: keep the clearing open and put the road within reach. */
+.toon-shell .tutorial-card.camp-guide {
+  pointer-events: none;
+}
+.toon-shell .tutorial-card.camp-guide button {
+  pointer-events: auto;
+}
+@media (min-width: 1000px) and (min-height: 600px) {
+  .toon-shell .tutorial-card.camp-guide {
+    left: 23%;
+    bottom: 4%;
+    max-width: 360px;
+  }
+  .toon-shell.is-dashboard .game-topbar {
+    background: linear-gradient(#272f2b, #171f1d);
+    border-bottom: 2px solid #b69b5f;
+    box-shadow: 0 3px #0c1510;
+  }
+  .toon-shell.is-dashboard .game-wordmark {
+    color: #f8df9c;
+    letter-spacing: 4px;
+    font-size: 18px;
+  }
+  .camp-shade {
+    background: linear-gradient(#0a190b44, transparent 28%, transparent 53%, #09160cee);
+  }
+  .camp-identity {
+    display: grid;
+    gap: 3px;
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: #fff;
+    text-shadow:
+      0 2px 8px #102010,
+      0 2px #152317;
+  }
+  .camp-identity > span {
+    color: #ffe1a0;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+  }
+  .camp-identity strong {
+    font-size: 29px;
+    letter-spacing: -0.025em;
+  }
+  .camp-identity small {
+    font-size: 11px;
+    color: #ecf0dd;
+  }
+  .toon-shell .camp-renown {
+    width: 250px;
+    padding: 10px 12px;
+    border: 1px solid #aeab7c99;
+    border-radius: 8px;
+    background: #14271be8;
+    box-shadow: 0 4px #111d1480;
+  }
+  .camp-renown > .game-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .camp-renown strong {
+    font-size: 9px;
+  }
+  .camp-renown small {
+    color: #ebd89c;
+  }
+  .camp-renown > b {
+    align-self: flex-end;
+    font-size: 10px;
+  }
+  .toon-shell .camp-contracts > button {
+    background: #14271be8;
+    border: 1px solid #aeab7c99;
+    border-radius: 8px;
+    box-shadow: 0 4px #111d1480;
+    width: 68px;
+    min-height: 66px;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-width: 110px;
+    min-height: 92px;
+    padding: 0;
+    gap: 3px;
+    flex-direction: column;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    box-shadow: none;
+    transform: none;
+    transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .camp-sign::before,
+  .camp-sign::after {
+    display: none;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 62px;
+    height: 62px;
+    padding: 8px;
+    background: radial-gradient(at 35% 25%, #7b4430, #38251d);
+    border: 3px solid #e5ba68;
+    border-radius: 50%;
+    box-shadow:
+      0 0 0 3px #172111,
+      inset 0 2px #ffdca066,
+      0 5px #172111;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 18px;
+    gap: 3px;
+    text-align: center;
+    -webkit-text-stroke: 3px #182713;
+    paint-order: stroke fill;
+    text-shadow: 0 2px 4px #15250e;
+  }
+  .camp-sign small {
+    color: #f5e9c8;
+    font-size: 10px;
+    -webkit-text-stroke: 0;
+  }
+  .sign-forge {
+    left: 7%;
+    top: 32%;
+  }
+  .sign-company {
+    left: 31%;
+    top: 26%;
+  }
+  .sign-skills {
+    right: 9%;
+    top: 32%;
+  }
+  .sign-pets {
+    left: 6%;
+    top: 66%;
+  }
+  .sign-discoveries {
+    right: 5%;
+    top: 53%;
+  }
+  .camp-company .toon-actor {
+    width: clamp(250px, 27vw, 380px);
+    height: clamp(250px, 27vw, 380px);
+    bottom: 14%;
+  }
+  .camp-rook {
+    left: 21%;
+  }
+  .camp-companion {
+    left: 39%;
+  }
+  .camp-company .camp-pet {
+    left: 39%;
+    bottom: 11%;
+    width: 145px;
+    height: 145px;
+  }
+  .camp-company-caption {
+    position: absolute;
+    display: grid;
+    gap: 3px;
+    left: 24%;
+    bottom: 5%;
+    width: 300px;
+    text-align: center;
+    color: #fff;
+    text-shadow: 0 2px 5px #0b170b;
+  }
+  .camp-company-caption > span {
+    color: #f2cb7b;
+    font-weight: 800;
+    font-size: 9px;
+    letter-spacing: 0.17em;
+  }
+  .camp-company-caption strong {
+    font-size: 27px;
+  }
+  .camp-company-caption small {
+    font-size: 11px;
+    color: #d1ddc5;
+  }
+  .camp-departure {
+    isolation: isolate;
+    width: 365px;
+    left: auto;
+    right: 3%;
+    bottom: 24px;
+    transform: none;
+    padding: 18px;
+    border: 1px solid #c8ab6b;
+    border-radius: 16px 6px 16px 6px;
+    background: #15241df0;
+    box-shadow:
+      0 7px #0b150f99,
+      inset 0 0 0 3px #17201b;
+    overflow: hidden;
+  }
+  .camp-route-preview {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    overflow: hidden;
+    opacity: 0.36;
+    mask-image: linear-gradient(#000, transparent 85%);
+  }
+  .camp-route-preview img {
+    position: absolute;
+    width: 200%;
+    height: 300%;
+    max-width: none;
+  }
+  .camp-story-track {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .camp-story-track > span {
+    width: 8px;
+    height: 8px;
+    border: 1px solid #a5b29a;
+    background: #28392b;
+    transform: rotate(45deg);
+  }
+  .camp-story-track .is-open {
+    background: #a7b984;
+  }
+  .camp-story-track .is-current {
+    background: #ffe09b;
+    border-color: #ffe09b;
+    box-shadow: 0 0 0 3px #e8b85233;
+  }
+  .camp-destination {
+    gap: 8px;
+    margin: 0;
+  }
+  .camp-destination strong {
+    font-size: 25px;
+  }
+  .camp-destination small {
+    font-size: 9px;
+  }
+  .toon-shell .camp-destination .camp-arrow {
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
+    border: 1px solid #a8b59177;
+    background: #15251ec9;
+    border-radius: 50%;
+  }
+  .toon-shell .living-camp .chapter-goal {
+    margin: 10px 0 17px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .toon-shell .living-camp #start {
+    min-height: 58px;
+    height: 58px;
+    border: 2px solid #ffc379;
+    outline: 2px solid #172317;
+    border-radius: 8px;
+    background: linear-gradient(#ed6b36, #c03b23);
+    box-shadow:
+      inset 0 2px #ffd09080,
+      inset 0 -3px #8d2b20,
+      0 4px #101a11;
+    gap: 15px;
+    transition:
+      transform 120ms,
+      filter 120ms;
+  }
+  .living-camp #start > span {
+    font-size: 24px;
+  }
+  .living-camp #start small {
+    font-size: 9px;
+  }
+  .living-camp #start .game-icon {
+    width: 31px;
+    height: 31px;
+  }
+  .toon-shell .living-camp #start:active {
+    transform: translateY(3px) scale(0.98);
+  }
+}
+@media (min-width: 1000px) and (min-height: 600px) and (max-height: 760px) {
+  .sign-discoveries {
+    right: 30%;
+    top: 40%;
+  }
+  .camp-identity {
+    top: 18px;
+  }
+  .camp-identity strong {
+    font-size: 25px;
+  }
+  .camp-identity small {
+    display: none;
+  }
+  .toon-shell .camp-locations .camp-sign {
+    min-height: 76px;
+  }
+  .toon-shell .camp-sign > .game-icon {
+    width: 50px;
+    height: 50px;
+  }
+  .toon-shell .camp-sign > span {
+    font-size: 16px;
+  }
+  .camp-sign small {
+    font-size: 9px;
+  }
+  .camp-departure {
+    width: 340px;
+    bottom: 18px;
+    padding: 14px;
+  }
+  .camp-story-track {
+    margin-bottom: 11px;
+  }
+  .toon-shell .living-camp .chapter-goal {
+    display: block;
+    font-size: 11px;
+    margin: 9px 0 12px;
+  }
+  .camp-company .toon-actor {
+    width: 290px;
+    height: 290px;
+    bottom: 15%;
+  }
+  .camp-company-caption {
+    left: 22%;
+    bottom: 3%;
+  }
+  .camp-company-caption small {
+    display: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .toon-shell .camp-sign:hover:not(:disabled) {
+    transform: translateY(-5px);
+  }
+  .toon-shell .living-camp #start:hover:not(:disabled) {
+    filter: brightness(1.12);
   }
 }

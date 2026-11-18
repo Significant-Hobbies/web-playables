@@ -1,0 +1,1703 @@
+.toon-shell.is-ember-march {
+  background: #191b20;
+}
+.toon-shell.is-ember-march > .powers-belt {
+  display: none;
+}
+.toon-shell.is-ember-march > .game-topbar,
+.toon-shell.is-ember-march > .game-topbar > .header-actions {
+  display: contents;
+}
+.toon-shell.is-ember-march > .game-topbar > :not(.header-actions),
+.toon-shell.is-ember-march > .game-topbar > .header-actions > :not([data-playables-account-slot]) {
+  display: none;
+}
+.toon-shell.is-ember-march [data-playables-account-slot] {
+  position: absolute;
+  top: 91px;
+  right: 28px;
+  z-index: 10;
+}
+.toon-shell.is-ember-march .workspace {
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+.toon-shell.is-ember-march .main-content {
+  position: relative;
+  display: block;
+  height: 100%;
+  padding: 0;
+  overflow: clip;
+}
+.toon-shell.is-ember-march .main-content > :not(.world-stage):not(.ember-march-ui) {
+  display: none;
+}
+.toon-shell.is-ember-march .world-stage {
+  position: absolute;
+  inset: 0 0 var(--march-ledger-height) 0;
+  width: 100%;
+  height: auto;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: #7dbb78;
+  box-shadow: none;
+}
+.toon-shell.is-ember-march .world-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+.is-ember-march {
+  --march-ledger-height: 222px;
+}
+.ember-march-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  font-family: var(--game-font);
+  color: #fbfbf8;
+}
+.ember-march-ui button,
+.ember-march-ui .march-powers {
+  pointer-events: auto;
+}
+.ember-march-ui::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 var(--march-ledger-height);
+  background: linear-gradient(#0c191b80, transparent 31%, transparent 80%, #11192230);
+  z-index: -1;
+}
+.ember-march-ui.march-at-camp {
+  background: url("../assets/first-light-clearing-v1.webp") center / cover;
+}
+.ember-march-ui.march-at-camp::before {
+  inset: 0;
+  background: linear-gradient(90deg, #13232310 27%, #101d2570 65%, #101d2599);
+}
+.march-header {
+  position: absolute;
+  top: 22px;
+  left: 28px;
+  right: 28px;
+  display: grid;
+  grid-template-columns: 1fr minmax(230px, 310px) 1fr;
+  align-items: start;
+  gap: 18px;
+}
+.toon-shell .march-profile {
+  justify-self: start;
+  display: flex;
+  gap: 12px;
+  padding: 0;
+  height: 64px;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: white;
+  box-shadow: none;
+}
+.march-avatar {
+  width: 64px;
+  height: 64px;
+  background-size: 400% 200%;
+  background-position: 0 0;
+  background-color: #588f83;
+  border: 3px solid #ffcf60;
+  border-radius: 13px;
+  box-shadow:
+    0 0 0 3px #1b2429,
+    inset 0 0 0 2px #8a622e,
+    0 5px #1b242940;
+}
+.march-profile > span:last-child {
+  display: grid;
+  gap: 0;
+}
+.march-profile small {
+  font-size: 11px;
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+  text-shadow: 0 2px #163022;
+}
+.march-profile strong {
+  font-size: 33px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #ffcb64;
+  text-shadow: 0 3px #26302b;
+}
+.march-profile strong svg {
+  width: 24px;
+  height: 24px;
+}
+.march-profile em {
+  font-style: normal;
+  color: #f5f7e8;
+  font-size: 9px;
+  align-self: end;
+  padding-bottom: 8px;
+  letter-spacing: 0.07em;
+}
+.march-chapter {
+  text-align: center;
+  display: grid;
+  gap: 4px;
+  filter: drop-shadow(0 2px 1px #142b23);
+}
+.march-chapter > span {
+  color: #ffe297;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+}
+.march-chapter strong {
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: 0.02em;
+}
+.march-chapter small {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.march-chapter progress {
+  width: 100%;
+  height: 9px;
+  margin: 3px 0 0;
+  appearance: none;
+  border: 2px solid #243126;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #152426a8;
+}
+.march-chapter progress::-webkit-progress-bar {
+  background: #152426a8;
+}
+.march-chapter progress::-webkit-progress-value {
+  background: linear-gradient(#ffe796, #e6a742);
+}
+.march-tools {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-self: end;
+}
+.toon-shell .march-tools button {
+  width: 38px;
+  height: 38px;
+  padding: 8px;
+  background: #282c30df;
+  color: #fff;
+  border: 1px solid #9ca7a0;
+  border-radius: 8px;
+  box-shadow: 0 3px #172329;
+}
+.march-coins {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 24px;
+  font-weight: 900;
+  text-shadow: 0 2px #24302a;
+  padding-right: 4px;
+}
+.march-coins > svg {
+  width: 30px;
+  height: 30px;
+}
+.march-run-note {
+  position: absolute;
+  bottom: calc(var(--march-ledger-height) + 16px);
+  left: 28px;
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+  color: #f3fff5;
+  text-shadow: 0 1px 3px #163526;
+}
+.march-run-note i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #a4f27c;
+  box-shadow: 0 0 0 4px #73c95630;
+}
+.march-run-note i.paused {
+  background: #ffd777;
+}
+.march-run-note > span {
+  margin-left: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.march-paused-sign {
+  position: absolute;
+  top: 35%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #202936ed;
+  color: #fff;
+  border: 1px solid #9caaba;
+  border-radius: 8px;
+  box-shadow: 0 5px #11182077;
+  pointer-events: auto;
+  white-space: nowrap;
+}
+.ember-march-ui[data-combat-paused="true"] .march-ledger * {
+  animation-play-state: paused !important;
+  transition-duration: 0s !important;
+}
+.ember-march-ui[data-combat-paused="true"] progress::-webkit-progress-value {
+  transition-duration: 0s !important;
+}
+.ember-march-ui[data-combat-paused="true"] progress::-moz-progress-bar {
+  transition-duration: 0s !important;
+}
+.march-paused-sign > svg {
+  width: 18px;
+  color: #ffda82;
+}
+.march-paused-sign strong {
+  font-size: 14px;
+}
+.toon-shell .march-paused-sign button {
+  color: #fff0c5;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  font-size: 12px;
+  height: 30px;
+  padding: 0 5px;
+  gap: 6px;
+}
+.march-paused-sign button svg {
+  width: 14px;
+}
+.march-ledger {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--march-ledger-height);
+  padding: 14px max(28px, calc((100vw - 1384px) / 2));
+  background: linear-gradient(#30343c, #23262c 16%, #1c1f25);
+  border-top: 5px solid #525864;
+  box-shadow:
+    0 -3px #11161a,
+    inset 0 1px #939da266;
+  display: grid;
+  grid-template-rows: 44px 76px 58px;
+  gap: 7px;
+}
+.march-vitals {
+  display: grid;
+  grid-template-columns: 50px 1fr 1.2fr 1.2fr 70px;
+  gap: 20px;
+  align-items: center;
+}
+.march-level-seal {
+  position: relative;
+  display: grid;
+  text-align: center;
+  place-content: center;
+  height: 48px;
+  background: #d89a3c;
+  border: 2px solid #ffdf7b;
+  border-radius: 8px 8px 14px 14px;
+  box-shadow:
+    0 3px #11171c,
+    inset 0 0 0 3px #47392c;
+}
+.march-level-seal strong {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 1000;
+  color: #fffbe8;
+  text-shadow: 0 2px #4c3821;
+}
+.march-level-seal small {
+  color: #302b24;
+  font-size: 8px;
+  font-weight: 1000;
+  letter-spacing: 0.08em;
+}
+.march-meter {
+  --meter: #8ed75a;
+  min-width: 0;
+}
+.march-hp {
+  --meter: #ed6475;
+}
+.march-barrier {
+  --meter: #69b9ec;
+}
+.march-meter > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  color: #c8cbd0;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.06em;
+}
+.march-meter > span svg {
+  width: 12px;
+  height: 12px;
+  color: var(--meter);
+}
+.march-meter b {
+  font-size: 12px;
+  color: #fff;
+  margin-left: auto;
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+}
+.march-meter progress {
+  display: block;
+  appearance: none;
+  width: 100%;
+  height: 13px;
+  background: #0d1118;
+  border: 2px solid #0d1118;
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 1px #69727d;
+}
+.march-meter progress::-webkit-progress-bar {
+  background: #0d1118;
+}
+.march-meter progress::-webkit-progress-value {
+  background: linear-gradient(#ffffff35, transparent 55%), var(--meter);
+  transition: width 140ms ease-out;
+  border-top: 1px solid #ffffff80;
+}
+.march-meter progress::-moz-progress-bar {
+  background: var(--meter);
+}
+.march-kill-count {
+  display: grid;
+  grid-template-columns: 21px 1fr;
+  align-items: center;
+  gap: 0 6px;
+}
+.march-kill-count svg {
+  width: 21px;
+  color: #bbb9bd;
+}
+.march-kill-count b {
+  font-size: 24px;
+  line-height: 1;
+}
+.march-kill-count small {
+  grid-column: span 2;
+  color: #a9aeb7;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+}
+.march-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  margin: 0;
+  gap: 0 22px;
+}
+.march-stats > div {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
+  border-bottom: 1px solid #444b5555;
+}
+.march-stats dt {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #bcc2ce;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.march-stats svg {
+  width: 17px;
+  height: 17px;
+  color: #d7cba4;
+}
+.march-stats dd {
+  margin: 0;
+  color: #f7fbff;
+  font-size: 16px;
+  font-weight: 1000;
+  font-variant-numeric: tabular-nums;
+  animation: march-stat-in 300ms ease-out;
+}
+.march-powers {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.march-powers > span {
+  flex: none;
+  color: #aaaeb8;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1.5;
+  letter-spacing: 0.12em;
+}
+.march-powers > span b {
+  color: #e5c46f;
+  font-size: 11px;
+}
+.march-powers > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.march-powers > div > small {
+  color: #aab2bc;
+  font-size: 12px;
+}
+.march-auto-skill {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  flex: none;
+  padding-right: 9px;
+  margin-right: 2px;
+  border-right: 1px solid #596374;
+}
+.march-auto-skill > svg {
+  width: 36px;
+  height: 36px;
+}
+.march-auto-skill > span {
+  display: grid;
+  gap: 4px;
+}
+.march-auto-skill b {
+  color: #ebf4ff;
+  font-size: 11px;
+}
+.march-auto-skill small {
+  color: #ffda78;
+  font-size: 8px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.toon-shell .march-powers > button {
+  height: 34px;
+  background: #373d46;
+  border: 1px solid #656e7a;
+  border-radius: 6px;
+  color: #e6e9f0;
+  font-size: 11px;
+  padding: 7px 10px;
+  gap: 6px;
+  box-shadow: 0 3px #11151c;
+}
+.march-powers > button svg {
+  width: 16px;
+}
+.march-power,
+.march-choice-row {
+  --rarity: #adb9b2;
+}
+.march-power.rarity-rare,
+.march-choice-row.rarity-rare {
+  --rarity: #65bcff;
+}
+.march-power.rarity-epic,
+.march-choice-row.rarity-epic {
+  --rarity: #ca8dff;
+}
+.march-power.rarity-legendary,
+.march-choice-row.rarity-legendary {
+  --rarity: #ffd56b;
+}
+.toon-shell .march-power {
+  position: relative;
+  padding: 3px;
+  width: 43px;
+  height: 43px;
+  flex: none;
+  border: 1px solid var(--rarity);
+  background: #323944;
+  border-radius: 7px;
+  box-shadow:
+    inset 0 0 0 2px #131b24,
+    0 3px #0b1118;
+  color: #fff;
+}
+.march-power .perk-art {
+  width: 34px;
+  height: 34px;
+}
+.march-power > b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 4px;
+  background: var(--rarity);
+  border: 1px solid #161e24;
+  color: #151e2a;
+  font-size: 10px;
+  font-weight: 1000;
+}
+.march-power-tip {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
+  width: 242px;
+  padding: 13px 15px;
+  text-align: left;
+  white-space: normal;
+  border: 1px solid var(--rarity);
+  border-radius: 8px;
+  background: #151b25fa;
+  box-shadow: 0 8px 20px #0007;
+  z-index: 30;
+  pointer-events: none;
+}
+.march-power-tip strong {
+  display: block;
+  color: var(--rarity);
+  font-size: 15px;
+}
+.march-power-tip > span {
+  display: block;
+  margin: 6px 0;
+  color: #e0e7ef;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 700;
+}
+.march-power-tip small {
+  font-size: 10px;
+  color: #a5b2c4;
+}
+.march-power:hover .march-power-tip,
+.march-power:focus-visible .march-power-tip {
+  display: block;
+}
+.march-power:first-child .march-power-tip {
+  left: 0;
+  transform: none;
+}
+.march-departure {
+  position: absolute;
+  inset: 18% 8% 12%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 8%;
+}
+.march-camp-hero {
+  display: grid;
+  justify-items: center;
+  align-self: end;
+  gap: 12px;
+}
+.march-camp-hero > span {
+  display: block;
+  height: clamp(220px, 38vh, 430px);
+  aspect-ratio: 1;
+  background-size: 400% 200%;
+  background-position: 0 0;
+  filter: drop-shadow(0 15px 1px #213c2c33);
+  animation: march-breathe 3s ease-in-out infinite;
+}
+.march-camp-hero small {
+  color: #e6f0cf;
+  font-size: 10px;
+  font-weight: 1000;
+  letter-spacing: 0.2em;
+  text-shadow: 0 2px #1d3b26;
+}
+.march-kicker {
+  color: #ffda7d;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  font-weight: 1000;
+  text-shadow: 0 2px #172b2a;
+}
+.march-departure h1 {
+  font: 1000 clamp(36px, 4.2vw, 62px) / 1.05 var(--game-font);
+  letter-spacing: -0.04em;
+  margin: 16px 0 20px;
+  text-shadow: 0 3px #213c32;
+  color: white;
+}
+.march-departure p {
+  color: #f4f9e9;
+  font-size: clamp(15px, 1.5vw, 19px);
+  line-height: 1.65;
+  margin: 0 0 27px;
+  font-weight: 700;
+  text-shadow: 0 1px #163b26;
+}
+.toon-shell .march-primary {
+  height: 62px;
+  gap: 15px;
+  background: linear-gradient(#ed674d, #cc4339);
+  border: 2px solid #ffb585;
+  border-radius: 10px;
+  box-shadow:
+    0 5px #6f2d2e,
+    0 7px #18312c,
+    inset 0 2px #ffd4a655;
+  color: #fff9df;
+  font-size: 20px;
+  font-weight: 1000;
+  padding: 0 23px;
+  text-shadow: 0 2px #96352f;
+}
+.toon-shell .march-primary > svg {
+  width: 25px;
+  height: 25px;
+}
+.toon-shell .march-primary:hover {
+  filter: brightness(1.12);
+}
+.toon-shell .march-primary:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 2px #6f2d2e,
+    0 4px #18312c;
+}
+.march-departure-copy > small {
+  display: block;
+  color: #e8f1d3;
+  margin-top: 19px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.march-camp-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 30px;
+  flex-wrap: wrap;
+}
+.toon-shell .march-camp-links button {
+  height: auto;
+  padding: 6px 0;
+  gap: 6px;
+  font-size: 12px;
+  color: #f0f2e6;
+  background: none;
+  border: 0;
+  box-shadow: none;
+}
+.march-camp-links svg {
+  width: 16px;
+  height: 16px;
+}
+.march-result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: #101923c9;
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+.march-result-crest {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 28px #ffd15d4d);
+}
+.march-result .march-primary + button {
+  margin-top: 12px;
+}
+.march-result-crest svg {
+  width: 100%;
+  height: 100%;
+}
+.march-result h1 {
+  font: 1000 clamp(28px, 4vw, 48px) / 1.1 var(--game-font);
+  letter-spacing: -0.03em;
+  margin: 16px 0 8px;
+  color: white;
+}
+.march-result > p {
+  color: #ccd5da;
+  font-size: 15px;
+  margin: 6px 0;
+  max-width: 420px;
+  text-align: center;
+}
+.march-result-spoils {
+  display: flex;
+  gap: 50px;
+  margin: 25px 0;
+}
+.march-result-spoils > span {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+}
+.march-result-spoils svg {
+  width: 30px;
+  height: 30px;
+}
+.march-result-spoils b {
+  font-size: 30px;
+  font-weight: 1000;
+  color: #ffe292;
+}
+.march-result-spoils small {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #b7c1cb;
+}
+.march-result .march-first-clear {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 12px;
+  color: #a5dca5;
+  margin: -8px 0 25px;
+}
+.march-first-clear svg {
+  width: 14px;
+}
+.march-save-warning {
+  position: absolute;
+  left: 20px;
+  bottom: calc(var(--march-ledger-height) + 40px);
+  padding: 7px 10px;
+  background: #3c2126ed;
+  border: 1px solid #d28372;
+  border-radius: 5px;
+  color: #fff1d8;
+  font-size: 11px;
+}
+.game-dialog.march-decision {
+  width: min(580px, calc(100vw - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 28px);
+  margin: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  overflow: auto;
+  scrollbar-width: thin;
+  color: white;
+}
+.game-dialog.march-decision::backdrop {
+  background: #080b12b8;
+  backdrop-filter: blur(2px);
+}
+.march-choice-content {
+  padding: 12px 6px 9px;
+  font-family: var(--game-font);
+}
+.march-choice-content > header {
+  text-align: center;
+  margin: 0 0 20px;
+}
+.march-level-ribbon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  min-width: 260px;
+  color: #fff8d9;
+  background: linear-gradient(#675f56, #3c3d40);
+  border: 2px solid #a4a19a;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 3px #2d3036,
+    0 4px #0c1119;
+  padding: 8px 23px;
+  font-size: 22px;
+  font-weight: 1000;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px #262c32;
+}
+.march-level-ribbon svg {
+  color: #ffe9a5;
+  width: 20px;
+}
+.march-choice-content h2 {
+  margin: 15px 0 3px;
+  font: 1000 21px / 1.2 var(--game-font);
+  letter-spacing: 0;
+  color: #fff;
+  text-shadow: 0 2px #111a27;
+}
+.march-choice-content header p {
+  color: #bfc8d5;
+  font-size: 12px;
+  margin: 5px 0;
+}
+.march-choice-content .march-gift-note {
+  color: #e8d8af;
+  text-align: center;
+  font-size: 12px;
+  margin: 23px 0 0;
+  font-weight: 800;
+}
+.march-choice-list {
+  display: grid;
+  gap: 13px;
+}
+.toon-shell .march-decision .march-choice-row {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  width: 100%;
+  height: auto;
+  min-height: 112px;
+  padding: 14px 15px 14px 12px;
+  gap: 15px;
+  text-align: left;
+  white-space: normal;
+  color: #fff;
+  border: 2px solid #6d727d;
+  border-left: 4px solid var(--rarity);
+  border-radius: 6px;
+  background: linear-gradient(110deg, #3a414c, #282d37 80%);
+  box-shadow:
+    inset 0 0 0 2px #141b24,
+    0 4px #080e18;
+  justify-content: start;
+  animation: march-offer-in 180ms ease-out both;
+  animation-delay: var(--entry);
+  overflow: hidden;
+}
+.toon-shell .march-decision .march-choice-row.rarity-epic {
+  background: linear-gradient(110deg, #443957, #2c2b3c 80%);
+}
+.toon-shell .march-decision .march-choice-row.rarity-legendary {
+  background: linear-gradient(110deg, #514635, #343034 80%);
+}
+.march-choice-row.rarity-legendary::after,
+.march-choice-row.rarity-epic::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: translateX(-140%);
+  background: linear-gradient(110deg, transparent 30%, #fff5 50%, transparent 70%);
+  animation: march-foil 950ms ease-out 200ms 1;
+  pointer-events: none;
+}
+.toon-shell .march-decision .march-choice-row:hover {
+  border-color: var(--rarity);
+  filter: brightness(1.13);
+  transform: translateX(3px);
+}
+.toon-shell .march-decision .march-choice-row:active {
+  transform: translate(3px, 2px);
+  box-shadow:
+    inset 0 0 0 2px #141b24,
+    0 2px #080e18;
+}
+.march-choice-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 62px;
+  height: 66px;
+  background: #1b2633;
+  border: 2px solid var(--rarity);
+  border-radius: 14px 7px;
+  box-shadow:
+    inset 0 0 0 3px #455163,
+    0 2px #171f2b;
+}
+.march-choice-icon .perk-art {
+  width: 54px;
+  height: 54px;
+}
+.march-choice-copy {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+.march-rarity {
+  color: var(--rarity);
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 1000;
+  letter-spacing: 0.09em;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.march-rarity i {
+  font-style: normal;
+  color: #b5baca;
+  font-size: 8px;
+  letter-spacing: 0.02em;
+}
+.march-choice-copy > strong {
+  font-size: 20px;
+  font-weight: 1000;
+  line-height: 1.1;
+  text-shadow: 0 2px #172031;
+}
+.march-choice-copy > span {
+  color: #e0e6ee;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.march-choice-copy > span b {
+  font-size: 9px;
+  letter-spacing: 0.03em;
+  color: var(--rarity);
+  margin-right: 4px;
+}
+.march-choice-row kbd {
+  flex: none;
+  align-self: end;
+  color: #b6c0d0;
+  border: 1px solid #7a8594;
+  border-radius: 3px;
+  font: 800 10px var(--game-font);
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+}
+.march-choice-content > footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 23px;
+  padding: 0 1px;
+  gap: 12px;
+}
+.toon-shell .march-decision .march-choice-content > footer button {
+  background: #3c4656;
+  color: #eef5ff;
+  border: 1px solid #8999ad;
+  border-radius: 6px;
+  box-shadow:
+    0 3px #0b1422,
+    inset 0 1px #d2e3ff33;
+  height: 39px;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 8px;
+  padding: 0 14px;
+}
+.march-choice-content footer svg {
+  width: 15px;
+}
+.toon-shell .march-decision .march-choice-content > footer button:last-child {
+  background: #1b2330;
+  border-color: #58677c;
+  color: #c0cbd8;
+}
+.toon-shell .march-decision .march-choice-content > footer button:disabled {
+  opacity: 0.5;
+}
+.game-dialog.march-forge-dialog {
+  width: min(660px, calc(100vw - 28px));
+  max-height: calc(100dvh - 28px);
+  padding: 22px;
+  background: #252b35;
+  border: 2px solid #939ea8;
+  box-shadow:
+    inset 0 0 0 4px #151e2a,
+    0 9px #0c131a88;
+  border-radius: 13px;
+  color: #fff;
+  font-family: var(--game-font);
+}
+.march-forge-dialog h2 {
+  font: 900 23px var(--game-font);
+  letter-spacing: -0.02em;
+}
+.march-forge-dialog .dialog-heading {
+  border-bottom: 1px solid #58616e;
+  padding-bottom: 15px;
+  margin-bottom: 15px;
+}
+.march-forge {
+  display: grid;
+  gap: 15px;
+}
+.march-forge-hero {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.march-forge-hero > span {
+  width: 145px;
+  height: 145px;
+  flex: none;
+  background-size: 400% 200%;
+  background-position: 0 0;
+}
+.march-forge-hero small {
+  color: #c6cbd7;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+.march-forge-hero h3 {
+  color: #ffd16d;
+  font-size: 38px;
+  line-height: 1;
+  margin: 8px 0;
+  font-weight: 1000;
+}
+.march-forge-hero h3 small {
+  color: #e1c587;
+  font-size: 10px;
+}
+.march-forge-hero p {
+  font-size: 12px;
+  color: #e0e6f0;
+  margin: 10px 0 0;
+}
+.march-forge-wallet {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  background: #18212e;
+  border-radius: 6px;
+  color: #ffe29e;
+  font-size: 16px;
+  font-weight: 900;
+}
+.march-forge-wallet svg {
+  width: 20px;
+}
+.march-forge-wallet small {
+  color: #adbccc;
+  font-size: 11px;
+  margin-left: auto;
+  font-weight: 700;
+}
+.march-forge-upgrades {
+  display: grid;
+  gap: 10px;
+}
+.march-forge-upgrade {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  border: 1px solid #505c6e;
+  border-radius: 7px;
+  background: #303846;
+  padding: 13px;
+}
+.march-forge-upgrade > svg {
+  width: 27px;
+  height: 27px;
+  color: #dfc884;
+}
+.march-forge-upgrade > span {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+}
+.march-forge-upgrade b {
+  font-size: 14px;
+}
+.march-forge-upgrade small {
+  color: #bfcddd;
+  font-size: 11px;
+}
+.toon-shell .march-forge-dialog .march-forge-upgrade button,
+.toon-shell .march-forge-dialog .march-owned-blade button {
+  min-width: 82px;
+  height: 38px;
+  color: #fff8db;
+  background: #c84a3b;
+  border: 1px solid #f5aa7b;
+  border-radius: 6px;
+  box-shadow: 0 3px #692b2b;
+  gap: 7px;
+  font-size: 14px;
+}
+.march-forge-upgrade button svg {
+  width: 16px;
+}
+.toon-shell .march-forge-dialog .march-forge-upgrade button:disabled,
+.toon-shell .march-forge-dialog .march-owned-blade button:disabled {
+  background: #374252;
+  border-color: #68788c;
+  color: #a8b5c9;
+  box-shadow: 0 3px #1a2330;
+  opacity: 0.8;
+}
+.march-owned-blade {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid #555e6e;
+  padding-top: 10px;
+}
+.march-owned-blade > svg {
+  width: 60px;
+  height: 80px;
+}
+.march-owned-blade > span {
+  display: grid;
+  gap: 4px;
+  flex: 1;
+}
+.march-owned-blade strong {
+  font-size: 17px;
+  color: #ffda7d;
+}
+.march-owned-blade small {
+  color: #6cc8ff;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+}
+.march-owned-blade p {
+  margin: 0;
+  color: #c4cfde;
+  font-size: 12px;
+}
+.is-ember-march button:focus-visible,
+.march-decision button:focus-visible,
+.march-forge-dialog button:focus-visible {
+  outline: 3px solid #ffe6a0;
+  outline-offset: 4px;
+}
+@keyframes march-stat-in {
+  from {
+    color: #c0ff9b;
+  }
+  to {
+    color: #f7fbff;
+  }
+}
+@keyframes march-offer-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes march-foil {
+  to {
+    transform: translateX(140%);
+  }
+}
+@keyframes march-breathe {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@media (max-width: 1100px) {
+  .march-header {
+    grid-template-columns: 1fr 250px 1fr;
+    gap: 14px;
+    left: 20px;
+    right: 20px;
+    top: 18px;
+  }
+  .march-tools {
+    gap: 6px;
+  }
+  .march-coins {
+    font-size: 19px;
+  }
+  .march-coins > svg {
+    width: 25px;
+  }
+  .march-profile strong {
+    font-size: 26px;
+  }
+  .march-profile em {
+    display: none;
+  }
+  .march-ledger {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .march-vitals {
+    gap: 13px;
+  }
+  .march-stats {
+    gap: 0 15px;
+  }
+  .march-stats dt {
+    font-size: 11px;
+    gap: 5px;
+  }
+  .march-stats dd {
+    font-size: 14px;
+  }
+  .march-power {
+    width: 39px !important;
+    height: 39px !important;
+  }
+  .march-powers > div {
+    gap: 6px;
+  }
+  .march-power .perk-art {
+    width: 30px;
+    height: 30px;
+  }
+  .march-departure {
+    gap: 3%;
+    inset: 19% 7% 12%;
+  }
+}
+@media (max-width: 760px) {
+  .is-ember-march {
+    --march-ledger-height: 249px;
+  }
+  .march-header {
+    left: 14px;
+    right: 14px;
+    top: 16px;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+  }
+  .march-avatar {
+    width: 47px;
+    height: 47px;
+    border-radius: 10px;
+  }
+  .toon-shell .march-profile {
+    height: 49px;
+    gap: 9px;
+  }
+  .march-profile small {
+    font-size: 8px;
+  }
+  .march-profile strong {
+    font-size: 24px;
+  }
+  .march-profile strong svg {
+    width: 17px;
+  }
+  .march-chapter {
+    position: absolute;
+    top: 68px;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 200px;
+  }
+  .march-chapter > span {
+    display: none;
+  }
+  .march-chapter strong {
+    font-size: 16px;
+  }
+  .march-chapter small {
+    font-size: 9px;
+  }
+  .march-tools {
+    grid-column: 2;
+    gap: 7px;
+  }
+  .toon-shell .march-tools button {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+  .march-coins {
+    font-size: 18px;
+  }
+  .toon-shell.is-ember-march [data-playables-account-slot] {
+    top: 124px;
+    right: 14px;
+  }
+  .march-ledger {
+    padding: 12px 14px;
+    grid-template-rows: 64px 90px 51px;
+    gap: 9px;
+  }
+  .march-vitals {
+    grid-template-columns: 40px 1fr 1fr;
+    gap: 9px 12px;
+  }
+  .march-level-seal {
+    grid-row: span 2;
+    height: 58px;
+  }
+  .march-meter > span {
+    font-size: 8px;
+    margin-bottom: 3px;
+  }
+  .march-meter b {
+    font-size: 10px;
+  }
+  .march-meter progress {
+    height: 9px;
+  }
+  .march-xp {
+    grid-column: span 2;
+    grid-row: 2;
+  }
+  .march-kill-count {
+    display: none;
+  }
+  .march-stats {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    gap: 0 20px;
+  }
+  .march-stats dt {
+    font-size: 10px;
+  }
+  .march-stats dd {
+    font-size: 12px;
+  }
+  .march-stats svg {
+    width: 13px;
+    height: 13px;
+  }
+  .march-powers {
+    gap: 10px;
+  }
+  .march-powers > div {
+    overflow-x: auto;
+    padding: 3px 2px 6px;
+    scrollbar-width: thin;
+  }
+  .march-powers > button span {
+    display: none;
+  }
+  .toon-shell .march-powers > button {
+    padding: 7px;
+  }
+  .march-power-tip {
+    display: none !important;
+  }
+  .march-run-note {
+    left: 14px;
+    bottom: calc(var(--march-ledger-height) + 12px);
+    font-size: 8px;
+  }
+  .march-run-note > span {
+    display: none;
+  }
+  .march-departure {
+    inset: 22% 8% 4%;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    gap: 0;
+    text-align: center;
+  }
+  .march-camp-hero {
+    grid-row: 1;
+    height: 100%;
+    align-self: stretch;
+    place-content: end center;
+  }
+  .march-camp-hero > span {
+    height: clamp(130px, 23vh, 250px);
+  }
+  .march-camp-hero > small {
+    display: none;
+  }
+  .march-departure-copy {
+    grid-row: 2;
+  }
+  .march-departure h1 {
+    font-size: 34px;
+    margin: 12px 0;
+  }
+  .march-departure h1 br {
+    display: none;
+  }
+  .march-departure p {
+    font-size: 13px;
+    margin: 0 0 20px;
+  }
+  .march-kicker {
+    font-size: 8px;
+  }
+  .toon-shell .march-primary {
+    font-size: 16px;
+    height: 51px;
+    gap: 10px;
+  }
+  .march-departure-copy > small {
+    font-size: 10px;
+    margin-top: 15px;
+  }
+  .march-camp-links {
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .march-choice-content > header {
+    margin-bottom: 15px;
+  }
+  .march-level-ribbon {
+    font-size: 18px;
+    min-width: 220px;
+  }
+  .march-choice-content h2 {
+    font-size: 18px;
+  }
+  .toon-shell .march-decision .march-choice-row {
+    min-height: 111px;
+    gap: 11px;
+    padding: 12px 10px;
+  }
+  .march-choice-icon {
+    width: 46px;
+    height: 53px;
+  }
+  .march-choice-icon .perk-art {
+    width: 42px;
+    height: 42px;
+  }
+  .march-choice-copy > strong {
+    font-size: 17px;
+  }
+  .march-choice-copy > span {
+    font-size: 12px;
+  }
+  .march-choice-row kbd {
+    display: none;
+  }
+  .march-forge-hero > span {
+    width: 105px;
+    height: 105px;
+  }
+  .march-forge-hero h3 {
+    font-size: 30px;
+  }
+  .march-forge-wallet {
+    flex-wrap: wrap;
+  }
+  .march-forge-wallet small {
+    width: 100%;
+    margin: 0;
+  }
+  .march-forge-upgrade {
+    gap: 9px;
+    padding: 10px;
+  }
+  .march-forge-upgrade > svg {
+    width: 22px;
+  }
+  .march-forge-upgrade b {
+    font-size: 12px;
+  }
+  .march-forge-upgrade small {
+    font-size: 10px;
+  }
+  .toon-shell .march-forge-dialog .march-forge-upgrade button {
+    min-width: 65px;
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .march-result-spoils {
+    gap: 28px;
+  }
+  .march-result-spoils b {
+    font-size: 25px;
+  }
+  .march-result-crest {
+    width: 76px;
+    height: 76px;
+  }
+  .march-result > p {
+    font-size: 13px;
+  }
+}
+@media (max-height: 700px) and (min-width: 761px) {
+  .is-ember-march {
+    --march-ledger-height: 183px;
+  }
+  .march-ledger {
+    padding-top: 9px;
+    padding-bottom: 9px;
+    grid-template-rows: 36px 60px 46px;
+    gap: 8px;
+  }
+  .march-vitals {
+    gap: 16px;
+  }
+  .march-level-seal {
+    height: 40px;
+  }
+  .march-level-seal strong {
+    font-size: 20px;
+  }
+  .march-stats dt {
+    font-size: 11px;
+  }
+  .march-stats dd {
+    font-size: 14px;
+  }
+  .march-power {
+    width: 37px !important;
+    height: 37px !important;
+  }
+  .march-power .perk-art {
+    width: 28px;
+    height: 28px;
+  }
+  .march-header {
+    top: 15px;
+  }
+  .march-departure h1 {
+    font-size: 42px;
+  }
+  .march-departure p {
+    font-size: 15px;
+  }
+  .march-camp-hero > span {
+    height: 44vh;
+  }
+  .march-choice-content > header {
+    margin-bottom: 14px;
+  }
+  .march-choice-content h2 {
+    margin-top: 10px;
+  }
+  .march-choice-list {
+    gap: 10px;
+  }
+  .toon-shell .march-decision .march-choice-row {
+    min-height: 99px;
+  }
+  .march-choice-content > footer {
+    margin-top: 17px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .march-camp-hero > span,
+  .march-choice-row,
+  .march-choice-row::after,
+  .march-power,
+  .march-stats dd {
+    animation: none !important;
+  }
+  .march-meter progress::-webkit-progress-value {
+    transition: none;
+  }
+}
+.reduced-motion .march-camp-hero > span,
+.reduced-motion .march-choice-row,
+.reduced-motion .march-choice-row::after,
+.reduced-motion .march-power,
+.reduced-motion .march-stats dd {
+  animation: none !important;
+}
+
+.toon-shell .march-decision .march-choice-content header p {
+  color: #bfc8d5;
+}
+.toon-shell .march-forge-dialog .march-forge p {
+  color: #e0e6f0;
+}
+
+.toon-shell .march-build-dialog .march-stats {
+  height: 210px;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 0 25px;
+}
+.march-build h3 {
+  color: #ffe098;
+  font-size: 15px;
+  margin: 22px 0 10px;
+  font-weight: 900;
+}
+.march-build-powers > div {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #56617466;
+}
+.march-build-powers svg {
+  width: 44px;
+  height: 44px;
+}
+.march-build-powers > div > span {
+  flex: 1;
+}
+.march-build-powers strong {
+  font-size: 14px;
+  color: #f2f6ff;
+}
+.march-build-powers small {
+  font-size: 9px;
+  color: #d1b681;
+  margin-left: 8px;
+}
+.toon-shell .march-build-dialog .march-build-powers p {
+  color: #c5d2e3;
+  font-size: 12px;
+  margin: 5px 0 0;
+  line-height: 1.5;
+}
+
+.toon-shell .march-build-dialog .march-stats dd {
+  animation: none;
+  color: #f7fbff;
+}
+@media (max-width: 760px) {
+  .toon-shell .march-decision .march-choice-content > footer {
+    gap: 8px;
+  }
+  .toon-shell .march-decision .march-choice-content > footer button {
+    min-width: 0;
+    padding: 0 8px;
+    font-size: 11px;
+    gap: 6px;
+  }
+}
+
+.march-paused-sign {
+  flex-wrap: wrap;
+  max-width: calc(100vw - 28px);
+}
+.toon-shell .march-forge-dialog [data-march-retreat] {
+  width: 100%;
+  background: #374252;
+  color: #eff4ff;
+  border: 1px solid #8190a4;
+  border-radius: 6px;
+  box-shadow: 0 3px #151e2a;
+  font-size: 12px;
+  gap: 8px;
+}

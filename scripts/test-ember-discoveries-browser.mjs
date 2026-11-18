@@ -56,7 +56,7 @@ test("Ember discoveries guide real routes without granting early unlocks", {
     const page = await context.newPage();
     page.setDefaultTimeout(10000);
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.goto(origin);
+    await page.goto(`${origin}/?campaign=1`);
     await page.getByRole("button", { name: "Discoveries", exact: true }).waitFor();
     await page.evaluate(() => document.fonts.ready);
     return { context, page };
@@ -138,7 +138,7 @@ test("Ember discoveries guide real routes without granting early unlocks", {
       );
       const page = await context.newPage();
       page.on("pageerror", (e) => errors.push(e.message));
-      await page.goto(origin);
+      await page.goto(`${origin}/?campaign=1`);
       await page.locator('[data-route="rescue"]').click();
       await page.getByRole("dialog", { name: "Mira joins the company." }).waitFor();
       await page.getByRole("button", { name: "Continue the journey", exact: true }).click();
