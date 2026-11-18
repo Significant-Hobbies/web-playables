@@ -601,7 +601,7 @@ function GameUi({ snapshot: v, actions: a }: { snapshot: UiSnapshot; actions: Ui
       (state.phase.kind === "camp" &&
         !firstLightDismissed &&
         !new URLSearchParams(location.search).has("campaign") &&
-        (!state.meta.firstLight?.cleared ||
+        ((state.meta.unlockedChapter === 1 && !state.meta.firstLight?.cleared) ||
           new URLSearchParams(location.search).has("first-light"))));
   const experience = experienceOf(state);
   const level = levelProgress(state);

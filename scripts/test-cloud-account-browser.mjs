@@ -137,7 +137,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     }
   }
   try {
-    await page.goto(`${origin}/play/ember-road/`);
+    await page.goto(`${origin}/play/ember-road/?campaign=1`);
     const hostVersion = digest(await readFile(join(root, "apps/hub/dist/cloud-host.js"))).slice(
       0,
       16,
@@ -181,11 +181,11 @@ test("web account controls preserve guest saves, restore real game checkpoints a
     await page.getByRole("button", { name: "Save to my account", exact: true }).click();
     await page.waitForFunction(() => window.playablesCloud.getState().phase === "saved");
     assert.equal(writes[0].expectedRevision, 0);
-    assert.equal(JSON.parse(writes[0].envelope.data).version, 5);
+    assert.equal(JSON.parse(writes[0].envelope.data).version, 7);
     const changed = JSON.parse(head.data);
     changed.state.meta.gold += 17;
     changed.state.meta.earnedGold += 17;
-    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "5" });
+    commit({ data: JSON.stringify(changed), metadata: head.metadata, schemaVersion: "7" });
     await page.evaluate(() => window.playablesCloud.restore("main"));
     await page.getByRole("button", { name: "Continue cloud journey", exact: true }).click();
     await page.getByRole("button", { name: "Reload game", exact: true }).click();
@@ -245,7 +245,7 @@ test("web account controls preserve guest saves, restore real game checkpoints a
         {
           fixtureAccountOnly: true,
           actualGoogleRoundtrip: false,
-          freshCheckpointVersion: 5,
+          freshCheckpointVersion: 7,
           cloudRestoreAndReload: true,
           historyRestore: true,
           guestPreserved: true,
