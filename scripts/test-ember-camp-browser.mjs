@@ -90,6 +90,11 @@ test("Living Camp locations remain reachable before departure and during a journ
           .getByRole("button", { name: "Account and saves", exact: true })
           .boundingBox();
         const header = await page.locator(".game-topbar").boundingBox();
+        const settingsButton = await page.locator("#settings-toggle").boundingBox();
+        assert(
+          settingsButton && settingsButton.x + settingsButton.width <= width,
+          `Settings fits at ${width}x${height}`,
+        );
         assert(
           account &&
             header &&
